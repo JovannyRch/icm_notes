@@ -34,10 +34,10 @@ import {
 } from "@radix-ui/themes";
 import { useState } from "react";
 import { BiArchive, BiArrowBack, BiDollar, BiPlus } from "react-icons/bi";
-
-import { MdSave, MdUnarchive } from "react-icons/md";
+import { MdCancel, MdSave, MdUnarchive } from "react-icons/md";
 import { TbTrash } from "react-icons/tb";
 import { toast } from "react-toastify";
+import { Inertia } from "@inertiajs/inertia";
 
 interface Props extends PageProps {
     branch: Branch;
@@ -149,6 +149,10 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
         }
     };
 
+    const handleArchive = () => {
+        Inertia.patch(route("notes.archive", note?.id));
+    };
+
     const createNoteItemFromProduct = (product: Product) => {
         const productInterface: NoteItemInterface = {
             product_id: product.id,
@@ -231,15 +235,15 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                         className="btn btn-secondary"
                                         onClick={handleDelete}
                                     >
-                                        Eliminar nota
+                                        Eliminar
                                         <TbTrash />
                                     </Button>
-                                    {note.archive ? (
+                                    {Boolean(note.archived) ? (
                                         <Button
                                             type="button"
-                                            color="amber"
+                                            color="orange"
                                             className="btn btn-secondary"
-                                            onClick={handleDelete}
+                                            onClick={handleArchive}
                                         >
                                             Desarchivar
                                             <MdUnarchive />
@@ -249,7 +253,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                             type="button"
                                             color="amber"
                                             className="btn btn-secondary"
-                                            onClick={handleDelete}
+                                            onClick={handleArchive}
                                         >
                                             Archivar
                                             <BiArchive />
@@ -272,7 +276,24 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 </>
                             )}
                         </Flex>
-                        <Flex gap="2">
+                        <Flex gap="4">
+                            {isEdit && (
+                                <Button
+                                    type="button"
+                                    color="gray"
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                        router.visit(
+                                            route("notes.show", {
+                                                note: note.id,
+                                            })
+                                        );
+                                    }}
+                                >
+                                    Cancelar cambios <MdCancel />
+                                </Button>
+                            )}
+
                             <Button type="submit" className="btn btn-primary">
                                 {isEdit ? "Guardar cambios" : "Crear nota"}
                                 <MdSave />
@@ -356,6 +377,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                         )
                                                     );
                                                 }}
+                                                isEdit={isEdit}
                                                 onOpenSearchModal={(
                                                     position
                                                 ) => {
@@ -383,7 +405,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                     <div className="mt-4">
                                         <Grid columns="9">
                                             <Grid gridColumn="span 9">
-                                                <div>
+                                                <div className="flex justify-end w-full">
                                                     <Button
                                                         type="button"
                                                         onClick={() => {
@@ -393,7 +415,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                             });
                                                         }}
                                                     >
-                                                        Agregar producto{" "}
+                                                        Agregar producto
                                                         <BiPlus />
                                                     </Button>
                                                 </div>
@@ -465,7 +487,6 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                 leading={<BiDollar />}
                                                 error={errors.advance}
                                             />
-                                            <LineDivider />
 
                                             <Flex
                                                 gap="2"
@@ -480,14 +501,14 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                     )}
                                                 </Text>
                                             </Flex>
-                                            <LineDivider />
                                         </>
                                     )}
+                                    <LineDivider className="mt-2 mb-4" />
                                     <Flex
                                         gap="2"
                                         justify="between"
                                         className={
-                                            isPaymentComplete ? "mt-4" : "mt-8"
+                                            isPaymentComplete ? "mt-4" : "mt-4"
                                         }
                                         align="center"
                                     >
@@ -533,7 +554,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                     />
                                 </Flex>
 
-                                <LineDivider className="mt-8 mb-8" />
+                                <LineDivider className="mt-4 mb-4" />
                                 <Flex
                                     gap="2"
                                     justify="between"

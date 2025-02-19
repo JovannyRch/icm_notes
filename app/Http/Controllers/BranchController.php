@@ -41,12 +41,17 @@ class BranchController extends Controller
      */
     public function show(Branch $branch)
     {
+        $archived = request('archived') == '1' ? true : false;
 
-        $notes = $branch->notes()->paginate(10);
+        $notes = $branch->notes()
+            ->where('archived', $archived)
+            ->paginate(10);
+
+        $notes->appends(request()->query());
 
         return Inertia::render('Branches/Show', [
             'branch' => $branch,
-            'pagination' => $notes
+            'pagination' => $notes,
         ]);
     }
 

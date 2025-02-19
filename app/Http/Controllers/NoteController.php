@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Note;
 use App\Models\NoteProduct;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class NoteController extends Controller
@@ -133,6 +134,46 @@ class NoteController extends Controller
         $this->createItems($note, $items);
 
         return redirect()->route('notes.show', $note->id)->with('success', 'Nota actualizada');
+    }
+
+    public function switchArchive(Note $note)
+    {
+        try {
+            Note::where('id', $note->id)->update(['archived' => !$note->archived]);
+        } catch (\Throwable $th) {
+            Log::error($th);
+            return redirect()->route('notes.show', $note->id)->with('error', 'Error al archivar la nota');
+        }
+
+        return redirect()->route('notes.show', $note->id)->with('success', 'Nota archivada');
+    }
+
+    public function archiveNotes(Request $request)
+    {
+        $branch_id = $request->branch;
+        $ids = $request->ids;
+
+        Note::whereIn('id', $ids)->update(['archived' => true]);
+        $total = count($ids);
+        return redirect()->back()->with('success', $total . ' notas archivadas');
+    }
+
+    public function unarchiveNotes(Request $request)
+    {
+
+        $ids = $request->ids;
+        Note::whereIn('id', $ids)->update(['archived' => false]);
+        $total = count($ids);
+        return redirect()->back()->with('success', $total . ' notas desarchivadas');
+    }
+
+    //delete items
+    public function deleteNotes(Request $request)
+    {
+        $ids = $request->ids;
+        Note::whereIn('id', $ids)->delete();
+        $total = count($ids);
+        return redirect()->back()->with('success', $total . ' notas eliminados');
     }
 
     /**

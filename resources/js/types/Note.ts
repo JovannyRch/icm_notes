@@ -15,7 +15,7 @@ export interface Note {
     branch_id: number;
     created_at: string;
     updated_at: string;
-    archive: boolean;
+    archived: boolean;
     payment_method: string;
     sale_total: number;
     purchase_total: number;
