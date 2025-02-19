@@ -31,7 +31,7 @@ const ProductsModal = ({
     mode = "append",
 }: ProductsModalProps) => {
     const { data: products } = useQuery<Product[]>({
-        queryKey: ["todos"],
+        queryKey: ["products"],
         queryFn: async () => {
             const { data } = await axios.get("/api/products");
             return data;
@@ -69,8 +69,8 @@ const ProductsModal = ({
         <Dialog.Root open={open}>
             <Portal>
                 <Dialog.Content
-                    style={{ margin: 0 }}
-                    className="fixed left-1/2 top-1/5 max-h-[85vh] w-[90vw] max-w-[800px] m-0 -translate-x-1/2 -translate-y-1/5 rounded-md bg-gray1 p-[25px] shadow-[var(--shadow-6)] focus:outline-none data-[state=open]:animate-contentShow"
+                    style={{ margin: 0, width: "90vw", maxWidth: "1100px" }}
+                    className="fixed left-1/2 top-1/5 max-h-[85vh] w-[90vw] max-w-[1100px] m-0 -translate-x-1/2 -translate-y-1/5 rounded-md bg-gray1 p-[25px] shadow-[var(--shadow-6)] focus:outline-none data-[state=open]:animate-contentShow"
                 >
                     <Dialog.Title className="m-0 text-[17px] font-medium text-mauve12">
                         Buscar producto
@@ -90,7 +90,6 @@ const ProductsModal = ({
                     <div className="min-h-[250px] overflow-y-auto">
                         {filteredProducts?.length ? (
                             <>
-                                {" "}
                                 <Table.Root>
                                     <Table.Header>
                                         <Table.Row>
@@ -107,13 +106,16 @@ const ProductsModal = ({
                                                 <Text size="1">Medida</Text>
                                             </Table.ColumnHeaderCell>
                                             <Table.ColumnHeaderCell>
-                                                <Text size="1">
-                                                    {" "}
-                                                    Caja/Bulto
-                                                </Text>
+                                                <Text size="1">MC</Text>
+                                            </Table.ColumnHeaderCell>
+                                            <Table.ColumnHeaderCell>
+                                                <Text size="1">Unidad</Text>
                                             </Table.ColumnHeaderCell>
                                             <Table.ColumnHeaderCell>
                                                 <Text size="1">Costo</Text>
+                                            </Table.ColumnHeaderCell>
+                                            <Table.ColumnHeaderCell>
+                                                <Text size="1">Precio</Text>
                                             </Table.ColumnHeaderCell>
 
                                             <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
@@ -150,14 +152,25 @@ const ProductsModal = ({
                                                 </Table.Cell>
                                                 <Table.Cell>
                                                     <Text size="1">
-                                                        {product.caja_bulto ??
-                                                            "-"}
+                                                        {product.mc ?? "-"}
+                                                    </Text>
+                                                </Table.Cell>
+                                                <Table.Cell>
+                                                    <Text size="1">
+                                                        {product.unit ?? "-"}
                                                     </Text>
                                                 </Table.Cell>
                                                 <Table.Cell>
                                                     <Text size="1">
                                                         {formatCurrency(
                                                             product.cost
+                                                        ) ?? "-"}
+                                                    </Text>
+                                                </Table.Cell>
+                                                <Table.Cell>
+                                                    <Text size="1">
+                                                        {formatCurrency(
+                                                            product.price
                                                         ) ?? "-"}
                                                     </Text>
                                                 </Table.Cell>
@@ -177,8 +190,8 @@ const ProductsModal = ({
                                                                 onReplaceProduct?.(
                                                                     product
                                                                 );
-                                                                onClose();
                                                             }
+                                                            onClose();
                                                         }}
                                                     >
                                                         {mode === "append" ? (

@@ -6,11 +6,17 @@ export interface NoteItemInterface {
     model: string;
     measure: string;
     description: string;
-    caja_bulto: string;
-    cost: number;
-    iva: number;
-    commission: number;
+    mc: number | string;
+    unit: string;
+    cost: number | string;
+    price: number | string;
+    iva: number | string;
+    commission: number | string;
+    quantity: number | string;
     stock: number;
-    quantity: number;
-    subtotal: number;
+    purchase_subtotal: number;
+    sale_subtotal: number;
+    product_id?: number;
+    delivery_status: string;
+    supplied_status: string;
 }

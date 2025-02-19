@@ -6,7 +6,33 @@ use Illuminate\Database\Eloquent\Model;
 
 class NoteProduct extends Model
 {
-    protected $fillable = ['note_id', 'product_id', 'position', 'code', 'type', 'brand', 'model', 'measure', 'description', 'quantity', 'caja_bulto', 'cost', 'iva', 'commission', 'status'];
+    //table name
+    protected $table = 'note_product';
+    protected $fillable = [
+        'code',
+        'type',
+        'brand',
+        'model',
+        'measure',
+        'mc',
+        'unit',
+        'iva',
+        'commission',
+        'stock',
+        'cost',
+        'price',
+        'delivery_status',
+        'supplied_status',
+        'note_id',
+        'product_id',
+        'position',
+        'quantity',
+        'iva',
+        'commission',
+        'status',
+        'sale_subtotal',
+        'purchase_subtotal'
+    ];
 
     public function note()
     {

@@ -1,11 +1,14 @@
 import Container from "@/Components/Container";
 import Pagination from "@/Components/Pagination";
+import { DELIVERY_STATUS_MAP } from "@/const";
 import { formatCurrency, formatDate } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Branch } from "@/types/Branch";
 import { Note } from "@/types/Note";
-import { Link, Table } from "@radix-ui/themes";
+import { router } from "@inertiajs/react";
+import { Button, Link, Table } from "@radix-ui/themes";
+import { CgAdd } from "react-icons/cg";
 
 interface Props extends PageProps {
     pagination: any;
@@ -18,12 +21,19 @@ const Show = ({ branch, pagination, flash }: Props) => {
     useAlerts(flash);
 
     return (
-        <Container title="Notas">
+        <Container title={`Notas | ${branch.name}`}>
             <>
                 <div className="flex justify-end">
-                    <Link href={route("notes.create", { branch: 1 })}>
+                    <Button
+                        onClick={() => {
+                            router.visit(
+                                route("notes.create", { branch: branch.id })
+                            );
+                        }}
+                    >
                         Crear Nota
-                    </Link>
+                        <CgAdd className="w-5 h-5" />
+                    </Button>
                 </div>
                 <Table.Root>
                     <Table.Header>
@@ -31,23 +41,29 @@ const Show = ({ branch, pagination, flash }: Props) => {
                             <Table.ColumnHeaderCell>
                                 No. Nota
                             </Table.ColumnHeaderCell>
-
                             <Table.ColumnHeaderCell>
                                 Cliente
                             </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell>A/C</Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>
-                                A cuenta
+                                Restante
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>
-                                Restan
+                                Total venta
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>
-                                Total
+                                Total compra
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>
                                 Fecha
                             </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell>
+                                Estatus de entrega
+                            </Table.ColumnHeaderCell>
 
+                            <Table.ColumnHeaderCell>
+                                Estatus de pago
+                            </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
                         </Table.Row>
                     </Table.Header>
@@ -61,13 +77,23 @@ const Show = ({ branch, pagination, flash }: Props) => {
                                     {formatCurrency(note.advance)}
                                 </Table.Cell>
                                 <Table.Cell>
-                                    {formatCurrency(note.total - note.advance)}
+                                    {formatCurrency(note.balance)}
                                 </Table.Cell>
                                 <Table.Cell>
-                                    {formatCurrency(note.total)}
+                                    {formatCurrency(note.sale_total)}
+                                </Table.Cell>
+                                <Table.Cell>
+                                    {formatCurrency(note.purchase_total)}
+                                </Table.Cell>
+                                <Table.Cell>
+                                    {formatCurrency(note.sale_total)}
                                 </Table.Cell>
 
                                 <Table.Cell>{formatDate(note.date)}</Table.Cell>
+                                <Table.Cell>
+                                    {DELIVERY_STATUS_MAP[note.delivery_status]}
+                                </Table.Cell>
+                                <Table.Cell>{note.status}</Table.Cell>
                                 <Table.Cell>
                                     <div className="flex gap-1">
                                         <Link

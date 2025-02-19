@@ -6,9 +6,11 @@ export interface Product {
     model: string;
     measure: string;
     description: string;
-    caja_bulto: string;
+    mc: number;
+    unit: string;
     cost: number;
     iva: number;
+    price: number;
     commission: number;
     stock: number;
     created_at: string;

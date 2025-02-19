@@ -9,15 +9,30 @@ class Note extends Model
 
 
 
-    protected $fillable = ['folio', 'customer', 'date', 'total', 'advance', 'status', 'delivery', 'notes', 'branch_id'];
+    protected $fillable = [
+        'folio',
+        'customer',
+        'date',
+        'total',
+        'advance',
+        'balance',
+        'status',
+        'purchase_status',
+        'notes',
+        'branch_id',
+        'purchase_total',
+        'sale_total',
+        'payment_method',
+        'delivery_status',
+        'supplied_status',
+        'archived',
+        'purchase_total',
+        'sale_total',
+        'payment_method'
+    ];
 
     public function branch()
     {
         return $this->belongsTo(Branch::class);
-    }
-
-    public function products()
-    {
-        return $this->belongsToMany(Product::class)->withPivot('quantity', 'caja_bulto', 'cost', 'iva', 'commission', 'status');
     }
 }

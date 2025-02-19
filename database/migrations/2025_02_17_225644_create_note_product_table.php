@@ -16,21 +16,29 @@ return new class extends Migration
             $table->foreignId('note_id')->constrained('notes')->onDelete('cascade');
             $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('set null');
 
-            $table->integer('position')->nullable();
             $table->string('code')->nullable();
+            $table->string('model')->nullable();
             $table->string('type')->nullable();
             $table->string('brand')->nullable();
             $table->string('measure')->nullable();
-            $table->string('description')->nullable();
-            $table->string('model')->nullable();
+            $table->string('unit')->nullable();
+            $table->string('mc')->nullable();
+
 
 
             $table->integer('quantity');
-            $table->double('caja_bulto', 10, 2);
             $table->double('cost', 8, 2);
+            $table->double('price', 8, 2);
             $table->double('iva', 8, 2);
             $table->double('commission', 8, 2);
-            $table->enum('status', ['entregado', 'pagado_x_enviar', 'pagador_x_recoger'])->default('pagador_x_recoger');
+            $table->double('sale_subtotal', 8, 2);
+            $table->double('purchase_subtotal', 8, 2);
+
+
+            $table->string('delivery_status')->default('none');
+            $table->string('supplied_status')->default('none');
+
+
             $table->timestamps();
         });
     }

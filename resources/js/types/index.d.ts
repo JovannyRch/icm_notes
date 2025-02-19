@@ -17,3 +17,5 @@ export type PageProps<
         warning?: string;
     };
 };
+
+export type payment_status = "pending" | "paid" | "canceled";

@@ -39,10 +39,12 @@ class DatabaseSeeder extends Seeder
             'brand' => 'CASTEL',
             'model' => 'BASILIA GOLDEN',
             'measure' => '30 X 60',
-            'caja_bulto' => 1.98,
+            'mc' => 1.98,
+            'unit' => 'CAJA',
             'cost' => 96.00,
-            'iva' => 0.16,
-            'commission' => 0.07,
+            'price' => 150.00,
+            'iva' => 16,
+            'commission' => 7,
             'stock' => 100,
         ]);
 
@@ -52,10 +54,12 @@ class DatabaseSeeder extends Seeder
             'brand' => 'CASTEL',
             'model' => 'BASILIA PLATINUM',
             'measure' => '30 X 90',
-            'caja_bulto' => 1.98,
+            'mc' => 1.98,
+            'unit' => 'CAJA',
             'cost' => 100.00,
-            'iva' => 0.16,
-            'commission' => 0.07,
+            'price' => 150.00,
+            'iva' => 16,
+            'commission' => 7,
             'stock' => 100,
         ]);
     }

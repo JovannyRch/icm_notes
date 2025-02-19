@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\Note;
+use App\Models\NoteProduct;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -30,18 +31,62 @@ class NoteController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+
+
+    private function validateRequest($request)
     {
-        //validate
-        $request->validate([
+        return $request->validate([
             'folio' => 'required',
             'date' => 'required',
-            'total' => 'required',
+            'purchase_total' => 'required',
+            'sale_total' => 'required',
             'advance' => 'required',
+            'balance' => 'required',
             'branch_id' => 'required',
+            'items' => 'required',
+            'supplied_status' => 'required',
+            'delivery_status' => 'required',
+            'payment_method' => 'required',
+            'sale_total' => 'required',
+            'purchase_total' => 'required',
+            'status' => 'required',
+            'purchase_status' => 'required',
         ]);
+    }
 
+    private function createItems($note, $items)
+    {
+        foreach ($items as $item) {
+
+            NoteProduct::create([
+                'note_id' => $note->id,
+                'product_id' => isset($item['product_id']) ? $item['product_id'] : null,
+                'code' => $item['code'],
+                'type' => $item['type'],
+                'brand' => $item['brand'],
+                'model' => $item['model'],
+                'measure' => $item['measure'],
+                'quantity' => $item['quantity'],
+                'mc' => $item['mc'],
+                'unit' => $item['unit'],
+                'cost' => $item['cost'],
+                'price' => $item['price'],
+                'iva' => $item['iva'],
+                'commission' => $item['commission'],
+                'purchase_subtotal' => $item['purchase_subtotal'],
+                'sale_subtotal' => $item['sale_subtotal'],
+                'supplied_status' => $item['supplied_status'],
+                'delivery_status' => $item['delivery_status'],
+            ]);
+        }
+    }
+
+    public function store(Request $request)
+    {
+        $this->validateRequest($request);
+        $items = $request->items;
         $note = Note::create($request->all());
+        $this->createItems($note, $items);
 
         return redirect()->route('notes.show', $note->id)->with('success', 'Nota creada correctamente');
     }
@@ -52,9 +97,13 @@ class NoteController extends Controller
     public function show(Note $note)
     {
         $branch = $note->branch;
+
+        $items = NoteProduct::where('note_id', $note->id)->get();
+
         return Inertia::render('Notes/Form', [
             'note' => $note,
-            'branch' => $branch
+            'branch' => $branch,
+            'items' => $items,
         ]);
     }
 
@@ -71,15 +120,12 @@ class NoteController extends Controller
      */
     public function update(Request $request, Note $note)
     {
-        $request->validate([
-            'folio' => 'required',
-            'date' => 'required',
-            'total' => 'required',
-            'advance' => 'required',
-            'branch_id' => 'required',
-        ]);
-
+        $this->validateRequest($request);
+        $items = $request->items;
         $note->update($request->all());
+        NoteProduct::where('note_id', $note->id)->delete();
+        $this->createItems($note, $items);
+
         return redirect()->route('notes.show', $note->id)->with('success', 'Nota actualizada');
     }
 

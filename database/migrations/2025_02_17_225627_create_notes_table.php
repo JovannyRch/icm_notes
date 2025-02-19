@@ -15,11 +15,23 @@ return new class extends Migration
             $table->id();
             $table->string('folio');
             $table->string('customer')->nullable();
+            $table->boolean('archived')->default(false);
             $table->date('date')->useCurrent();
-            $table->decimal('total', 10, 2);
-            $table->decimal('advance', 10, 2);
+
+            $table->decimal('purchase_total', 10, 2);
+            $table->decimal('sale_total', 10, 2);
+            $table->decimal('advance', 10, 2)->default(0);
+            $table->decimal('balance', 10, 2)->default(0);
+
+
+
             $table->enum('status', ['pending', 'paid', 'canceled'])->default('pending');
-            $table->enum('delivery', ['entregado', 'pagado_x_enviar', 'pagador_x_recoger', 'none'])->default('none');
+            $table->enum('purchase_status', ['pending', 'paid', 'canceled'])->default('pending');
+
+            $table->string('payment_method')->default('efectivo');
+            $table->string('delivery_status')->default('none');
+            $table->string('supplied_status')->default('none');
+
             $table->string('notes')->nullable();
             $table->foreignId('branch_id')->constrained('branches')->onDelete('cascade');
             $table->timestamps();

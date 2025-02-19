@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::get('/', function () {
-    return redirect('/login');
+    return redirect('/inicio');
 });
 
 Route::get('/inicio', [BranchController::class, 'index'])->middleware(['auth', 'verified'])->name('inicio');

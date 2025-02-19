@@ -4,6 +4,10 @@ import { BiTrash } from "react-icons/bi";
 import { NoteItemInterface } from "@/types/NoteItem";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { formatCurrency } from "@/helpers/formatters";
+import {
+    calculatePurchaseSubtotal,
+    calculateSaleSubtotal,
+} from "@/helpers/utils";
 
 interface NoteItemProps {
     item: NoteItemInterface;
@@ -20,21 +24,21 @@ const NoteItem = ({
     onOpenSearchModal,
     onUpdate,
 }: NoteItemProps) => {
-    const getSubtotal = (
-        cost: number = item.cost,
-        quantity: number = item.quantity,
-        iva: number = item.iva,
-        commission: number = item.commission
-    ) => {
-        return cost * quantity * (1 + iva / 100) * (1 + commission / 100);
+    const calculateSubtotals = (
+        product: NoteItemInterface
+    ): {
+        purchase_subtotal: number;
+        sale_subtotal: number;
+    } => {
+        return {
+            purchase_subtotal: calculatePurchaseSubtotal(product),
+            sale_subtotal: calculateSaleSubtotal(product),
+        };
     };
 
     return (
         <Grid columns="9">
-            <Grid gridColumn="span 1">
-                <div className="flex items-center">#{index + 1}</div>
-            </Grid>
-            <Grid gridColumn="span 7">
+            <Grid gridColumn="span 8">
                 <Grid
                     columns="8"
                     gap="2"
@@ -55,7 +59,7 @@ const NoteItem = ({
                     </Grid>
                     <Grid gridColumn="span 6">
                         <InputWithLabel
-                            label="Descripción"
+                            label="Modelo"
                             value={item.model}
                             name="model"
                             onChange={(e) => {
@@ -112,70 +116,65 @@ const NoteItem = ({
                     </Grid>
                     <Grid gridColumn="span 2">
                         <InputWithLabel
-                            label="Caja/Bulto"
-                            value={item.caja_bulto}
-                            name="caja_bulto"
+                            label="MC"
+                            value={item.mc}
+                            name="mc"
                             onChange={(e) => {
                                 onUpdate(index, {
                                     ...item,
-                                    caja_bulto: e.target.value,
+                                    mc: e.target.value,
                                 });
                             }}
                         />
                     </Grid>
                     <Grid gridColumn="span 2">
                         <InputWithLabel
-                            label="Costo unitario"
+                            label="Precio de venta"
+                            value={item.price}
+                            name="cost"
+                            onChange={(e) => {
+                                const product = {
+                                    ...item,
+                                    price: e.target.value,
+                                };
+                                onUpdate(index, {
+                                    ...product,
+                                    ...calculateSubtotals(product),
+                                });
+                            }}
+                        />
+                    </Grid>
+                    <Grid gridColumn="span 2">
+                        <InputWithLabel
+                            label="Costo"
                             value={item.cost}
                             name="cost"
                             onChange={(e) => {
-                                onUpdate(index, {
+                                const product = {
                                     ...item,
-                                    cost: Number(e.target.value),
-                                    subtotal: getSubtotal(
-                                        Number(e.target.value ?? 0),
-                                        Number(item.quantity ?? 0),
-                                        Number(item.iva ?? 0),
-                                        Number(item.commission ?? 0)
-                                    ),
+                                    cost: e.target.value,
+                                };
+                                onUpdate(index, {
+                                    ...product,
+                                    ...calculateSubtotals(product),
                                 });
                             }}
                         />
                     </Grid>
-                    <Grid gridColumn="span 2">
-                        <InputWithLabel
-                            label="Cantidad"
-                            value={item.quantity}
-                            name="quantity"
-                            onChange={(e) => {
-                                onUpdate(index, {
-                                    ...item,
-                                    quantity: Number(e.target.value),
-                                    subtotal: getSubtotal(
-                                        Number(item.cost ?? 0),
-                                        Number(e.target.value ?? 0),
-                                        Number(item.iva ?? 0),
-                                        Number(item.commission ?? 0)
-                                    ),
-                                });
-                            }}
-                        />
-                    </Grid>
+
                     <Grid gridColumn="span 2">
                         <InputWithLabel
                             label="IVA (%)"
                             name="iva"
                             value={String(item.iva) ?? ""}
                             onChange={(e) => {
-                                onUpdate(index, {
+                                const product = {
                                     ...item,
-                                    iva: Number(e.target.value),
-                                    subtotal: getSubtotal(
-                                        Number(item.cost ?? 0),
-                                        Number(item.quantity ?? 0),
-                                        Number(e.target.value ?? 0),
-                                        Number(item.commission ?? 0)
-                                    ),
+                                    iva: e.target.value,
+                                };
+                                onUpdate(index, {
+                                    ...product,
+                                    ...calculateSubtotals(product),
                                 });
                             }}
                         />
@@ -186,31 +185,43 @@ const NoteItem = ({
                             value={item.commission}
                             name="commission"
                             onChange={(e) => {
-                                onUpdate(index, {
+                                const product = {
                                     ...item,
-                                    commission: Number(e.target.value),
-                                    subtotal: getSubtotal(
-                                        Number(item.cost ?? 0),
-                                        Number(item.quantity ?? 0),
-                                        Number(item.iva ?? 0),
-                                        Number(e.target.value ?? 0)
-                                    ),
+                                    commission: e.target.value,
+                                };
+                                onUpdate(index, {
+                                    ...product,
+                                    ...calculateSubtotals(product),
                                 });
                             }}
                         />
                     </Grid>
-
-                    <Grid gridColumn="span 5">
+                    <Grid gridColumn="span 2">
                         <InputWithLabel
-                            label="Estatus de entrega"
-                            value="No entregado"
-                            name=""
+                            label="Cantidad"
+                            value={item.quantity}
+                            type="number"
+                            name="quantity"
+                            onChange={(e) => {
+                                const product = {
+                                    ...item,
+                                    quantity: e.target.value,
+                                };
+                                onUpdate(index, {
+                                    ...product,
+                                    ...calculateSubtotals(product),
+                                });
+                            }}
                         />
                     </Grid>
-                    <Grid gridColumn="span 3" className="pt-2">
+                    <Grid gridColumn="span 2"></Grid>
+
+                    <Grid gridColumn="span 4" className="pt-2">
                         <div className="flex items-center justify-between">
                             <Strong>Subtotal:</Strong>
-                            <Strong>{formatCurrency(item.subtotal)}</Strong>
+                            <Strong>
+                                {formatCurrency(item.purchase_subtotal)}
+                            </Strong>
                         </div>
                     </Grid>
                 </Grid>
