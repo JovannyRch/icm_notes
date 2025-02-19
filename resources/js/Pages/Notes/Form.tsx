@@ -37,6 +37,7 @@ import { BiArchive, BiArrowBack, BiDollar, BiPlus } from "react-icons/bi";
 
 import { MdSave, MdUnarchive } from "react-icons/md";
 import { TbTrash } from "react-icons/tb";
+import { toast } from "react-toastify";
 
 interface Props extends PageProps {
     branch: Branch;
@@ -162,7 +163,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             cost: product.cost,
             price: product.price,
             iva: product.iva,
-            commission: product.commission,
+            extra: product.extra,
             stock: product.stock,
             supplied_status: "enviado_a_sucursal",
             delivery_status: "entregado_a_cliente",
@@ -183,7 +184,12 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
     }, [data]);
 
     useUpdateEffect(() => {
-        console.log("errors", errors);
+        if (Object.keys(errors).length > 0) {
+            const errorMessages = Object.values(errors)
+                .map((error) => error)
+                .join(", ");
+            toast.error(errorMessages);
+        }
     }, [errors]);
 
     useUpdateEffect(() => {
@@ -401,7 +407,11 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                     <Grid gridColumn="span 2">
                         <div className="flex flex-col justify-start">
                             <ContainerSection title="Pago">
-                                <Flex justify="end" align="center">
+                                <Flex
+                                    justify="end"
+                                    align="center"
+                                    className="mb-2"
+                                >
                                     {isPaymentComplete ? (
                                         <Badge color="green">Pagado</Badge>
                                     ) : (
@@ -493,7 +503,11 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 </Flex>
                             </ContainerSection>
                             <ContainerSection title="Costo">
-                                <Flex justify="end" align="center">
+                                <Flex
+                                    justify="end"
+                                    align="center"
+                                    className="mb-2"
+                                >
                                     {isPurchaseComplete ? (
                                         <Badge color="green">
                                             Costo cubierto

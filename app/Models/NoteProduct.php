@@ -17,7 +17,7 @@ class NoteProduct extends Model
         'mc',
         'unit',
         'iva',
-        'commission',
+        'extra',
         'stock',
         'cost',
         'price',
@@ -27,8 +27,6 @@ class NoteProduct extends Model
         'product_id',
         'position',
         'quantity',
-        'iva',
-        'commission',
         'status',
         'sale_subtotal',
         'purchase_subtotal'

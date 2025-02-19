@@ -30,7 +30,7 @@ return new class extends Migration
             $table->double('cost', 8, 2);
             $table->double('price', 8, 2);
             $table->double('iva', 8, 2);
-            $table->double('commission', 8, 2);
+            $table->double('extra', 8, 2);
             $table->double('sale_subtotal', 8, 2);
             $table->double('purchase_subtotal', 8, 2);
 

@@ -22,7 +22,7 @@ return new class extends Migration
             $table->double('mc', 10, 2)->nullable();
             $table->double('cost', 8, 2)->nullable();
             $table->double('iva', 8, 2)->nullable();
-            $table->double('commission', 8, 2)->nullable();
+            $table->double('extra', 8, 2)->nullable();
             $table->double('price', 8, 2)->nullable();
             $table->integer('stock')->default(0);
             $table->softDeletes();

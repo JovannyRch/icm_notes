@@ -182,12 +182,12 @@ const NoteItem = ({
                     <Grid gridColumn="span 2">
                         <InputWithLabel
                             label="Extra (%)"
-                            value={item.commission}
-                            name="commission"
+                            value={item.extra}
+                            name="extra"
                             onChange={(e) => {
                                 const product = {
                                     ...item,
-                                    commission: e.target.value,
+                                    extra: e.target.value,
                                 };
                                 onUpdate(index, {
                                     ...product,

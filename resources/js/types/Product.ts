@@ -11,7 +11,7 @@ export interface Product {
     cost: number;
     iva: number;
     price: number;
-    commission: number;
+    extra: number;
     stock: number;
     created_at: string;
     updated_at: string;

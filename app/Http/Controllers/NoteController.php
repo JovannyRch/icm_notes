@@ -43,7 +43,6 @@ class NoteController extends Controller
             'advance' => 'required',
             'balance' => 'required',
             'branch_id' => 'required',
-            'items' => 'required',
             'supplied_status' => 'required',
             'delivery_status' => 'required',
             'payment_method' => 'required',
@@ -51,13 +50,20 @@ class NoteController extends Controller
             'purchase_total' => 'required',
             'status' => 'required',
             'purchase_status' => 'required',
+            'items' => 'required',
+            'items.*.mc' => 'numeric',
+            'items.*.price' => 'required|numeric',
+            'items.*.cost' => 'required|numeric',
+            'items.*.iva' => 'required|numeric',
+            'items.*.extra' => 'required|numeric',
+            'items.*.mc' => 'required|numeric',
+            'items.*.quantity' => 'required|integer',
         ]);
     }
 
     private function createItems($note, $items)
     {
         foreach ($items as $item) {
-
             NoteProduct::create([
                 'note_id' => $note->id,
                 'product_id' => isset($item['product_id']) ? $item['product_id'] : null,
@@ -72,7 +78,7 @@ class NoteController extends Controller
                 'cost' => $item['cost'],
                 'price' => $item['price'],
                 'iva' => $item['iva'],
-                'commission' => $item['commission'],
+                'extra' => $item['extra'],
                 'purchase_subtotal' => $item['purchase_subtotal'],
                 'sale_subtotal' => $item['sale_subtotal'],
                 'supplied_status' => $item['supplied_status'],

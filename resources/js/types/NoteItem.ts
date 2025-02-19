@@ -11,7 +11,7 @@ export interface NoteItemInterface {
     cost: number | string;
     price: number | string;
     iva: number | string;
-    commission: number | string;
+    extra: number | string;
     quantity: number | string;
     stock: number;
     purchase_subtotal: number;

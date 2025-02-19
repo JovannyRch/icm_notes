@@ -16,7 +16,7 @@ class Product extends Model
         'mc',
         'unit',
         'iva',
-        'commission',
+        'extra',
         'stock',
         'price',
         'cost',

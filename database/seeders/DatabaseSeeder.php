@@ -31,7 +31,6 @@ class DatabaseSeeder extends Seeder
             'name' => 'Jilotepec',
         ]);
 
-        //protected $fillable = ['code', 'type', 'brand', 'model', 'measure', 'description', 'caja_bulto', 'cost', 'iva', 'commission', 'stock'];
 
         Product::create([
             'code' => 'COD1',
@@ -44,7 +43,7 @@ class DatabaseSeeder extends Seeder
             'cost' => 96.00,
             'price' => 150.00,
             'iva' => 16,
-            'commission' => 7,
+            'extra' => 7,
             'stock' => 100,
         ]);
 
@@ -59,7 +58,7 @@ class DatabaseSeeder extends Seeder
             'cost' => 100.00,
             'price' => 150.00,
             'iva' => 16,
-            'commission' => 7,
+            'extra' => 7,
             'stock' => 100,
         ]);
     }
