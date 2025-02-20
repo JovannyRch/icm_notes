@@ -20,13 +20,13 @@ class DatabaseSeeder extends Seeder
         User::where('email', 'admin2025@imc.com')->delete();
         User::where('email', 'admin2026@imc.com')->delete();
 
-        User::factory()->create([
+        User::create([
             'name' => 'Admin1',
             'email' => 'admin2025@imc.com',
             'password' => bcrypt('yQHHR~;|uZO3'),
         ]);
 
-        User::factory()->create([
+        User::create([
             'name' => 'Admin2',
             'email' => 'admin2026@imc.com',
             'password' => bcrypt('ttutFDtojlJh3gt'),

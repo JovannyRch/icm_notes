@@ -123,15 +123,15 @@ class ProductController extends Controller
             return response()->json([]);
         }
 
-        $products = Product::where('model', 'LIKE', "%{$query}%")
-            ->orWhere('code', 'LIKE', "%{$query}%")
-            ->orWhere('measure', 'LIKE', "%{$query}%")
-            ->orWhere('mc', 'LIKE', "%{$query}%")
-            ->orWhere('unit', 'LIKE', "%{$query}%")
-            ->orWhere('model', 'LIKE', "%{$query}%")
-            ->orWhere('brand', 'LIKE', "%{$query}%")
-            ->orWhere('price', 'LIKE', "%{$query}%")
-            ->orWhere('cost', 'LIKE', "%{$query}%")
+        $products = Product::where('model', 'ILIKE', "%{$query}%")
+            ->orWhere('code', 'ILIKE', "%{$query}%")
+            ->orWhere('measure', 'ILIKE', "%{$query}%")
+            ->orWhere('mc', 'ILIKE', "%{$query}%")
+            ->orWhere('unit', 'ILIKE', "%{$query}%")
+            ->orWhere('model', 'ILIKE', "%{$query}%")
+            ->orWhere('brand', 'ILIKE', "%{$query}%")
+            ->orWhere('price', 'ILIKE', "%{$query}%")
+            ->orWhere('cost', 'ILIKE', "%{$query}%")
             ->limit(20)
             ->get();
 
