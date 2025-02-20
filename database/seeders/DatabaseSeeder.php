@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Branch;
-use App\Models\Product;
 use App\Models\User;
 /* use App\Models\User; */
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -19,11 +18,18 @@ class DatabaseSeeder extends Seeder
 
         //delete test user
         User::where('email', 'admin2025@imc.com')->delete();
+        User::where('email', 'admin2026@imc.com')->delete();
 
         User::factory()->create([
             'name' => 'Admin1',
             'email' => 'admin2025@imc.com',
             'password' => bcrypt('yQHHR~;|uZO3'),
+        ]);
+
+        User::factory()->create([
+            'name' => 'Admin2',
+            'email' => 'admin2026@imc.com',
+            'password' => bcrypt('ttutFDtojlJh3gt'),
         ]);
 
         //Create a branch
@@ -34,36 +40,5 @@ class DatabaseSeeder extends Seeder
         Branch::create([
             'name' => 'Jilotepec',
         ]);
-
-
-        /*  Product::create([
-            'code' => 'COD1',
-            'type' => 'PISO',
-            'brand' => 'CASTEL',
-            'model' => 'BASILIA GOLDEN',
-            'measure' => '30 X 60',
-            'mc' => 1.98,
-            'unit' => 'CAJA',
-            'cost' => 96.00,
-            'price' => 150.00,
-            'iva' => 16,
-            'extra' => 7,
-            'stock' => 100,
-        ]);
-
-        Product::create([
-            'code' => 'COD2',
-            'type' => 'PISO',
-            'brand' => 'CASTEL',
-            'model' => 'BASILIA PLATINUM',
-            'measure' => '30 X 90',
-            'mc' => 1.98,
-            'unit' => 'CAJA',
-            'cost' => 100.00,
-            'price' => 150.00,
-            'iva' => 16,
-            'extra' => 7,
-            'stock' => 100,
-        ]); */
     }
 }
