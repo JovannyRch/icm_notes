@@ -54,7 +54,7 @@ const Pagination: React.FC<Props> = ({ pagination }) => {
                                     href={link.url || "#"}
                                     className={`px-3 py-1 border rounded hover:bg-gray-200 transition-colors duration-200 ${
                                         isActive
-                                            ? "bg-blue-500 text-white border-blue-500"
+                                            ? "bg-[#3358D4] text-white border-[#3358D4]"
                                             : "bg-white text-gray-700 border-gray-300"
                                     }`}
                                     dangerouslySetInnerHTML={{

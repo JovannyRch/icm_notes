@@ -52,12 +52,10 @@ class NoteController extends Controller
             'status' => 'required',
             'purchase_status' => 'required',
             'items' => 'required',
-            'items.*.mc' => 'numeric',
             'items.*.price' => 'required|numeric',
             'items.*.cost' => 'required|numeric',
             'items.*.iva' => 'required|numeric',
             'items.*.extra' => 'required|numeric',
-            'items.*.mc' => 'required|numeric',
             'items.*.quantity' => 'required|integer',
         ]);
     }

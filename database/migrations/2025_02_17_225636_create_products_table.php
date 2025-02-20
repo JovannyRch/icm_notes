@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('measure')->nullable();
             $table->string('model')->nullable();
             $table->string('unit')->nullable();
-            $table->double('mc', 10, 2)->nullable();
+            $table->string('mc')->nullable();
             $table->double('cost', 8, 2)->nullable();
             $table->double('iva', 8, 2)->nullable();
             $table->double('extra', 8, 2)->nullable();

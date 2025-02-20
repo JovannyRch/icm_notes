@@ -169,7 +169,6 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             brand: product.brand,
             model: product.model,
             measure: product.measure,
-            description: product.description,
             mc: product.mc,
             unit: product.unit,
             cost: product.cost,
@@ -233,7 +232,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                             <Button
                                 type="button"
                                 color="gray"
-                                className="btn btn-secondary"
+                                className="btn btn-secondary hover:cursor-pointer"
                                 onClick={() => {
                                     router.visit(
                                         route("branches.notes", branch.id)
@@ -248,7 +247,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                     <Button
                                         type="button"
                                         color="red"
-                                        className="btn btn-secondary"
+                                        className="btn btn-secondary hover:cursor-pointer"
                                         onClick={handleDelete}
                                     >
                                         Eliminar
@@ -258,7 +257,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                         <Button
                                             type="button"
                                             color="orange"
-                                            className="btn btn-secondary"
+                                            className="btn btn-secondary hover:cursor-pointer"
                                             onClick={handleArchive}
                                         >
                                             Desarchivar
@@ -268,7 +267,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                         <Button
                                             type="button"
                                             color="amber"
-                                            className="btn btn-secondary"
+                                            className="btn btn-secondary hover:cursor-pointer"
                                             onClick={handleArchive}
                                         >
                                             Archivar
@@ -278,6 +277,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                     <Button
                                         color="green"
                                         type="button"
+                                        className="hover:cursor-pointer"
                                         onClick={() => {
                                             router.visit(
                                                 route("notes.create", {
@@ -297,7 +297,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 <Button
                                     type="button"
                                     color="gray"
-                                    className="btn btn-secondary"
+                                    className="btn btn-secondary hover:cursor-pointer"
                                     onClick={() => {
                                         router.visit(
                                             route("notes.show", {
@@ -310,7 +310,10 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 </Button>
                             )}
 
-                            <Button type="submit" className="btn btn-primary">
+                            <Button
+                                type="submit"
+                                className="btn btn-primary hover:cursor-pointer"
+                            >
                                 {isEdit ? "Guardar cambios" : "Crear nota"}
                                 <MdSave />
                             </Button>
@@ -434,6 +437,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                 <div className="flex justify-end w-full">
                                                     <Button
                                                         type="button"
+                                                        className="hover:cursor-pointer"
                                                         onClick={() => {
                                                             setModalValues({
                                                                 mode: "append",

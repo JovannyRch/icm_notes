@@ -5,8 +5,7 @@ export interface NoteItemInterface {
     brand: string;
     model: string;
     measure: string;
-    description: string;
-    mc: number | string;
+    mc: string;
     unit: string;
     cost: number | string;
     price: number | string;

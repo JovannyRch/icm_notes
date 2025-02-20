@@ -30,8 +30,6 @@ const Show = ({ branch, pagination, flash }: Props) => {
 
     useAlerts(flash);
 
-    console.log("notes", notes);
-
     const handleOnArchive = () => {
         Inertia.post(route("notes.archive.items"), {
             branch: branch.id,
@@ -62,7 +60,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
 
     return (
         <Container headTitle="Notas">
-            <div className="min-h-[70vh]">
+            <div style={{ minHeight: "calc(100vh - 130px)" }}>
                 <div>
                     <Text size="6" className="font-semibold">
                         {`Notas - ${branch.name}`}
@@ -74,6 +72,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
                             <>
                                 <Button
                                     color="bronze"
+                                    className="hover:cursor-pointer"
                                     onClick={() => {
                                         router.visit(
                                             route("branches.notes", {
@@ -88,6 +87,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
 
                                 <Button
                                     color="orange"
+                                    className="hover:cursor-pointer"
                                     disabled={selectedItems.length === 0}
                                     onClick={handleOnUnarchive}
                                 >
@@ -99,6 +99,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
                             <>
                                 <Button
                                     color="amber"
+                                    className="hover:cursor-pointer"
                                     onClick={() => {
                                         router.visit(
                                             route("branches.notes", {
@@ -112,6 +113,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
                                     <BiArchive className="w-5 h-5" />
                                 </Button>
                                 <Button
+                                    className="hover:cursor-pointer"
                                     color="amber"
                                     disabled={selectedItems.length === 0}
                                     onClick={handleOnArchive}
@@ -125,7 +127,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
                         <Button
                             type="button"
                             color="gold"
-                            className="btn btn-secondary"
+                            className="btn btn-secondary hover:cursor-pointer"
                             onClick={() => {
                                 setSelectedItems([]);
                             }}
@@ -137,7 +139,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
                         <Button
                             type="button"
                             color="red"
-                            className="btn btn-secondary"
+                            className="btn btn-secondary hover:cursor-pointer"
                             onClick={handleOnDelete}
                             disabled={selectedItems.length === 0}
                         >
@@ -152,6 +154,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
                                     route("notes.create", { branch: branch.id })
                                 );
                             }}
+                            className="hover:cursor-pointer"
                         >
                             Crear Nota
                             <CgAdd className="w-5 h-5" />
@@ -196,10 +199,6 @@ const Show = ({ branch, pagination, flash }: Props) => {
                             <Table.Row
                                 key={note.id}
                                 onClick={(e: any) => {
-                                    console.log(
-                                        "e.target.classList",
-                                        e.target.classList
-                                    );
                                     if (
                                         !e.target.classList.contains(
                                             "clickable"
@@ -308,7 +307,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
                 </Table.Root>
 
                 {notes.length === 0 && (
-                    <div className="flex items-center justify-center w-full h-full min-h-[50vh]">
+                    <div className="flex items-center justify-center w-full h-full min-h-[52vh]">
                         <Text size="6">No se econtraron notas</Text>
                     </div>
                 )}

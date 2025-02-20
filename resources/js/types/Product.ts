@@ -5,8 +5,7 @@ export interface Product {
     brand: string;
     model: string;
     measure: string;
-    description: string;
-    mc: number;
+    mc: string;
     unit: string;
     cost: number;
     iva: number;

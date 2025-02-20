@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -11,6 +13,7 @@ Route::get('/', function () {
 });
 
 Route::get('/inicio', [BranchController::class, 'index'])->middleware(['auth', 'verified'])->name('inicio');
+Route::get('/productos', [ProductController::class, 'index'])->middleware(['auth', 'verified'])->name('products');
 
 
 Route::post('/nota', [NoteController::class, 'store'])->middleware(['auth', 'verified'])->name('notes.store');
@@ -42,5 +45,22 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+
+//Files
+Route::post('/import-products', [ProductImportController::class, 'store'])->name('import.products');
+
+
+
+//Products
+Route::post('/productos/destroy/items', [ProductController::class, 'destroyItems'])->middleware(['auth', 'verified'])->name('products.destroy.items');
+Route::get('/productos/crear', [ProductController::class, 'create'])->middleware(['auth', 'verified'])->name('products.create');
+Route::get('/productos/{product}', [ProductController::class, 'show'])->middleware(['auth', 'verified'])->name('products.show');
+Route::put('/productos/{product}', [ProductController::class, 'update'])->middleware(['auth', 'verified'])->name('products.update');
+Route::post('/productos', [ProductController::class, 'store'])->middleware(['auth', 'verified'])->name('products.store');
+
+//delete
+Route::delete('/productos/{product}', [ProductController::class, 'destroy'])->middleware(['auth', 'verified'])->name('products.destroy');
+
 
 require __DIR__ . '/auth.php';
