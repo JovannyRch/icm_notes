@@ -34,10 +34,17 @@ import {
 } from "@radix-ui/themes";
 import { useState } from "react";
 import { BiArchive, BiArrowBack, BiDollar, BiPlus } from "react-icons/bi";
-import { MdCancel, MdSave, MdUnarchive } from "react-icons/md";
+import {
+    MdCancel,
+    MdOutlinePlaylistAdd,
+    MdSave,
+    MdUnarchive,
+} from "react-icons/md";
 import { TbTrash } from "react-icons/tb";
 import { toast } from "react-toastify";
 import { Inertia } from "@inertiajs/inertia";
+import { SuppliedStatusSelect } from "@/Components/SuppliedStatusSelect";
+import { DeliveryStatusSelect } from "@/Components/DeliveryStatusSelect";
 
 interface Props extends PageProps {
     branch: Branch;
@@ -53,10 +60,10 @@ interface NoteFormData {
     sale_total: string;
     advance: string;
     balance: string;
+    flete: string;
     branch_id: number;
     date: string;
     delivery_status: string;
-    supplied_status: string;
     payment_method: string;
     status: payment_status;
     items: NoteItemInterface[];
@@ -91,6 +98,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
         purchase_total: String(isEdit ? note?.purchase_total : 0),
         notes: isEdit ? note?.notes : "",
         advance: String(isEdit ? note?.advance : "0"),
+        flete: String(isEdit ? note?.flete ?? 0 : "0"),
         balance: String(isEdit ? note?.balance : "0"),
         branch_id: branch.id,
         status: isEdit ? (note?.status as payment_status) : "pending",
@@ -99,12 +107,12 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             : "pending",
         date: isEdit ? note?.date : new Date().toISOString().split("T")[0],
         delivery_status: STATUS_DELIVERY_ENUM.DELIVERED,
-        supplied_status: STATUS_DELIVERY_ENUM.DELIVERED,
+
         items: initialItems,
         payment_method: "efectivo",
     });
 
-    const { items, advance } = data;
+    const { items, advance, flete } = data;
 
     const setCalculatedValues = (items: NoteItemInterface[]) => {
         const purchaseTotal = items.reduce(
@@ -117,7 +125,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
         );
 
         setData("purchase_total", String(purchaseTotal));
-        setData("sale_total", String(saleTotal));
+        setData("sale_total", String(saleTotal + Number(data.flete ?? 0)));
         setData("balance", String(saleTotal - Number(data.advance)));
     };
 
@@ -169,7 +177,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             iva: product.iva,
             extra: product.extra,
             stock: product.stock,
-            supplied_status: "enviado_a_sucursal",
+            supplied_status: "no_enviado",
             delivery_status: "entregado_a_cliente",
             quantity: 1,
             purchase_subtotal: 0,
@@ -207,6 +215,14 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             setIsPaymentComplete(true);
         }
     }, [advance]);
+
+    useUpdateEffect(() => {
+        setCalculatedValues(items);
+    }, [flete]);
+
+    useUpdateEffect(() => {
+        console.log("data", data);
+    }, [data]);
 
     return (
         <Container headTitle={isEdit ? "Editar nota" : "Crear nota"}>
@@ -342,6 +358,17 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                         />
                                     </Grid>
                                     <Grid gridColumn="span 2">
+                                        <DeliveryStatusSelect
+                                            value={data.delivery_status}
+                                            onChange={(value) => {
+                                                setData(
+                                                    "delivery_status",
+                                                    value
+                                                );
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid gridColumn="span 3" gap="2">
                                         <InputWithLabel
                                             label="Cliente"
                                             name="customer"
@@ -399,7 +426,6 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                     );
                                                 }}
                                             />
-                                            <LineDivider className="my-5" />
                                         </div>
                                     ))}
                                     <div className="mt-4">
@@ -416,7 +442,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                         }}
                                                     >
                                                         Agregar producto
-                                                        <BiPlus />
+                                                        <MdOutlinePlaylistAdd className="w-5 h-5" />
                                                     </Button>
                                                 </div>
                                             </Grid>
@@ -503,6 +529,17 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                             </Flex>
                                         </>
                                     )}
+                                    <InlineInput
+                                        label="Flete"
+                                        name="flete"
+                                        type="text"
+                                        value={data.flete}
+                                        onChange={(e) => {
+                                            setData("flete", e.target.value);
+                                        }}
+                                        leading={<BiDollar />}
+                                        error={errors.flete}
+                                    />
                                     <LineDivider className="mt-2 mb-4" />
                                     <Flex
                                         gap="2"
@@ -523,7 +560,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                     </Flex>
                                 </Flex>
                             </ContainerSection>
-                            <ContainerSection title="Costo">
+                            <ContainerSection title="Compra">
                                 <Flex
                                     justify="end"
                                     align="center"
@@ -531,17 +568,17 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 >
                                     {isPurchaseComplete ? (
                                         <Badge color="green">
-                                            Costo cubierto
+                                            Compra liquidada
                                         </Badge>
                                     ) : (
                                         <Badge color="orange">
-                                            Costo por cubrir
+                                            Compra no liquidada
                                         </Badge>
                                     )}
                                 </Flex>
 
                                 <Flex justify="between" align="center">
-                                    <Text size="3">Costo cubierto</Text>
+                                    <Text size="3">Compra liquidada</Text>
                                     <Switch
                                         checked={isPurchaseComplete}
                                         onCheckedChange={(value) => {
@@ -591,22 +628,13 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                 open={modalValues.open}
                 mode={modalValues.mode}
                 onAddProduct={(product) => {
-                    setItems([
-                        ...items,
-                        {
-                            ...product,
-                            ...createNoteItemFromProduct(product),
-                        },
-                    ]);
+                    setItems([...items, createNoteItemFromProduct(product)]);
                 }}
                 onReplaceProduct={(product) => {
                     setItems(
                         items.map((item, index) =>
                             index === selectedProductIndex
-                                ? {
-                                      ...item,
-                                      ...createNoteItemFromProduct(product),
-                                  }
+                                ? createNoteItemFromProduct(product)
                                 : item
                         )
                     );

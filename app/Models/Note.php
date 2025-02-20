@@ -24,11 +24,11 @@ class Note extends Model
         'sale_total',
         'payment_method',
         'delivery_status',
-        'supplied_status',
         'archived',
         'purchase_total',
         'sale_total',
-        'payment_method'
+        'payment_method',
+        'flete',
     ];
 
     public function branch()

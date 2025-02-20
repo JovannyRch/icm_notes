@@ -1,6 +1,6 @@
 import Container from "@/Components/Container";
 import Pagination from "@/Components/Pagination";
-import { DELIVERY_STATUS_MAP } from "@/const";
+import { DELIVERY_STATUS_MAP, STATUS_DELIVERY_ENUM } from "@/const";
 import { formatCurrency, formatDate } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
@@ -8,12 +8,13 @@ import { Branch } from "@/types/Branch";
 import { Note } from "@/types/Note";
 import { Inertia } from "@inertiajs/inertia";
 import { router } from "@inertiajs/react";
-import { Button, Checkbox, Flex, Link, Table, Text } from "@radix-ui/themes";
+import { Badge, Button, Checkbox, Flex, Table, Text } from "@radix-ui/themes";
 import { useState } from "react";
 import { BiArchive, BiArrowBack } from "react-icons/bi";
-import { CgAdd } from "react-icons/cg";
+import { CgAdd, CgCheck } from "react-icons/cg";
+import { GiCancel } from "react-icons/gi";
 import { MdUnarchive } from "react-icons/md";
-import { TbTrash } from "react-icons/tb";
+import { TbTrash, TbTruckDelivery } from "react-icons/tb";
 
 interface Props extends PageProps {
     pagination: any;
@@ -28,6 +29,8 @@ const Show = ({ branch, pagination, flash }: Props) => {
     const [selectedItems, setSelectedItems] = useState<number[]>([]);
 
     useAlerts(flash);
+
+    console.log("notes", notes);
 
     const handleOnArchive = () => {
         Inertia.post(route("notes.archive.items"), {
@@ -118,6 +121,19 @@ const Show = ({ branch, pagination, flash }: Props) => {
                                 </Button>
                             </>
                         )}
+
+                        <Button
+                            type="button"
+                            color="gold"
+                            className="btn btn-secondary"
+                            onClick={() => {
+                                setSelectedItems([]);
+                            }}
+                            disabled={selectedItems.length === 0}
+                        >
+                            Deshacer selección
+                            <GiCancel />
+                        </Button>
                         <Button
                             type="button"
                             color="red"
@@ -147,30 +163,30 @@ const Show = ({ branch, pagination, flash }: Props) => {
                     <Table.Header>
                         <Table.Row>
                             <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>Id</Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>
+
+                            <Table.ColumnHeaderCell className="text-center">
                                 No. Nota
                             </Table.ColumnHeaderCell>
 
-                            <Table.ColumnHeaderCell>A/C</Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>
-                                Restante
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>
-                                Total venta
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>
-                                Total compra
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell className="text-center">
                                 Fecha
                             </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>
-                                Estatus de entrega
+
+                            <Table.ColumnHeaderCell className="text-center">
+                                Estatus de compra
+                            </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell className="text-center">
+                                Total compra
+                            </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell className="text-center">
+                                Estatus de pago
+                            </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell className="text-center">
+                                Total venta
                             </Table.ColumnHeaderCell>
 
-                            <Table.ColumnHeaderCell>
-                                Estatus de pago
+                            <Table.ColumnHeaderCell className="text-center">
+                                Estatus de entrega
                             </Table.ColumnHeaderCell>
                         </Table.Row>
                     </Table.Header>
@@ -180,6 +196,10 @@ const Show = ({ branch, pagination, flash }: Props) => {
                             <Table.Row
                                 key={note.id}
                                 onClick={(e: any) => {
+                                    console.log(
+                                        "e.target.classList",
+                                        e.target.classList
+                                    );
                                     if (
                                         !e.target.classList.contains(
                                             "clickable"
@@ -190,18 +210,19 @@ const Show = ({ branch, pagination, flash }: Props) => {
                                         );
                                     }
                                 }}
+                                className="border-b border-gray-200 hover:cursor-pointer hover:bg-gray-100 odd:bg-white even:bg-gray-50 "
                             >
                                 <Table.Cell className="clickable">
                                     <div className="flex items-center justify-center w-full h-full checkbox clickable">
                                         <Checkbox
-                                            className="clickable"
+                                            className="cursor-pointer hover:cursor-pointer clickable"
                                             checked={selectedItems.includes(
-                                                note.id
+                                                note.id!
                                             )}
                                             onClick={() => {
                                                 if (
                                                     selectedItems.includes(
-                                                        note.id
+                                                        note.id!
                                                     )
                                                 ) {
                                                     setSelectedItems(
@@ -213,37 +234,74 @@ const Show = ({ branch, pagination, flash }: Props) => {
                                                 } else {
                                                     setSelectedItems([
                                                         ...selectedItems,
-                                                        note.id,
+                                                        note.id!,
                                                     ]);
                                                 }
                                             }}
                                         />
                                     </div>
                                 </Table.Cell>
-                                <Table.Cell>{note.id}</Table.Cell>
-                                <Table.Cell>{note.folio}</Table.Cell>
 
-                                <Table.Cell>
-                                    {formatCurrency(note.advance)}
+                                <Table.Cell className="text-center">
+                                    <div className="flex items-center justify-center w-full h-full">
+                                        {note.folio}
+                                    </div>
                                 </Table.Cell>
-                                <Table.Cell>
-                                    {formatCurrency(note.balance)}
+                                <Table.Cell className="text-center">
+                                    {formatDate(note.date)}
                                 </Table.Cell>
-                                <Table.Cell>
-                                    {formatCurrency(note.sale_total)}
+                                <Table.Cell className="text-center">
+                                    <div className="flex items-center justify-center gap-2">
+                                        {note.purchase_status === "paid" ? (
+                                            <Badge color="green">
+                                                Compra liquidada
+                                            </Badge>
+                                        ) : (
+                                            <Badge color="orange">
+                                                Compra no liquidada
+                                            </Badge>
+                                        )}
+                                    </div>
                                 </Table.Cell>
-                                <Table.Cell>
+
+                                <Table.Cell className="text-center">
                                     {formatCurrency(note.purchase_total)}
                                 </Table.Cell>
-                                <Table.Cell>
+
+                                <Table.Cell className="text-center">
+                                    <div className="flex items-center justify-center gap-2">
+                                        {note.status === "paid" ? (
+                                            <Badge color="green">Pagado</Badge>
+                                        ) : (
+                                            <Badge color="orange">
+                                                Pago pendiente
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </Table.Cell>
+                                <Table.Cell className="text-center">
                                     {formatCurrency(note.sale_total)}
                                 </Table.Cell>
 
-                                <Table.Cell>{formatDate(note.date)}</Table.Cell>
-                                <Table.Cell>
-                                    {DELIVERY_STATUS_MAP[note.delivery_status]}
+                                <Table.Cell className="text-center">
+                                    <div className="flex items-center justify-center gap-2">
+                                        <div>
+                                            {
+                                                DELIVERY_STATUS_MAP[
+                                                    note.delivery_status
+                                                ]
+                                            }
+                                        </div>
+                                        {note.delivery_status ===
+                                            STATUS_DELIVERY_ENUM.PAID_TO_SEND && (
+                                            <TbTruckDelivery className="text-orange-600" />
+                                        )}
+                                        {note.delivery_status ===
+                                            STATUS_DELIVERY_ENUM.DELIVERED && (
+                                            <CgCheck className="text-green-600 w-7 h-7" />
+                                        )}
+                                    </div>
                                 </Table.Cell>
-                                <Table.Cell>{note.status}</Table.Cell>
                             </Table.Row>
                         ))}
                     </Table.Body>

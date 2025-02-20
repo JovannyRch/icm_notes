@@ -22,6 +22,8 @@ return new class extends Migration
             $table->decimal('sale_total', 10, 2);
             $table->decimal('advance', 10, 2)->default(0);
             $table->decimal('balance', 10, 2)->default(0);
+            $table->decimal('flete', 10, 2)->default(0);
+
 
 
 
@@ -30,7 +32,6 @@ return new class extends Migration
 
             $table->string('payment_method')->default('efectivo');
             $table->string('delivery_status')->default('none');
-            $table->string('supplied_status')->default('none');
 
             $table->string('notes')->nullable();
             $table->foreignId('branch_id')->constrained('branches')->onDelete('cascade');

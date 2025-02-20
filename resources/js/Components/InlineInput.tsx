@@ -2,6 +2,7 @@ import React from "react";
 import InputLabel from "./InputLabel";
 import TextInput from "./TextInput";
 import InputError from "./InputError";
+import { Text } from "@radix-ui/themes";
 
 interface Props {
     name: string;
@@ -31,9 +32,11 @@ const InlineInput = ({
     return (
         <div className="flex flex-col gap-1">
             <div
-                className={`flex justify-center items-center gap-4${className}`}
+                className={`flex justify-center items-center gap-3 ${className}`}
             >
-                <InputLabel htmlFor={name} value={label} className="flex-1" />
+                <Text size="3" className="flex-1">
+                    {label}
+                </Text>
 
                 <div className="flex items-center gap-1">
                     {leading && (
