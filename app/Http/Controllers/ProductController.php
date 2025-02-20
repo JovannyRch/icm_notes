@@ -114,4 +114,27 @@ class ProductController extends Controller
             return redirect()->back()->with('error', 'Error al eliminar los productos.');
         }
     }
+
+    public function search(Request $request)
+    {
+        $query = $request->input('query');
+
+        if (strlen($query) < 3) {
+            return response()->json([]);
+        }
+
+        $products = Product::where('model', 'LIKE', "%{$query}%")
+            ->orWhere('code', 'LIKE', "%{$query}%")
+            ->orWhere('measure', 'LIKE', "%{$query}%")
+            ->orWhere('mc', 'LIKE', "%{$query}%")
+            ->orWhere('unit', 'LIKE', "%{$query}%")
+            ->orWhere('model', 'LIKE', "%{$query}%")
+            ->orWhere('brand', 'LIKE', "%{$query}%")
+            ->orWhere('price', 'LIKE', "%{$query}%")
+            ->orWhere('cost', 'LIKE', "%{$query}%")
+            ->limit(20)
+            ->get();
+
+        return response()->json($products);
+    }
 }

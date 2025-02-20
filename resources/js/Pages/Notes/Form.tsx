@@ -106,8 +106,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             ? (note?.purchase_status as payment_status)
             : "pending",
         date: isEdit ? note?.date : new Date().toISOString().split("T")[0],
-        delivery_status: STATUS_DELIVERY_ENUM.DELIVERED,
-
+        delivery_status: isEdit ? note?.delivery_status : "entregado_a_cliente",
         items: initialItems,
         payment_method: "efectivo",
     });
@@ -145,9 +144,14 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
         e.preventDefault();
 
         if (isEdit) {
-            put(route("notes.update", note?.id));
+            put(route("notes.update", note?.id), {
+                onFinish: () => {
+                    router.visit(route("notes.show", note?.id));
+                },
+                preserveScroll: true,
+            });
         } else {
-            post(route("notes.store"));
+            post(route("notes.store"), { preserveScroll: true });
         }
     };
 
@@ -218,10 +222,6 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
     useUpdateEffect(() => {
         setCalculatedValues(items);
     }, [flete]);
-
-    useUpdateEffect(() => {
-        console.log("data", data);
-    }, [data]);
 
     return (
         <Container headTitle={isEdit ? "Editar nota" : "Crear nota"}>
@@ -438,6 +438,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                     <Button
                                                         type="button"
                                                         className="hover:cursor-pointer"
+                                                        color="lime"
                                                         onClick={() => {
                                                             setModalValues({
                                                                 mode: "append",
@@ -452,6 +453,44 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                             </Grid>
                                         </Grid>
                                     </div>
+                                    {items.length > 1 && (
+                                        <Flex
+                                            gap="4"
+                                            justify="end"
+                                            className="mt-4"
+                                        >
+                                            {isEdit && (
+                                                <Button
+                                                    type="button"
+                                                    color="gray"
+                                                    className="btn btn-secondary hover:cursor-pointer"
+                                                    onClick={() => {
+                                                        router.visit(
+                                                            route(
+                                                                "notes.show",
+                                                                {
+                                                                    note: note.id,
+                                                                }
+                                                            )
+                                                        );
+                                                    }}
+                                                >
+                                                    Cancelar cambios{" "}
+                                                    <MdCancel />
+                                                </Button>
+                                            )}
+
+                                            <Button
+                                                type="submit"
+                                                className="btn btn-primary hover:cursor-pointer"
+                                            >
+                                                {isEdit
+                                                    ? "Guardar cambios"
+                                                    : "Crear nota"}
+                                                <MdSave />
+                                            </Button>
+                                        </Flex>
+                                    )}
                                 </>
                             </ContainerSection>
                         </Flex>

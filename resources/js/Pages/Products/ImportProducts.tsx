@@ -60,7 +60,7 @@ const ImportProducts = () => {
             </Dialog.Trigger>
 
             <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-black/50" />
+                <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
                 <Dialog.Content className="fixed p-6 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-md top-1/2 left-1/2 min-w-[30vw]">
                     <Dialog.Title className="flex items-center justify-between gap-1 text-lg font-bold">
                         <div className="flex items-center gap-1">

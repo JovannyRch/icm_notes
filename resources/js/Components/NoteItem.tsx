@@ -21,6 +21,7 @@ import InlineInput from "./InlineInput";
 import TextInput from "./TextInput";
 import { SuppliedStatusSelect } from "./SuppliedStatusSelect";
 import { DeliveryStatusSelect } from "./DeliveryStatusSelect";
+import LineDivider from "./LineDivider";
 
 interface NoteItemProps {
     item: NoteItemInterface;
@@ -63,9 +64,15 @@ const NoteItem = ({
         Boolean(isEdit && item?.id)
     );
 
+    const isOdd = index % 2 === 0;
+
     if (detailMode) {
         return (
-            <div>
+            <div
+                className={`mb-6 rounded-md border border-gray-800 px-1 ${
+                    isOdd ? "bg-gray-100" : ""
+                }`}
+            >
                 <Table.Root>
                     <Table.Header>
                         <Table.Row>
@@ -100,7 +107,7 @@ const NoteItem = ({
                     <Table.Body>
                         <Table.Row>
                             <Table.Cell>
-                                <div className="flex items-center w-full h-full">
+                                <div className="flex items-center w-full h-full font-bold">
                                     {[
                                         item.model,
                                         item.type,
@@ -178,19 +185,50 @@ const NoteItem = ({
                         </Table.Row>
                     </Table.Body>
                 </Table.Root>
+
+                <Grid columns="2" gap="2" className="mt-4">
+                    <Grid>
+                        <DeliveryStatusSelect
+                            value={item.delivery_status}
+                            onChange={(value) => {
+                                onUpdate(index, {
+                                    ...item,
+                                    delivery_status: value,
+                                });
+                            }}
+                        />
+                    </Grid>
+                    <Grid>
+                        <SuppliedStatusSelect
+                            value={item.supplied_status}
+                            onChange={(value) => {
+                                onUpdate(index, {
+                                    ...item,
+                                    supplied_status: value,
+                                });
+                            }}
+                        />
+                    </Grid>
+                </Grid>
+                <LineDivider className="mt-8" />
             </div>
         );
     }
 
     return (
-        <Grid columns="9">
+        <Grid
+            columns="9"
+            className={`rounded-md px-1 border border-gray-800  mb-6 ${
+                isOdd ? "bg-gray-100" : " "
+            }`}
+        >
             <Grid gridColumn="span 9">
                 <div className="flex ">
                     <div className="flex-1">
                         <Grid
                             columns="8"
                             gap="2"
-                            className="px-2 py-4 border-b border-gray-200 bg-gray-50"
+                            className="px-2 py-4 border-b border-gray-200 "
                         >
                             <Grid gridColumn="span 2">
                                 <InputWithLabel
