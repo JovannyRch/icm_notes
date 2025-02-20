@@ -71,9 +71,8 @@ interface NoteFormData {
 }
 
 const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
-    const isEdit = !!note;
-
     useAlerts(flash);
+    const isEdit = !!note;
 
     const [modalValues, setModalValues] = useState<{
         mode: "append" | "replace";
