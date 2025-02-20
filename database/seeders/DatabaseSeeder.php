@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Product;
+use App\Models\User;
 /* use App\Models\User; */
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -15,12 +16,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
 
-        /*  User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]); */
+        //delete test user
+        User::where('email', 'admin2025@imc.com')->delete();
+
+        User::factory()->create([
+            'name' => 'Admin1',
+            'email' => 'admin2025@imc.com',
+            'password' => bcrypt('yQHHR~;|uZO3'),
+        ]);
 
         //Create a branch
         Branch::create([
@@ -32,7 +36,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
 
-        Product::create([
+        /*  Product::create([
             'code' => 'COD1',
             'type' => 'PISO',
             'brand' => 'CASTEL',
@@ -60,6 +64,6 @@ class DatabaseSeeder extends Seeder
             'iva' => 16,
             'extra' => 7,
             'stock' => 100,
-        ]);
+        ]); */
     }
 }
