@@ -130,7 +130,7 @@ const Form = ({ product, flash }: FormProps) => {
                             </Grid>
                             <Grid gridColumn="span 1">
                                 <InputWithLabel
-                                    label="Precio ($)"
+                                    label="Precio público ($)"
                                     name="price"
                                     type="text"
                                     value={data.price}

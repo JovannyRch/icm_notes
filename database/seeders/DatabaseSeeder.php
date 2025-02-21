@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
 
         /* User::where('email', 'admin2025@imc.com')->delete();
         User::where('email', 'admin2026@imc.com')->delete();
-
+        use App\Models\User;
         User::create([
             'name' => 'Admin1',
             'email' => 'admin2025@imc.com',

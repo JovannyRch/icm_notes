@@ -315,7 +315,7 @@ const NoteItem = ({
                             </Grid>
                             <Grid gridColumn="span 2">
                                 <InputWithLabel
-                                    label="Precio de venta"
+                                    label="Precio público"
                                     leading="$"
                                     value={item.price}
                                     name="cost"
