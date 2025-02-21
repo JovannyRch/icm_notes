@@ -123,7 +123,6 @@ class ProductController extends Controller
             DB::table('products')->delete();
             return redirect()->back()->with('success', 'Productos eliminados correctamente.');
         } catch (\Throwable $th) {
-            Log::error($th);
             return redirect()->back()->with('error', 'Error al eliminar los productos.');
         }
     }

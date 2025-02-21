@@ -21,7 +21,6 @@ class ProductsImport implements ToModel, WithHeadingRow
             return null;
         }
 
-        Log::info(print_r($row, true));
 
         return new Product([
             'brand' => $row['marca'] ?? null,

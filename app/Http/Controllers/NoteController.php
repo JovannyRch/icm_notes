@@ -152,7 +152,6 @@ class NoteController extends Controller
         try {
             Note::where('id', $note->id)->update(['archived' => !$note->archived]);
         } catch (\Throwable $th) {
-            Log::error($th);
             return redirect()->route('notes.show', $note->id)->with('error', 'Error al archivar la nota');
         }
 
