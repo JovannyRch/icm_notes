@@ -1,7 +1,5 @@
 export interface Product {
     id: number;
-    code: string;
-    type: string;
     brand: string;
     model: string;
     measure: string;

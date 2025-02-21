@@ -16,7 +16,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
 
-        //delete test user
         User::where('email', 'admin2025@imc.com')->delete();
         User::where('email', 'admin2026@imc.com')->delete();
 

@@ -1,3 +1,4 @@
+import BranchSelector from "@/Components/BranchSelector";
 import Container from "@/Components/Container";
 import Pagination from "@/Components/Pagination";
 import { DELIVERY_STATUS_MAP, STATUS_DELIVERY_ENUM } from "@/const";
@@ -13,15 +14,17 @@ import { useState } from "react";
 import { BiArchive, BiArrowBack } from "react-icons/bi";
 import { CgAdd, CgCheck } from "react-icons/cg";
 import { GiCancel } from "react-icons/gi";
+import { LuPackageOpen } from "react-icons/lu";
 import { MdUnarchive } from "react-icons/md";
 import { TbTrash, TbTruckDelivery } from "react-icons/tb";
 
 interface Props extends PageProps {
     pagination: any;
     branch: Branch;
+    branches: Branch[];
 }
 
-const Show = ({ branch, pagination, flash }: Props) => {
+const Home = ({ pagination, flash, branch, branches }: Props) => {
     const { data: notes } = pagination;
 
     const archivedParam = Boolean(route().params.archived);
@@ -32,7 +35,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
 
     const handleOnArchive = () => {
         Inertia.post(route("notes.archive.items"), {
-            branch: branch.id,
+            branch: branch!.id,
             ids: selectedItems.map((id) => id.toString()),
         });
     };
@@ -53,7 +56,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
 
     const handleOnUnarchive = () => {
         Inertia.post(route("notes.unarchive.items"), {
-            branch: branch.id,
+            branch: branch!.id,
             ids: selectedItems.map((id) => id.toString()),
         });
     };
@@ -61,22 +64,56 @@ const Show = ({ branch, pagination, flash }: Props) => {
     return (
         <Container headTitle="Notas">
             <div style={{ minHeight: "calc(100vh - 130px)" }}>
-                <div>
+                <Flex
+                    direction="row"
+                    justify="between"
+                    align="center"
+                    className="mb-6"
+                >
                     <Text size="6" className="font-semibold">
-                        {`Notas - ${branch.name}`}
+                        {`Notas ${archivedParam ? "archivadas" : ""} (${
+                            pagination.total
+                        })`}
                     </Text>
-                </div>
+                    <div>
+                        <BranchSelector
+                            branches={branches}
+                            branch={branch}
+                            onChange={(branch) => {
+                                router.visit(
+                                    route("notas", { branch: branch.id })
+                                );
+                            }}
+                        />
+                    </div>
+                </Flex>
                 <Flex justify="between" gap="4" className="my-4">
+                    <div>
+                        <Button
+                            onClick={() => {
+                                router.visit(
+                                    route("notes.create", {
+                                        branch: branch!.id,
+                                    })
+                                );
+                            }}
+                            className="hover:cursor-pointer"
+                        >
+                            Crear Nota
+                            <CgAdd className="w-5 h-5" />
+                        </Button>
+                    </div>
                     <Flex gap="2">
                         {archivedParam ? (
                             <>
                                 <Button
                                     color="bronze"
+                                    variant="soft"
                                     className="hover:cursor-pointer"
                                     onClick={() => {
                                         router.visit(
-                                            route("branches.notes", {
-                                                branch: branch.id,
+                                            route("notas", {
+                                                branch: branch!.id,
                                             })
                                         );
                                     }}
@@ -87,6 +124,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
 
                                 <Button
                                     color="orange"
+                                    variant="soft"
                                     className="hover:cursor-pointer"
                                     disabled={selectedItems.length === 0}
                                     onClick={handleOnUnarchive}
@@ -98,12 +136,13 @@ const Show = ({ branch, pagination, flash }: Props) => {
                         ) : (
                             <>
                                 <Button
-                                    color="amber"
+                                    color="bronze"
+                                    variant="soft"
                                     className="hover:cursor-pointer"
                                     onClick={() => {
                                         router.visit(
-                                            route("branches.notes", {
-                                                branch: branch.id,
+                                            route("notas", {
+                                                branch: branch!.id,
                                                 archived: true,
                                             })
                                         );
@@ -113,6 +152,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
                                     <BiArchive className="w-5 h-5" />
                                 </Button>
                                 <Button
+                                    variant="soft"
                                     className="hover:cursor-pointer"
                                     color="amber"
                                     disabled={selectedItems.length === 0}
@@ -127,6 +167,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
                         <Button
                             type="button"
                             color="gold"
+                            variant="soft"
                             className="btn btn-secondary hover:cursor-pointer"
                             onClick={() => {
                                 setSelectedItems([]);
@@ -137,6 +178,7 @@ const Show = ({ branch, pagination, flash }: Props) => {
                             <GiCancel />
                         </Button>
                         <Button
+                            variant="soft"
                             type="button"
                             color="red"
                             className="btn btn-secondary hover:cursor-pointer"
@@ -147,19 +189,6 @@ const Show = ({ branch, pagination, flash }: Props) => {
                             <TbTrash />
                         </Button>
                     </Flex>
-                    <div>
-                        <Button
-                            onClick={() => {
-                                router.visit(
-                                    route("notes.create", { branch: branch.id })
-                                );
-                            }}
-                            className="hover:cursor-pointer"
-                        >
-                            Crear Nota
-                            <CgAdd className="w-5 h-5" />
-                        </Button>
-                    </div>
                 </Flex>
 
                 <Table.Root>
@@ -174,18 +203,18 @@ const Show = ({ branch, pagination, flash }: Props) => {
                             <Table.ColumnHeaderCell className="text-center">
                                 Fecha
                             </Table.ColumnHeaderCell>
-
                             <Table.ColumnHeaderCell className="text-center">
-                                Estatus de compra
+                                Total venta cliente
                             </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell className="text-center">
+                                Estatus venta cliente
+                            </Table.ColumnHeaderCell>
+
                             <Table.ColumnHeaderCell className="text-center">
                                 Total compra
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
-                                Estatus de pago
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                Total venta
+                                Estatus compra
                             </Table.ColumnHeaderCell>
 
                             <Table.ColumnHeaderCell className="text-center">
@@ -249,24 +278,10 @@ const Show = ({ branch, pagination, flash }: Props) => {
                                 <Table.Cell className="text-center">
                                     {formatDate(note.date)}
                                 </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    <div className="flex items-center justify-center gap-2">
-                                        {note.purchase_status === "paid" ? (
-                                            <Badge color="green">
-                                                Compra liquidada
-                                            </Badge>
-                                        ) : (
-                                            <Badge color="orange">
-                                                Compra no liquidada
-                                            </Badge>
-                                        )}
-                                    </div>
-                                </Table.Cell>
 
                                 <Table.Cell className="text-center">
-                                    {formatCurrency(note.purchase_total)}
+                                    {formatCurrency(note.sale_total)}
                                 </Table.Cell>
-
                                 <Table.Cell className="text-center">
                                     <div className="flex items-center justify-center gap-2">
                                         {note.status === "paid" ? (
@@ -278,8 +293,20 @@ const Show = ({ branch, pagination, flash }: Props) => {
                                         )}
                                     </div>
                                 </Table.Cell>
+
                                 <Table.Cell className="text-center">
-                                    {formatCurrency(note.sale_total)}
+                                    {formatCurrency(note.purchase_total)}
+                                </Table.Cell>
+                                <Table.Cell className="text-center">
+                                    {note.purchase_status === "paid" ? (
+                                        <Badge color="green">
+                                            Compra liquidada
+                                        </Badge>
+                                    ) : (
+                                        <Badge color="orange">
+                                            Compra no liquidada
+                                        </Badge>
+                                    )}
                                 </Table.Cell>
 
                                 <Table.Cell className="text-center">
@@ -291,10 +318,20 @@ const Show = ({ branch, pagination, flash }: Props) => {
                                                 ]
                                             }
                                         </div>
-                                        {note.delivery_status ===
-                                            STATUS_DELIVERY_ENUM.PAID_TO_SEND && (
+                                        {(note.delivery_status ===
+                                            STATUS_DELIVERY_ENUM.PAID_TO_SEND ||
+                                            note.delivery_status ===
+                                                STATUS_DELIVERY_ENUM.ON_ACCOUNT_TO_SEND) && (
                                             <TbTruckDelivery className="text-orange-600" />
                                         )}
+
+                                        {(note.delivery_status ===
+                                            STATUS_DELIVERY_ENUM.ON_ACCOUNT_TO_PICKUP ||
+                                            note.delivery_status ===
+                                                STATUS_DELIVERY_ENUM.PAID_TO_PICKUP) && (
+                                            <LuPackageOpen className="text-orange-600" />
+                                        )}
+
                                         {note.delivery_status ===
                                             STATUS_DELIVERY_ENUM.DELIVERED && (
                                             <CgCheck className="text-green-600 w-7 h-7" />
@@ -318,4 +355,4 @@ const Show = ({ branch, pagination, flash }: Props) => {
     );
 };
 
-export default Show;
+export default Home;

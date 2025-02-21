@@ -1,4 +1,5 @@
 import ApplicationLogo from "@/Components/ApplicationLogo";
+import BranchSelector from "@/Components/BranchSelector";
 import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
@@ -28,10 +29,10 @@ export default function Authenticated({
 
                             <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink
-                                    href={route("inicio")}
-                                    active={route().current("inicio")}
+                                    href={route("notas")}
+                                    active={route().current("notas")}
                                 >
-                                    Sucursales
+                                    Notas
                                 </NavLink>
                                 <NavLink
                                     href={route("products")}
@@ -138,10 +139,10 @@ export default function Authenticated({
                 >
                     <div className="pt-2 pb-3 space-y-1">
                         <ResponsiveNavLink
-                            href={route("inicio")}
-                            active={route().current("inicio")}
+                            href={route("notas")}
+                            active={route().current("notas")}
                         >
-                            Sucursales
+                            Notas
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             href={route("products")}

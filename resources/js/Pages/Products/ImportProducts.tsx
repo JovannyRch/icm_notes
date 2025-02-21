@@ -53,8 +53,12 @@ const ImportProducts = () => {
     return (
         <Dialog.Root open={open} onOpenChange={setOpen}>
             <Dialog.Trigger asChild>
-                <Button color="teal" onClick={() => setOpen(true)}>
-                    Importar Excel
+                <Button
+                    color="teal"
+                    className="hover:cursor-pointer"
+                    onClick={() => setOpen(true)}
+                >
+                    Importar
                     <FaFileExcel />
                 </Button>
             </Dialog.Trigger>
@@ -64,7 +68,7 @@ const ImportProducts = () => {
                 <Dialog.Content className="fixed p-6 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-md top-1/2 left-1/2 min-w-[30vw]">
                     <Dialog.Title className="flex items-center justify-between gap-1 text-lg font-bold">
                         <div className="flex items-center gap-1">
-                            Importar Productos desde Excel <FaFileExcel />
+                            Importar Productos
                         </div>
                         <div>
                             <button

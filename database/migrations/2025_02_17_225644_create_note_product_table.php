@@ -16,9 +16,7 @@ return new class extends Migration
             $table->foreignId('note_id')->constrained('notes')->onDelete('cascade');
             $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('set null');
 
-            $table->string('code')->nullable();
             $table->string('model')->nullable();
-            $table->string('type')->nullable();
             $table->string('brand')->nullable();
             $table->string('measure')->nullable();
             $table->string('unit')->nullable();

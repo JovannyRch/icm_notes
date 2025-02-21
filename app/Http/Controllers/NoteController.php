@@ -66,8 +66,6 @@ class NoteController extends Controller
             NoteProduct::create([
                 'note_id' => $note->id,
                 'product_id' => isset($item['product_id']) ? $item['product_id'] : null,
-                'code' => $item['code'],
-                'type' => $item['type'],
                 'brand' => $item['brand'],
                 'model' => $item['model'],
                 'measure' => $item['measure'],
@@ -181,5 +179,29 @@ class NoteController extends Controller
     {
         $note->delete();
         return redirect()->route('branches.notes', $note->branch_id)->with('success', 'Nota eliminada correctamente');
+    }
+
+
+    public function home()
+    {
+
+        $branches = Branch::all();
+
+        $branch_id = request('branch') ?? $branches->first()->id;
+        $branch = $branches->find($branch_id);
+
+        $archived = request('archived') == '1' ? true : false;
+
+        $notes = $branch->notes()
+            ->where('archived', $archived)
+            ->paginate(10);
+
+        $notes->appends(request()->query());
+
+        return Inertia::render('Home', [
+            'branch' => $branch,
+            'branches' => $branches,
+            'pagination' => $notes,
+        ]);
     }
 }

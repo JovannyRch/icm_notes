@@ -102,17 +102,12 @@ const ProductsModal = ({
                                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                         <tr>
                                             <th scope="col" className="p-3">
-                                                Código
-                                            </th>
-                                            <th scope="col" className="p-3">
                                                 Modelo
                                             </th>
                                             <th scope="col" className="p-3">
                                                 Marca
                                             </th>
-                                            <th scope="col" className="p-3">
-                                                Tipo
-                                            </th>
+
                                             <th scope="col" className="p-3">
                                                 Medida
                                             </th>
@@ -143,22 +138,28 @@ const ProductsModal = ({
                                     <tbody>
                                         {filteredProducts.map(
                                             (product: Product) => (
-                                                <tr className="border-b border-gray-200 odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 dark:border-gray-700">
-                                                    <th
-                                                        scope="row"
-                                                        className="p-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                                                    >
-                                                        {product.code}
-                                                    </th>
+                                                <tr
+                                                    onClick={() => {
+                                                        if (mode === "append") {
+                                                            onAddProduct(
+                                                                product
+                                                            );
+                                                        } else {
+                                                            onReplaceProduct?.(
+                                                                product
+                                                            );
+                                                        }
+                                                        onClose();
+                                                    }}
+                                                    className="border-b border-gray-200 hover:cursor-pointer odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 dark:border-gray-700"
+                                                >
                                                     <td className="p-3">
                                                         {product.model}
                                                     </td>
                                                     <td className="p-3">
                                                         {product.brand}
                                                     </td>
-                                                    <td className="p-3">
-                                                        {product.type}
-                                                    </td>
+
                                                     <td className="p-3">
                                                         {product.measure}
                                                     </td>
@@ -183,39 +184,6 @@ const ProductsModal = ({
                                                     </td>
                                                     <td className="p-3">
                                                         {product.extra}%
-                                                    </td>
-                                                    <td className="p-3">
-                                                        <button
-                                                            onClick={() => {
-                                                                if (
-                                                                    mode ===
-                                                                    "append"
-                                                                ) {
-                                                                    onAddProduct(
-                                                                        product
-                                                                    );
-                                                                } else {
-                                                                    onReplaceProduct?.(
-                                                                        product
-                                                                    );
-                                                                }
-                                                                onClose();
-                                                            }}
-                                                            type="button"
-                                                            className="text-blue-700 border border-blue-700 hover:bg-blue-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:focus:ring-blue-800 dark:hover:bg-blue-500"
-                                                        >
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                viewBox="0 0 24 24"
-                                                                width="1em"
-                                                                height="1em"
-                                                            >
-                                                                <path
-                                                                    fill="currentColor"
-                                                                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
-                                                                ></path>
-                                                            </svg>
-                                                        </button>
                                                     </td>
                                                 </tr>
                                             )

@@ -167,8 +167,6 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
     const createNoteItemFromProduct = (product: Product) => {
         const productInterface: NoteItemInterface = {
             product_id: product.id,
-            type: product.type,
-            code: product.code,
             brand: product.brand,
             model: product.model,
             measure: product.measure,
@@ -180,7 +178,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             extra: product.extra,
             stock: product.stock,
             supplied_status: "no_enviado",
-            delivery_status: "entregado_a_cliente",
+            delivery_status: STATUS_DELIVERY_ENUM.ON_ACCOUNT_TO_PICKUP,
             quantity: 1,
             purchase_subtotal: 0,
             sale_subtotal: 0,
@@ -233,9 +231,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 color="gray"
                                 className="btn btn-secondary hover:cursor-pointer"
                                 onClick={() => {
-                                    router.visit(
-                                        route("branches.notes", branch.id)
-                                    );
+                                    router.visit(route("notas", branch.id));
                                 }}
                             >
                                 Regresar a la lista
@@ -362,11 +358,26 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                     <Grid gridColumn="span 2">
                                         <DeliveryStatusSelect
                                             value={data.delivery_status}
+                                            isPaymentComplete={
+                                                isPaymentComplete
+                                            }
                                             onChange={(value) => {
                                                 setData(
                                                     "delivery_status",
                                                     value
                                                 );
+                                                if (
+                                                    value ===
+                                                    STATUS_DELIVERY_ENUM.DELIVERED
+                                                ) {
+                                                    setItems(
+                                                        items.map((item) => ({
+                                                            ...item,
+                                                            delivery_status:
+                                                                value,
+                                                        }))
+                                                    );
+                                                }
                                             }}
                                         />
                                     </Grid>
@@ -496,7 +507,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                     </Grid>
                     <Grid gridColumn="span 2">
                         <div className="flex flex-col justify-start">
-                            <ContainerSection title="Pago">
+                            <ContainerSection title="Venta cliente">
                                 <Flex
                                     justify="end"
                                     align="center"

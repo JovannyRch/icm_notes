@@ -9,8 +9,6 @@ class NoteProduct extends Model
     //table name
     protected $table = 'note_product';
     protected $fillable = [
-        'code',
-        'type',
         'brand',
         'model',
         'measure',

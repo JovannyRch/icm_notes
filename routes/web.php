@@ -8,11 +8,8 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 
-Route::get('/', function () {
-    return redirect('/inicio');
-});
+Route::get('/', [NoteController::class, 'home'])->middleware(['auth', 'verified'])->name('notas');
 
-Route::get('/inicio', [BranchController::class, 'index'])->middleware(['auth', 'verified'])->name('inicio');
 Route::get('/productos', [ProductController::class, 'index'])->middleware(['auth', 'verified'])->name('products');
 
 
@@ -49,11 +46,13 @@ Route::middleware('auth')->group(function () {
 
 //Files
 Route::post('/import-products', [ProductImportController::class, 'store'])->name('import.products');
+Route::get('/export-products', [ProductImportController::class, 'export'])->name('export.products');
 
 
 
 //Products
 Route::post('/productos/destroy/items', [ProductController::class, 'destroyItems'])->middleware(['auth', 'verified'])->name('products.destroy.items');
+Route::post('/productos/destroy/all', [ProductController::class, 'destroyAll'])->middleware(['auth', 'verified'])->name('products.destroy.all');
 Route::get('/productos/crear', [ProductController::class, 'create'])->middleware(['auth', 'verified'])->name('products.create');
 Route::get('/productos/{product}', [ProductController::class, 'show'])->middleware(['auth', 'verified'])->name('products.show');
 Route::put('/productos/{product}', [ProductController::class, 'update'])->middleware(['auth', 'verified'])->name('products.update');

@@ -4,7 +4,7 @@ import Pagination from "@/Components/Pagination";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
-import { router, useForm } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import { Button, Flex, Table, Text } from "@radix-ui/themes";
 import { useState } from "react";
 import { CgAdd } from "react-icons/cg";
@@ -14,6 +14,9 @@ import { TbTrash } from "react-icons/tb";
 import ImportProducts from "./ImportProducts";
 import { Inertia } from "@inertiajs/inertia";
 import { formatCurrency } from "@/helpers/formatters";
+import { confirmAlert } from "react-confirm-alert";
+import { MdDeleteSweep } from "react-icons/md";
+import { BiDownload } from "react-icons/bi";
 
 interface Props extends PageProps {
     pagination: any;
@@ -27,15 +30,50 @@ const Index = ({ pagination, flash }: Props) => {
     useAlerts(flash);
 
     const handleDelete = () => {
-        if (
-            confirm(
-                "¿Estás seguro de que deseas eliminar los productos seleccionados?"
-            )
-        ) {
-            Inertia.post(
-                route("products.destroy.items", { ids: selectedItems })
-            );
-        }
+        confirmAlert({
+            title: "Eliminar productos",
+            message: "¿Estás seguro de que deseas eliminar los productos?",
+            buttons: [
+                {
+                    label: "Sí",
+                    onClick: () => {
+                        Inertia.post(
+                            route("products.destroy.items", {
+                                ids: selectedItems,
+                            })
+                        );
+                    },
+                },
+                {
+                    label: "No",
+                    onClick: () => {},
+                },
+            ],
+        });
+    };
+
+    const handleDeleteAll = () => {
+        confirmAlert({
+            title: "Eliminar todos los productos",
+            message:
+                "¿Estás seguro de que deseas eliminar todos los productos? Esta acción no se puede deshacer.",
+            buttons: [
+                {
+                    label: "Sí",
+                    onClick: () => {
+                        Inertia.post(route("products.destroy.all"));
+                    },
+                },
+                {
+                    label: "No",
+                    onClick: () => {},
+                },
+            ],
+        });
+    };
+
+    const handleExport = () => {
+        Inertia.get(route("export.products"));
     };
 
     return (
@@ -47,45 +85,59 @@ const Index = ({ pagination, flash }: Props) => {
                     </Text>
                 </div>
                 <Flex justify="between" gap="4" className="my-4">
-                    <Flex gap="2">
+                    <Flex gap="2" align="center">
                         <Button
                             type="button"
                             color="gold"
                             className="btn btn-secondary hover:cursor-pointer"
                             onClick={() => {
-                                setSelectedItems(
-                                    products.map((p: Product) => p.id!)
-                                );
+                                if (selectedItems.length > 0) {
+                                    setSelectedItems([]);
+                                } else {
+                                    setSelectedItems(
+                                        products.map(
+                                            (product: Product) => product.id!
+                                        )
+                                    );
+                                }
                             }}
-                            disabled={selectedItems.length === products.length}
                         >
-                            Seleccionar todo
+                            {selectedItems.length > 0
+                                ? "Deshacer selección"
+                                : "Seleccionar todo"}
                             <FaListCheck />
                         </Button>
+                        <span className="text-gray-400">|</span>
                         <Button
                             type="button"
-                            color="gold"
-                            className="btn btn-secondary hover:cursor-pointer"
-                            onClick={() => {
-                                setSelectedItems([]);
-                            }}
-                            disabled={selectedItems.length === 0}
-                        >
-                            Deshacer selección
-                            <GiCancel />
-                        </Button>
-
-                        <Button
-                            type="button"
+                            variant="soft"
                             color="red"
                             className="btn btn-secondary hover:cursor-pointer"
                             onClick={handleDelete}
                             disabled={selectedItems.length === 0}
                         >
-                            Eliminar
+                            Eliminar selección
                             <TbTrash />
                         </Button>
+                        <Button
+                            type="button"
+                            color="red"
+                            className="btn btn-secondary hover:cursor-pointer"
+                            onClick={handleDeleteAll}
+                        >
+                            Eliminar todo
+                            <MdDeleteSweep />
+                        </Button>
+                        <span className="text-gray-400">|</span>
                         <ImportProducts />
+                        <Button
+                            color="teal"
+                            className="hover:cursor-pointer"
+                            onClick={handleExport}
+                        >
+                            Exportar
+                            <BiDownload />
+                        </Button>
                     </Flex>
                     <div>
                         <Button
@@ -108,20 +160,16 @@ const Index = ({ pagination, flash }: Props) => {
                             <Table.ColumnHeaderCell>
                                 Marca
                             </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>
-                                Código
-                            </Table.ColumnHeaderCell>
+
                             <Table.ColumnHeaderCell>
                                 Modelo
                             </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                Tipo
-                            </Table.ColumnHeaderCell>
+
                             <Table.ColumnHeaderCell className="text-center">
                                 Medida
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
-                                MC
+                                M²
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
                                 Unidad
@@ -190,11 +238,7 @@ const Index = ({ pagination, flash }: Props) => {
                                 </Table.Cell>
                                 <Table.Cell>{product.id}</Table.Cell>
                                 <Table.Cell>{product.brand}</Table.Cell>
-                                <Table.Cell>{product.code}</Table.Cell>
                                 <Table.Cell>{product.model}</Table.Cell>
-                                <Table.Cell className="text-center">
-                                    {product.type}
-                                </Table.Cell>
                                 <Table.Cell className="text-center">
                                     {product.measure}
                                 </Table.Cell>

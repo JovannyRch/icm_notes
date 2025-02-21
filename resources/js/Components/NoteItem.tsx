@@ -110,7 +110,6 @@ const NoteItem = ({
                                 <div className="flex items-center w-full h-full font-bold">
                                     {[
                                         item.model,
-                                        item.type,
                                         item.brand,
                                         item.measure,
                                         item.unit,
@@ -243,19 +242,6 @@ const NoteItem = ({
                                     }}
                                 />
                             </Grid>
-                            <Grid gridColumn="span 2">
-                                <InputWithLabel
-                                    label="Código"
-                                    value={item.code}
-                                    name="code"
-                                    onChange={(e) => {
-                                        onUpdate(index, {
-                                            ...item,
-                                            code: e.target.value,
-                                        });
-                                    }}
-                                />
-                            </Grid>
 
                             <Grid gridColumn="span 4">
                                 <InputWithLabel
@@ -273,12 +259,22 @@ const NoteItem = ({
 
                             <Grid gridColumn="span 2">
                                 <InputWithLabel
-                                    label="Tipo"
-                                    value={item.type}
-                                    name=""
+                                    label="Cantidad"
+                                    value={item.quantity}
+                                    type="number"
+                                    name="quantity"
+                                    onChange={(e) => {
+                                        const product = {
+                                            ...item,
+                                            quantity: e.target.value,
+                                        };
+                                        onUpdate(index, {
+                                            ...product,
+                                            ...calculateSubtotals(product),
+                                        });
+                                    }}
                                 />
                             </Grid>
-
                             <Grid gridColumn="span 2">
                                 <InputWithLabel
                                     label="Medida"
@@ -417,24 +413,6 @@ const NoteItem = ({
                             <Grid gridColumn="span 3" className="pt-2">
                                 <div className="flex justify-end ">
                                     <div className="flex flex-col gap-4">
-                                        <InlineInput
-                                            label="Cantidad: "
-                                            value={item.quantity}
-                                            type="number"
-                                            name="quantity"
-                                            onChange={(e) => {
-                                                const product = {
-                                                    ...item,
-                                                    quantity: e.target.value,
-                                                };
-                                                onUpdate(index, {
-                                                    ...product,
-                                                    ...calculateSubtotals(
-                                                        product
-                                                    ),
-                                                });
-                                            }}
-                                        />
                                         <div className="flex items-center justify-between">
                                             <Strong>Subtotal venta:</Strong>
                                             <Strong>

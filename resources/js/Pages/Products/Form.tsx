@@ -7,7 +7,6 @@ import { Inertia } from "@inertiajs/inertia";
 import { router, useForm } from "@inertiajs/react";
 import { Button, Grid } from "@radix-ui/themes";
 import { BiSave, BiTrash } from "react-icons/bi";
-import { FiDelete } from "react-icons/fi";
 import { GiCancel } from "react-icons/gi";
 
 interface FormProps extends PageProps {
@@ -20,8 +19,6 @@ const Form = ({ product, flash }: FormProps) => {
     useAlerts(flash);
 
     const { data, setData, errors, put, post } = useForm({
-        code: product ? product.code : "",
-        type: product ? product.type : "",
         brand: product ? product.brand : "",
         model: product ? product.model : "",
         measure: product ? product.measure : "",
@@ -77,17 +74,7 @@ const Form = ({ product, flash }: FormProps) => {
                                     error={errors.brand}
                                 />
                             </Grid>
-                            <Grid gridColumn="span 3">
-                                <InputWithLabel
-                                    label="Código"
-                                    name="code"
-                                    value={data.code}
-                                    onChange={(e) =>
-                                        setData("code", e.target.value)
-                                    }
-                                    error={errors.code}
-                                />
-                            </Grid>
+
                             <Grid gridColumn="span 4">
                                 <InputWithLabel
                                     label="Modelo"
@@ -97,17 +84,6 @@ const Form = ({ product, flash }: FormProps) => {
                                         setData("model", e.target.value)
                                     }
                                     error={errors.model}
-                                />
-                            </Grid>
-                            <Grid gridColumn="span 1">
-                                <InputWithLabel
-                                    label="Tipo"
-                                    name="type"
-                                    value={data.type}
-                                    onChange={(e) =>
-                                        setData("type", e.target.value)
-                                    }
-                                    error={errors.type}
                                 />
                             </Grid>
                             <Grid gridColumn="span 1">

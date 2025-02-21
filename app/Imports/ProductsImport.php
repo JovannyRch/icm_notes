@@ -21,15 +21,13 @@ class ProductsImport implements ToModel, WithHeadingRow
         }
 
         return new Product([
-            'code'  => $row['codigo'] ?? $row['código'] ?? null,
-            'type' => $row['tipo'] ?? null,
             'brand' => $row['marca'] ?? null,
             'model' => $row['modelo'] ?? null,
             'measure' => $row['medida'] ?? null,
             'mc' => $row['mc'] ?? null,
             'unit' => $row['unidad'] ?? null,
             'cost' => $row['costo'] ?? 0.0,
-            'price' => $row['precio'] ?? 0.0,
+            'price' => $row['precio venta'] ?? $row['precio publico'] ?? $row['precio público'] ?? $row['precio'] ?? 0.0,
             'iva' => $row['iva'] ?? 16,
             'extra' => $row['extra'] ?? 0,
         ]);

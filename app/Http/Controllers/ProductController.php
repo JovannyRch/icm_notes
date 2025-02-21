@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -115,6 +117,17 @@ class ProductController extends Controller
         }
     }
 
+    public function destroyAll()
+    {
+        try {
+            DB::table('products')->delete();
+            return redirect()->back()->with('success', 'Productos eliminados correctamente.');
+        } catch (\Throwable $th) {
+            Log::error($th);
+            return redirect()->back()->with('error', 'Error al eliminar los productos.');
+        }
+    }
+
     public function search(Request $request)
     {
         $query = $request->input('query');
@@ -123,15 +136,13 @@ class ProductController extends Controller
             return response()->json([]);
         }
 
-        $products = Product::where('model', 'ILIKE', "%{$query}%")
-            ->orWhere('code', 'ILIKE', "%{$query}%")
-            ->orWhere('measure', 'ILIKE', "%{$query}%")
-            ->orWhere('mc', 'ILIKE', "%{$query}%")
-            ->orWhere('unit', 'ILIKE', "%{$query}%")
-            ->orWhere('model', 'ILIKE', "%{$query}%")
-            ->orWhere('brand', 'ILIKE', "%{$query}%")
-            ->orWhere('price', 'ILIKE', "%{$query}%")
-            ->orWhere('cost', 'ILIKE', "%{$query}%")
+        $products = Product::whereLike('model', '%${$query}%', caseSensitive: false)
+            ->orWhereLike('measure', "%{$query}%", caseSensitive: false)
+            ->orWhereLike('mc', "%{$query}%", caseSensitive: false)
+            ->orWhereLike('unit', "%{$query}%", caseSensitive: false)
+            ->orWhereLike('model', "%{$query}%", caseSensitive: false)
+            ->orWhereLike('price', "%{$query}%", caseSensitive: false)
+            ->orWhereLike('cost', "%{$query}%", caseSensitive: false)
             ->limit(20)
             ->get();
 

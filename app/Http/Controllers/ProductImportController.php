@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ProductsExport;
 use App\Imports\ProductsImport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -22,5 +23,10 @@ class ProductImportController extends Controller
         } catch (\Throwable $th) {
             return redirect()->back()->with('error', "Error al importar productos: {$th->getMessage()}");
         }
+    }
+
+    public function export()
+    {
+        return Excel::download(new ProductsExport, 'products.xlsx');
     }
 }

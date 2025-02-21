@@ -1,6 +1,7 @@
 import "../css/app.css";
 import "./bootstrap";
 import "@radix-ui/themes/styles.css";
+import "react-confirm-alert/src/react-confirm-alert.css";
 
 import { createInertiaApp } from "@inertiajs/react";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
