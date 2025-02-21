@@ -169,7 +169,7 @@ const Index = ({ pagination, flash }: Props) => {
                                 Medida
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
-                                M²
+                                m²
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
                                 Unidad

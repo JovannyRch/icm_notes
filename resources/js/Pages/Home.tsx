@@ -1,10 +1,12 @@
 import BranchSelector from "@/Components/BranchSelector";
 import Container from "@/Components/Container";
+import DeliveryStatusBadge from "@/Components/DeliveryStatusBadge";
 import Pagination from "@/Components/Pagination";
+import StatusPaidBadge from "@/Components/StatusPaidBadge";
 import { DELIVERY_STATUS_MAP, STATUS_DELIVERY_ENUM } from "@/const";
 import { formatCurrency, formatDate } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
-import { PageProps } from "@/types";
+import { PageProps, payment_status } from "@/types";
 import { Branch } from "@/types/Branch";
 import { Note } from "@/types/Note";
 import { Inertia } from "@inertiajs/inertia";
@@ -73,7 +75,7 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                     <Text size="6" className="font-semibold">
                         {`Notas ${archivedParam ? "archivadas" : ""} (${
                             pagination.total
-                        })`}
+                        }) - ${branch.name}`}
                     </Text>
                     <div>
                         <BranchSelector
@@ -113,7 +115,7 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                                     onClick={() => {
                                         router.visit(
                                             route("notas", {
-                                                branch: branch!.id,
+                                                branch: branch.id,
                                             })
                                         );
                                     }}
@@ -194,7 +196,12 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                 <Table.Root>
                     <Table.Header>
                         <Table.Row>
-                            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell className="text-center">
+                                <div className="min-w-[25px]">
+                                    {selectedItems.length > 0 &&
+                                        `(${selectedItems.length})`}
+                                </div>
+                            </Table.ColumnHeaderCell>
 
                             <Table.ColumnHeaderCell className="text-center">
                                 No. Nota
@@ -283,60 +290,40 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                                     {formatCurrency(note.sale_total)}
                                 </Table.Cell>
                                 <Table.Cell className="text-center">
-                                    <div className="flex items-center justify-center gap-2">
-                                        {note.status === "paid" ? (
-                                            <Badge color="green">Pagado</Badge>
-                                        ) : (
-                                            <Badge color="orange">
-                                                Pago pendiente
-                                            </Badge>
-                                        )}
-                                    </div>
+                                    <StatusPaidBadge
+                                        status={note.status as payment_status}
+                                        label={
+                                            note.status === "pending"
+                                                ? "Pendiente"
+                                                : note.status === "paid"
+                                                ? "Pagado"
+                                                : "Cancelado"
+                                        }
+                                    />
                                 </Table.Cell>
 
                                 <Table.Cell className="text-center">
                                     {formatCurrency(note.purchase_total)}
                                 </Table.Cell>
                                 <Table.Cell className="text-center">
-                                    {note.purchase_status === "paid" ? (
-                                        <Badge color="green">
-                                            Compra liquidada
-                                        </Badge>
-                                    ) : (
-                                        <Badge color="orange">
-                                            Compra no liquidada
-                                        </Badge>
-                                    )}
+                                    <StatusPaidBadge
+                                        status={
+                                            note.purchase_status as payment_status
+                                        }
+                                        label={
+                                            note.purchase_status === "pending"
+                                                ? "Costo pendiente"
+                                                : "Costo pagado"
+                                        }
+                                    />
                                 </Table.Cell>
 
                                 <Table.Cell className="text-center">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <div>
-                                            {
-                                                DELIVERY_STATUS_MAP[
-                                                    note.delivery_status
-                                                ]
-                                            }
-                                        </div>
-                                        {(note.delivery_status ===
-                                            STATUS_DELIVERY_ENUM.PAID_TO_SEND ||
-                                            note.delivery_status ===
-                                                STATUS_DELIVERY_ENUM.ON_ACCOUNT_TO_SEND) && (
-                                            <TbTruckDelivery className="text-orange-600" />
-                                        )}
-
-                                        {(note.delivery_status ===
-                                            STATUS_DELIVERY_ENUM.ON_ACCOUNT_TO_PICKUP ||
-                                            note.delivery_status ===
-                                                STATUS_DELIVERY_ENUM.PAID_TO_PICKUP) && (
-                                            <LuPackageOpen className="text-orange-600" />
-                                        )}
-
-                                        {note.delivery_status ===
-                                            STATUS_DELIVERY_ENUM.DELIVERED && (
-                                            <CgCheck className="text-green-600 w-7 h-7" />
-                                        )}
-                                    </div>
+                                    <DeliveryStatusBadge
+                                        status={
+                                            note.delivery_status as STATUS_DELIVERY_ENUM
+                                        }
+                                    />
                                 </Table.Cell>
                             </Table.Row>
                         ))}

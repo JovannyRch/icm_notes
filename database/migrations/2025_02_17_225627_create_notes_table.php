@@ -24,13 +24,19 @@ return new class extends Migration
             $table->decimal('balance', 10, 2)->default(0);
             $table->decimal('flete', 10, 2)->default(0);
 
+            $table->decimal('cash', 10, 2)->nullable();
+            $table->decimal('card', 10, 2)->nullable();
+            $table->decimal('transfer', 10, 2)->nullable();
+
 
 
 
             $table->enum('status', ['pending', 'paid', 'canceled'])->default('pending');
             $table->enum('purchase_status', ['pending', 'paid', 'canceled'])->default('pending');
 
-            $table->string('payment_method')->default('efectivo');
+
+
+
             $table->string('delivery_status')->default('none');
 
             $table->string('notes')->nullable();

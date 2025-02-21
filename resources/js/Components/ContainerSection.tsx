@@ -10,7 +10,7 @@ const ContainerSection = ({
     className,
 }: ContainerSectionProps) => {
     return (
-        <div className={`mb-8 border border-gray-200 rounded-md border-t-0`}>
+        <div className={`mb-4 border border-gray-200 rounded-md border-t-0`}>
             <h2 className="p-2 text-lg font-semibold leading-tight text-white bg-gray-800 rounded-md">
                 {title}
             </h2>

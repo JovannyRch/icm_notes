@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Product;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
@@ -20,6 +21,8 @@ class ProductsImport implements ToModel, WithHeadingRow
             return null;
         }
 
+        Log::info(print_r($row, true));
+
         return new Product([
             'brand' => $row['marca'] ?? null,
             'model' => $row['modelo'] ?? null,
@@ -27,7 +30,7 @@ class ProductsImport implements ToModel, WithHeadingRow
             'mc' => $row['mc'] ?? null,
             'unit' => $row['unidad'] ?? null,
             'cost' => $row['costo'] ?? 0.0,
-            'price' => $row['precio venta'] ?? $row['precio publico'] ?? $row['precio público'] ?? $row['precio'] ?? 0.0,
+            'price' => $row['precio_venta'] ?? $row['precio_publico'] ?? $row['precio_público'] ?? $row['precio'] ?? 0.0,
             'iva' => $row['iva'] ?? 16,
             'extra' => $row['extra'] ?? 0,
         ]);

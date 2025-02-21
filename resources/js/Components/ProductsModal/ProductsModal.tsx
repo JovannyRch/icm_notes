@@ -54,13 +54,13 @@ const ProductsModal = ({
                     </Dialog.Title>
 
                     <div className="max-w-md mx-auto my-4">
-                        <label className="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">
+                        <label className="mb-2 text-sm font-medium text-gray-900 sr-only ">
                             Search
                         </label>
                         <div className="relative">
                             <div className="absolute inset-y-0 flex items-center pointer-events-none start-0 ps-3">
                                 <svg
-                                    className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                                    className="w-4 h-4 text-gray-500 "
                                     aria-hidden="true"
                                     xmlns="http://www.w3.org/2000/svg"
                                     fill="none"
@@ -78,7 +78,7 @@ const ProductsModal = ({
                             <input
                                 type="search"
                                 id="default-search"
-                                className="block w-full p-2 text-sm text-gray-900 border border-gray-300 rounded-lg ps-10 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                className="block w-full p-2 text-sm text-gray-900 border border-gray-300 rounded-lg ps-10 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 "
                                 placeholder="Buscar producto..."
                                 onChange={(e) => setSearchInput(e.target.value)}
                                 value={searchInput}
@@ -98,8 +98,8 @@ const ProductsModal = ({
                         </p>
                         {filteredProducts.length > 0 && (
                             <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
-                                <table className="w-full text-sm text-left text-gray-500 rtl:text-right dark:text-gray-400">
-                                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                <table className="w-full text-sm text-left text-gray-500 rtl:text-right ">
+                                    <thead className="text-xs text-black uppercase bg-gray-50 ">
                                         <tr>
                                             <th scope="col" className="p-3">
                                                 Modelo
@@ -112,7 +112,7 @@ const ProductsModal = ({
                                                 Medida
                                             </th>
                                             <th scope="col" className="p-3">
-                                                MC
+                                                m²
                                             </th>
                                             <th scope="col" className="p-3">
                                                 Unidad
@@ -120,19 +120,13 @@ const ProductsModal = ({
                                             <th scope="col" className="p-3">
                                                 Precio
                                             </th>
-                                            <th scope="col" className="p-3">
+                                            {/*      <th scope="col" className="p-3">
                                                 Costo
                                             </th>
-                                            <th scope="col" className="p-3">
-                                                IVA
-                                            </th>
+
                                             <th scope="col" className="p-3">
                                                 Extra
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                className="p-3"
-                                            ></th>
+                                            </th> */}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -151,7 +145,7 @@ const ProductsModal = ({
                                                         }
                                                         onClose();
                                                     }}
-                                                    className="border-b border-gray-200 hover:cursor-pointer odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 dark:border-gray-700"
+                                                    className="text-gray-900 border-b border-gray-200 hover:cursor-pointer odd:bg-white even:bg-gray-50 hover:bg-gray-100 "
                                                 >
                                                     <td className="p-3">
                                                         {product.model}
@@ -169,22 +163,20 @@ const ProductsModal = ({
                                                     <td className="p-3">
                                                         {product.unit}
                                                     </td>
-                                                    <td className="p-3">
+                                                    <td className="p-3 font-semibold">
                                                         {formatCurrency(
                                                             product.price
                                                         )}
                                                     </td>
-                                                    <td className="p-3">
+                                                    {/*    <td className="p-3">
                                                         {formatCurrency(
                                                             product.cost
                                                         )}
                                                     </td>
-                                                    <td className="p-3">
-                                                        {product.iva}%
-                                                    </td>
+
                                                     <td className="p-3">
                                                         {product.extra}%
-                                                    </td>
+                                                    </td> */}
                                                 </tr>
                                             )
                                         )}

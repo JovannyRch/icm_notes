@@ -18,7 +18,7 @@ class ProductsExport implements FromCollection, WithHeadings, WithStyles, Should
 
     public function headings(): array
     {
-        return ['MARCA', 'MODELO', 'MEDIDA', 'MC', 'UNIDAD', 'PRECIO', 'COSTO', 'IVA', 'EXTRA'];
+        return ['MARCA', 'MODELO', 'MEDIDA', 'MC', 'UNIDAD', 'PRECIO VENTA', 'COSTO', 'IVA', 'EXTRA'];
     }
 
     public function styles(Worksheet $sheet)

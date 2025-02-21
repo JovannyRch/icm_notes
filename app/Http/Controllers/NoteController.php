@@ -46,7 +46,6 @@ class NoteController extends Controller
             'flete' => 'required',
             'branch_id' => 'required',
             'delivery_status' => 'required',
-            'payment_method' => 'required',
             'sale_total' => 'required',
             'purchase_total' => 'required',
             'status' => 'required',
@@ -87,9 +86,17 @@ class NoteController extends Controller
     public function store(Request $request)
     {
         $this->validateRequest($request);
+
+        if ($request->delivery_status == 'cancelado') {
+            $request->merge(['status' => 'canceled']);
+        }
+
         $items = $request->items;
         $note = Note::create($request->all());
         $this->createItems($note, $items);
+
+
+
 
         return redirect()->route('notes.show', $note->id)->with('success', 'Nota creada correctamente');
     }
@@ -125,7 +132,15 @@ class NoteController extends Controller
     {
         $this->validateRequest($request);
         $items = $request->items;
+
+        if ($request->delivery_status == 'cancelado') {
+            $request->merge(['status' => 'canceled']);
+        }
+
         $note->update($request->all());
+
+
+
         NoteProduct::where('note_id', $note->id)->delete();
         $this->createItems($note, $items);
 
@@ -177,8 +192,11 @@ class NoteController extends Controller
      */
     public function destroy(Note $note)
     {
+
+        $branch_id = $note->branch_id;
         $note->delete();
-        return redirect()->route('branches.notes', $note->branch_id)->with('success', 'Nota eliminada correctamente');
+
+        return redirect()->route('notas', ['branch' => $branch_id])->with('success', 'Nota eliminada');
     }
 
 

@@ -29,6 +29,9 @@ class Note extends Model
         'sale_total',
         'payment_method',
         'flete',
+        'card',
+        'transfer',
+        'cash',
     ];
 
     public function branch()

@@ -19,4 +19,7 @@ export interface Note {
     payment_method: string;
     sale_total: number;
     purchase_total: number;
+    cash: number;
+    card: number;
+    transfer: number;
 }

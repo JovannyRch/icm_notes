@@ -18,7 +18,7 @@ Route::post('/nota', [NoteController::class, 'store'])->middleware(['auth', 'ver
 Route::put('/nota/{note}', [NoteController::class, 'update'])->middleware(['auth', 'verified'])->name('notes.update');
 
 //delete
-Route::delete('/nota/{note}', [NoteController::class, 'destroy'])->middleware(['auth', 'verified'])->name('notes.destroy');
+Route::post('/nota/{note}/destroy', [NoteController::class, 'destroy'])->middleware(['auth', 'verified'])->name('notes.destroy');
 Route::post('/nota/destroyItems', [NoteController::class, 'deleteNotes'])->middleware(['auth', 'verified'])->name('notes.destroy.items');
 
 

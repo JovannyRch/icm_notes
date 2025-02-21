@@ -31,8 +31,8 @@ export const DELIVERY_STATUS_MAP: Record<string, string> = {
     entregado_a_cliente: "Entregado",
     pagado_x_enviar: "Pagado por enviar",
     pagador_x_recoger: "Pagador por recoger",
-    acuenta_x_enviar: "A cuenta por enviar",
-    acuenta_x_recoger: "A cuenta por recoger",
+    acuenta_x_enviar: "AC por enviar",
+    acuenta_x_recoger: "AC por recoger",
     cancelado: "Cancelado",
     pendiente: "Pendiente",
 };

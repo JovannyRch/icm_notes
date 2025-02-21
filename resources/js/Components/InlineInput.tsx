@@ -34,7 +34,7 @@ const InlineInput = ({
             <div
                 className={`flex justify-center items-center gap-3 ${className}`}
             >
-                <Text size="3" className="flex-1">
+                <Text size="3" className="flex-1" weight="medium">
                     {label}
                 </Text>
 

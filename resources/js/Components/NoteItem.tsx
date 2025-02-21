@@ -22,6 +22,7 @@ import TextInput from "./TextInput";
 import { SuppliedStatusSelect } from "./SuppliedStatusSelect";
 import { DeliveryStatusSelect } from "./DeliveryStatusSelect";
 import LineDivider from "./LineDivider";
+import UnitInput from "./UnitInput";
 
 interface NoteItemProps {
     item: NoteItemInterface;
@@ -290,7 +291,7 @@ const NoteItem = ({
                             </Grid>
                             <Grid gridColumn="span 2">
                                 <InputWithLabel
-                                    label="MC"
+                                    label="m²"
                                     value={item.mc}
                                     name="mc"
                                     onChange={(e) => {
@@ -302,21 +303,20 @@ const NoteItem = ({
                                 />
                             </Grid>
                             <Grid gridColumn="span 2">
-                                <InputWithLabel
-                                    label="Unidad"
+                                <UnitInput
                                     value={item.unit}
-                                    name="unit"
-                                    onChange={(e) => {
+                                    onChange={(value: string) =>
                                         onUpdate(index, {
                                             ...item,
-                                            unit: e.target.value,
-                                        });
-                                    }}
+                                            unit: value,
+                                        })
+                                    }
                                 />
                             </Grid>
                             <Grid gridColumn="span 2">
                                 <InputWithLabel
                                     label="Precio de venta"
+                                    leading="$"
                                     value={item.price}
                                     name="cost"
                                     onChange={(e) => {
@@ -336,6 +336,7 @@ const NoteItem = ({
                                     label="Costo"
                                     value={item.cost}
                                     name="cost"
+                                    leading="$"
                                     onChange={(e) => {
                                         const product = {
                                             ...item,

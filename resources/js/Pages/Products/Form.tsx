@@ -1,12 +1,14 @@
 import Container from "@/Components/Container";
+import InputLabel from "@/Components/InputLabel";
 import InputWithLabel from "@/Components/InputWithLabel";
+import UnitInput from "@/Components/UnitInput";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
 import { Inertia } from "@inertiajs/inertia";
 import { router, useForm } from "@inertiajs/react";
 import { Button, Grid } from "@radix-ui/themes";
-import { BiSave, BiTrash } from "react-icons/bi";
+import { BiArrowBack, BiSave, BiTrash } from "react-icons/bi";
 import { GiCancel } from "react-icons/gi";
 
 interface FormProps extends PageProps {
@@ -51,14 +53,26 @@ const Form = ({ product, flash }: FormProps) => {
                 className="max-w-[750px] flex flex-col justify-center"
                 style={{ margin: "0 auto", minHeight: "calc(100vh - 155px)" }}
             >
-                <div className="flex justify-between ">
-                    <h2 className="text-xl font-semibold text-gray-800">
-                        {isEdit ? "Editar Producto" : "Nuevo Producto"}
-                    </h2>
+                <div className="flex justify-between mb-8">
+                    <Button
+                        type="button"
+                        color="gray"
+                        onClick={() => {
+                            router.visit(route("products"));
+                        }}
+                    >
+                        Regresar a la lista
+                        <BiArrowBack className="w-4 h-4 " />
+                    </Button>
                     <Button color="red" onClick={handleOnDelete}>
                         Eliminar
                         <BiTrash className="w-4 h-4 " />
                     </Button>
+                </div>
+                <div className="flex justify-between ">
+                    <h2 className="text-xl font-semibold text-gray-800">
+                        {isEdit ? "Editar Producto" : "Nuevo Producto"}
+                    </h2>
                 </div>
                 <div className="flex justify-center">
                     <form onSubmit={submit} className="mt-4 ">
@@ -99,7 +113,7 @@ const Form = ({ product, flash }: FormProps) => {
                             </Grid>
                             <Grid gridColumn="span 1">
                                 <InputWithLabel
-                                    label="MC"
+                                    label="m²"
                                     name="mc"
                                     value={data.mc}
                                     onChange={(e) =>
@@ -109,14 +123,9 @@ const Form = ({ product, flash }: FormProps) => {
                                 />
                             </Grid>
                             <Grid gridColumn="span 1">
-                                <InputWithLabel
-                                    label="Unidad"
-                                    name="unit"
+                                <UnitInput
                                     value={data.unit}
-                                    onChange={(e) =>
-                                        setData("unit", e.target.value)
-                                    }
-                                    error={errors.unit}
+                                    onChange={(value) => setData("unit", value)}
                                 />
                             </Grid>
                             <Grid gridColumn="span 1">
@@ -169,17 +178,7 @@ const Form = ({ product, flash }: FormProps) => {
                                 />
                             </Grid>
                             <Grid gridColumn="span 4" className="pt-4">
-                                <div className="flex justify-between">
-                                    <Button
-                                        type="button"
-                                        color="gray"
-                                        onClick={() => {
-                                            router.visit(route("products"));
-                                        }}
-                                    >
-                                        Cancelar
-                                        <GiCancel className="w-4 h-4 " />
-                                    </Button>
+                                <div className="flex justify-end">
                                     <Button type="submit" color="green">
                                         {isEdit ? "Actualizar" : "Guardar"}
                                         <BiSave className="w-4 h-4 " />

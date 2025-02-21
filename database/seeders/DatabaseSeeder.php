@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
 
-        User::where('email', 'admin2025@imc.com')->delete();
+        /* User::where('email', 'admin2025@imc.com')->delete();
         User::where('email', 'admin2026@imc.com')->delete();
 
         User::create([
@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Admin2',
             'email' => 'admin2026@imc.com',
             'password' => bcrypt('ttutFDtojlJh3gt'),
-        ]);
+        ]); */
 
         //Create a branch
         Branch::create([
