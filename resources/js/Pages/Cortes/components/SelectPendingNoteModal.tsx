@@ -35,8 +35,6 @@ const SelectPendingNoteModal = ({
         initialData: [],
     });
 
-    console.log("selectedPendingNotes", selectedPendingNotes);
-
     return (
         <Modal show={isOpen} onClose={onClose}>
             <div className="p-4">

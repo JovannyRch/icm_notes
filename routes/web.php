@@ -61,5 +61,6 @@ Route::delete('/productos/{product}', [ProductController::class, 'destroy'])->mi
 Route::get('/sucursal/{branch}/cortes/nuevo', [CorteController::class, 'create'])->middleware(['auth', 'verified'])->name('cortes.new');
 Route::post('/cortes', [CorteController::class, 'store'])->middleware(['auth', 'verified'])->name('cortes.store');
 Route::get('/corte/{corte}', [CorteController::class, 'show'])->middleware(['auth', 'verified'])->name('cortes.show');
+Route::delete('/corte/{corte}', [CorteController::class, 'destroy'])->middleware(['auth', 'verified'])->name('cortes.destroy');
 
 require __DIR__ . '/auth.php';

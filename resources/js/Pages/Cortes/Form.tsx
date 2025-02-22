@@ -6,7 +6,7 @@ import { Note } from "@/types/Note";
 import { Button, Flex, IconButton, Text } from "@radix-ui/themes";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
-import { BiRefresh, BiSave } from "react-icons/bi";
+import { BiRefresh, BiSave, BiTrash } from "react-icons/bi";
 import NotesTable from "./components/NotesTable";
 import PendingNotesTable from "./components/PendingNotesTable";
 import AmountDetailsTable from "./components/AmountDetailsTable";
@@ -15,6 +15,7 @@ import { isNumber } from "@/helpers/utils";
 import { Corte } from "@/types/Corte";
 import { Inertia } from "@inertiajs/inertia";
 import useAlerts from "@/hooks/useAlerts";
+import { confirmAlert } from "react-confirm-alert";
 
 interface Props extends PageProps {
     notes: Note[];
@@ -81,8 +82,6 @@ const CorteForm = ({
     date,
 }: Props) => {
     const isDetail = !!corte;
-
-    console.log("date", date);
 
     useAlerts(flash);
 
@@ -197,7 +196,7 @@ const CorteForm = ({
                                     : `Generar Corte`}
                             </Text>
                         </div>
-                        {!isDetail && (
+                        {!isDetail ? (
                             <div>
                                 <IconButton
                                     color="green"
@@ -208,6 +207,41 @@ const CorteForm = ({
                                     }}
                                 >
                                     <BiRefresh className="w-5 h-5" />
+                                </IconButton>
+                            </div>
+                        ) : (
+                            <div>
+                                <IconButton
+                                    color="red"
+                                    className="hover:cursor-pointer"
+                                    size="2"
+                                    onClick={() => {
+                                        confirmAlert({
+                                            title: "Eliminar corte",
+                                            message:
+                                                "¿Estás seguro de eliminar este corte?",
+                                            buttons: [
+                                                {
+                                                    label: "Sí",
+                                                    onClick: () => {
+                                                        Inertia.delete(
+                                                            route(
+                                                                "cortes.destroy",
+                                                                {
+                                                                    corte: corte.id,
+                                                                }
+                                                            )
+                                                        );
+                                                    },
+                                                },
+                                                {
+                                                    label: "No",
+                                                },
+                                            ],
+                                        });
+                                    }}
+                                >
+                                    <BiTrash className="w-5 h-5" />
                                 </IconButton>
                             </div>
                         )}
@@ -221,6 +255,8 @@ const CorteForm = ({
                         date={date}
                         expensesSum={sums.expensesSum}
                         previousNotesTotal={sums.previousNotesSum}
+                        isDisabled={isDetail}
+                        branch={branch}
                     />
                     <Spacer />
                     <NotesTable

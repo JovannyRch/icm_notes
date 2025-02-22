@@ -116,6 +116,7 @@ class CorteController extends Controller
      */
     public function destroy(Corte $corte)
     {
-        //
+        $corte->delete();
+        return redirect()->route('cortes', $corte->branch_id)->with('success', 'Corte eliminado correctamente');
     }
 }

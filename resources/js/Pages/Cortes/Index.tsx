@@ -1,6 +1,7 @@
 import Container from "@/Components/Container";
 import Pagination from "@/Components/Pagination";
 import { formatCurrency } from "@/helpers/formatters";
+import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Branch } from "@/types/Branch";
 import { Corte } from "@/types/Corte";
@@ -14,8 +15,11 @@ interface CortesProps extends PageProps {
     pagination: any;
 }
 
-const CortesIndex = ({ branch, pagination }: CortesProps) => {
+const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
     const { data: cortes } = pagination;
+
+    useAlerts(flash);
+
     return (
         <Container headTitle="Cortes">
             <div style={{ minHeight: "calc(100vh - 130px)" }}>

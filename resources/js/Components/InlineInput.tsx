@@ -15,6 +15,7 @@ interface Props {
     autoComplete?: boolean;
     readonly?: boolean;
     leading?: React.ReactNode | string;
+    disabled?: boolean;
 }
 
 const InlineInput = ({
@@ -27,6 +28,7 @@ const InlineInput = ({
     className,
     autoComplete = false,
     readonly = false,
+    disabled = false,
     leading,
 }: Props) => {
     return (
@@ -50,6 +52,7 @@ const InlineInput = ({
                         className={`mt-1 block w-full flex-1 text-right h-8 ${
                             readonly ? "bg-gray-100 pointer-events-none" : ""
                         }`}
+                        disabled={disabled}
                         autoComplete={autoComplete ? name : undefined}
                         onChange={onChange}
                         readOnly={readonly}
