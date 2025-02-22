@@ -58,11 +58,16 @@ class CorteController extends Controller
                 'transfer_total' => 'required | numeric',
                 'previous_notes_total' => 'required | numeric',
                 'expenses_total' => 'required | numeric',
-                'expenses' => 'required | array',
-                'notes' => 'required | array',
-                'previous_notes' => 'required | array',
+                'expenses' => 'required | string',
+                'notes' => 'required | string',
+                'previous_notes' => 'required | string',
                 'branch_id' => 'required| integer',
             ]);
+
+            $data['expenses'] = json_decode($data['expenses'], true);
+            $data['notes'] = json_decode($data['notes'], true);
+            $data['previous_notes'] = json_decode($data['previous_notes'], true);
+
 
             $corte = Corte::create($data);
 

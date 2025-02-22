@@ -145,31 +145,35 @@ const CorteForm = ({
             cash_total: cashSum,
             previous_notes_total: previousNotesSum,
             expenses_total: expensesSum,
-            notes: notes.map(
-                ({
-                    id,
-                    date,
-                    advance,
-                    balance,
-                    sale_total,
-                    cash,
-                    card,
-                    transfer,
-                    folio,
-                }) => ({
-                    id,
-                    folio,
-                    date,
-                    advance,
-                    balance,
-                    sale_total,
-                    cash,
-                    card,
-                    transfer,
-                })
+            notes: JSON.stringify(
+                notes.map(
+                    ({
+                        id,
+                        date,
+                        advance,
+                        balance,
+                        sale_total,
+                        cash,
+                        card,
+                        transfer,
+                        folio,
+                    }) => ({
+                        id,
+                        folio,
+                        date,
+                        advance,
+                        balance,
+                        sale_total,
+                        cash,
+                        card,
+                        transfer,
+                    })
+                )
             ),
-            expenses: expenses.slice(0, expenses.length - 1),
-            previous_notes: previousNotes.slice(0, previousNotes.length - 1),
+            expenses: JSON.stringify(expenses.slice(0, expenses.length - 1)),
+            previous_notes: JSON.stringify(
+                previousNotes.slice(0, previousNotes.length - 1)
+            ),
             branch_id: branch.id,
         });
     };
