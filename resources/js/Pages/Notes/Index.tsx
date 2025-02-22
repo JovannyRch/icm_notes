@@ -29,6 +29,7 @@ import { TbTrash } from "react-icons/tb";
 import DateFilter from "./components/DateFilter";
 import NoteSearchInput from "./components/NoteSearchInput";
 import SaleCustomerStatusFilter from "./components/SaleCustomerStatusFilter";
+import { FaCut } from "react-icons/fa";
 
 interface Props extends PageProps {
     pagination: any;
@@ -100,7 +101,7 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                     </div>
                 </Flex>
                 <Flex justify="between" gap="4" className="my-4">
-                    <div>
+                    <Flex gap="2">
                         <Button
                             onClick={() => {
                                 router.visit(
@@ -114,7 +115,21 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                             Crear Nota
                             <CgAdd className="w-5 h-5" />
                         </Button>
-                    </div>
+                        <Button
+                            color="bronze"
+                            className="hover:cursor-pointer"
+                            onClick={() => {
+                                router.visit(
+                                    route("cortes", {
+                                        branch: branch.id,
+                                    })
+                                );
+                            }}
+                        >
+                            Cortes
+                            <FaCut className="w-3 h-3" />
+                        </Button>
+                    </Flex>
                     <Flex gap="2">
                         {archivedParam ? (
                             <>

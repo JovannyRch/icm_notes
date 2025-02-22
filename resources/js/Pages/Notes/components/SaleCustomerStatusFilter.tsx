@@ -1,8 +1,7 @@
 import { Inertia } from "@inertiajs/inertia";
 import { Button, DropdownMenu } from "@radix-ui/themes";
 import { useMemo } from "react";
-import { FaRegCalendarAlt } from "react-icons/fa";
-
+import { MdOutlineAttachMoney } from "react-icons/md";
 const DATE_FILTERS_VALUES = {
     paid: "Pagado",
     pending: "Pendiente de pago",
@@ -32,7 +31,7 @@ const SaleCustomerStatusFilter = () => {
             <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
                     <Button variant="soft">
-                        <FaRegCalendarAlt />
+                        <MdOutlineAttachMoney />
                         {defaultDate}
 
                         <DropdownMenu.TriggerIcon />

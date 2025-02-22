@@ -72,7 +72,7 @@ const Form = ({ product, flash }: FormProps) => {
                         type="button"
                         color="gray"
                         onClick={() => {
-                            window.history.back();
+                            router.visit(route("products"));
                         }}
                     >
                         Regresar a la lista

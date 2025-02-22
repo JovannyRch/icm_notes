@@ -6,7 +6,6 @@ use App\Models\Branch;
 use App\Models\Note;
 use App\Models\NoteProduct;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class NoteController extends Controller
@@ -177,7 +176,6 @@ class NoteController extends Controller
         return redirect()->back()->with('success', $total . ' notas desarchivadas');
     }
 
-    //delete items
     public function deleteNotes(Request $request)
     {
         $ids = $request->ids;
@@ -281,5 +279,12 @@ class NoteController extends Controller
             'branches' => $branches,
             'pagination' => $notes,
         ]);
+    }
+
+    public function getPendingNotes()
+    {
+        $today = now()->format('Y-m-d');
+        $notes = Note::where('status', 'pending')->whereNot('date', $today)->get();
+        return response()->json($notes);
     }
 }

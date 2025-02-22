@@ -47,7 +47,6 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
-        Log::info('User logged out');
         return redirect('/login');
     }
 }

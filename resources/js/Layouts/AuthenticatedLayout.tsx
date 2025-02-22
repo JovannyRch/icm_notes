@@ -40,6 +40,12 @@ export default function Authenticated({
                                 >
                                     Productos
                                 </NavLink>
+                                {/* <NavLink
+                                    href={route("cortes")}
+                                    active={route().current("cortes")}
+                                >
+                                    Cortes
+                                </NavLink> */}
                             </div>
                         </div>
 
