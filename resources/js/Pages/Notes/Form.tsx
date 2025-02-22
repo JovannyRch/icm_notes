@@ -46,6 +46,7 @@ import { Inertia } from "@inertiajs/inertia";
 import { SuppliedStatusSelect } from "@/Components/SuppliedStatusSelect";
 import { DeliveryStatusSelect } from "@/Components/DeliveryStatusSelect";
 import StatusPaidBadge from "@/Components/StatusPaidBadge";
+import { confirmAlert } from "react-confirm-alert";
 
 interface Props extends PageProps {
     branch: Branch;
@@ -189,9 +190,22 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
     };
 
     const handleDelete = () => {
-        if (confirm("¿Estás seguro de eliminar esta nota?")) {
-            Inertia.post(route("notes.destroy", note?.id));
-        }
+        confirmAlert({
+            title: "Eliminar nota",
+            message: "¿Estás seguro de eliminar esta nota?",
+            buttons: [
+                {
+                    label: "Sí",
+                    onClick: () => {
+                        Inertia.post(route("notes.destroy", note?.id));
+                    },
+                },
+                {
+                    label: "No",
+                    onClick: () => {},
+                },
+            ],
+        });
     };
 
     const handleArchive = () => {
@@ -250,12 +264,13 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 variant="soft"
                                 className="btn btn-secondary hover:cursor-pointer"
                                 onClick={() => {
-                                    router.visit(
+                                    /*  router.visit(
                                         route("notas", { branch: branch.id })
-                                    );
+                                    ); */
+                                    window.history.back();
                                 }}
                             >
-                                Regresar a la lista
+                                Regresar
                                 <BiArrowBack />
                             </Button>
                             {isEdit && (

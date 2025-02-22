@@ -20,9 +20,9 @@ class DatabaseSeeder extends Seeder
         User::where('email', 'admin2026@imc.com')->delete();
         use App\Models\User;
         User::create([
-            'name' => 'Admin1',
-            'email' => 'admin2025@imc.com',
-            'password' => bcrypt('yQHHR~;|uZO3'),
+            'name' => 'Kary',
+            'email' => 'karychs_981@hotmail.com',
+            'password' => bcrypt('jbBkhSvb7TMxJOD'),
         ]);
 
         User::create([

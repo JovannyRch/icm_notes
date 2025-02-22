@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -27,8 +26,21 @@ class ProductController extends Controller
         ]);
     }
 
-    public function index()
+    public function index(Request $request)
     {
+
+
+        $query = $request->input('query');
+
+        if ($query) {
+            $products = $this->getSearchQuery($query);
+            return Inertia::render(
+                'Products/Index',
+                ['pagination' => $products->paginate(15)]
+            );
+        }
+
+
         $pagination = Product::paginate(15);
         return Inertia::render(
             'Products/Index',
@@ -127,24 +139,39 @@ class ProductController extends Controller
         }
     }
 
-    public function search(Request $request)
+    public function getSearchQuery($query)
     {
-        $query = $request->input('query');
 
-        if (strlen($query) < 3) {
-            return response()->json([]);
+        $isPostgreSQL = DB::connection()->getDriverName() === 'pgsql';
+
+        $likeOperator = $isPostgreSQL ? 'ILIKE' : 'LIKE';
+
+        $keywords = explode(' ', $query);
+
+        $products = Product::query();
+
+        foreach ($keywords as $keyword) {
+            $products->where(function ($q) use ($keyword, $likeOperator) {
+                $q->orWhere('model', $likeOperator, "%{$keyword}%")
+                    ->orWhere('measure', $likeOperator, "%{$keyword}%")
+                    ->orWhere('mc', $likeOperator, "%{$keyword}%")
+                    ->orWhere('unit', $likeOperator, "%{$keyword}%")
+                    ->orWhere('price', $likeOperator, "%{$keyword}%")
+                    ->orWhere('cost', $likeOperator, "%{$keyword}%")
+                    ->orWhere('brand', $likeOperator, "%{$keyword}%");
+            });
         }
 
-        $products = Product::whereLike('model', '%${$query}%', caseSensitive: false)
-            ->orWhereLike('measure', "%{$query}%", caseSensitive: false)
-            ->orWhereLike('mc', "%{$query}%", caseSensitive: false)
-            ->orWhereLike('unit', "%{$query}%", caseSensitive: false)
-            ->orWhereLike('model', "%{$query}%", caseSensitive: false)
-            ->orWhereLike('price', "%{$query}%", caseSensitive: false)
-            ->orWhereLike('cost', "%{$query}%", caseSensitive: false)
-            ->limit(20)
-            ->get();
+        return $products;
+    }
 
-        return response()->json($products);
+    public function search(Request $request)
+    {
+
+        $query = $request->input('query');
+
+        $products = $this->getSearchQuery($query);
+
+        return response()->json($products->get());
     }
 }

@@ -198,6 +198,62 @@ class NoteController extends Controller
         return redirect()->route('notas', ['branch' => $branch_id])->with('success', 'Nota eliminada');
     }
 
+    private function applyFilters($branch_id, $archived, $query, $date, $status)
+    {
+
+        $notes = Note::where('branch_id', $branch_id)
+            ->where('archived', $archived)
+            ->where(function ($q) use ($query, $date, $status) {
+                if ($query) {
+                    $q->where('folio', 'like', '%' . $query . '%');
+                }
+
+                if ($status) {
+                    $q->where('status', $status);
+                }
+
+                if ($date) {
+                    switch ($date) {
+                        case 'TODAY':
+                            $q->whereDate('date', now());
+                            break;
+                        case 'YESTERDAY':
+                            $q->whereDate('date', now()->subDay());
+                            break;
+                        case 'THIS_WEEK':
+                            $q->whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()]);
+                            break;
+                        case 'LAST_WEEK':
+                            $q->whereBetween('date', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()]);
+                            break;
+                        case 'THIS_MONTH':
+                            $q->whereMonth('date', now()->month);
+                            break;
+                        case 'LAST_MONTH':
+                            $q->whereMonth('date', now()->subMonth()->month);
+                            break;
+                        case 'THIS_YEAR':
+                            $q->whereYear('date', now()->year);
+                            break;
+                        case 'LAST_YEAR':
+                            $q->whereYear('date', now()->subYear()->year);
+                            break;
+                        case 'ALL_TIME':
+                            break;
+
+                        default:
+
+                            break;
+                    }
+                }
+            })
+            ->orderBy('date', 'desc')
+            ->paginate(10);
+
+
+        return $notes;
+    }
+
 
     public function home()
     {
@@ -209,13 +265,18 @@ class NoteController extends Controller
 
         $archived = request('archived') == '1' ? true : false;
 
-        $notes = $branch->notes()
-            ->where('archived', $archived)
-            ->paginate(10);
+        $notes = null;
+
+        $query = request('query');
+        $date = request('date') ?? 'THIS_WEEK';
+
+        $status = request('status');
+
+        $notes = $this->applyFilters($branch_id, $archived, $query, $date, $status);
 
         $notes->appends(request()->query());
 
-        return Inertia::render('Home', [
+        return Inertia::render('Notes/Index', [
             'branch' => $branch,
             'branches' => $branches,
             'pagination' => $notes,

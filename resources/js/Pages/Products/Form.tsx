@@ -8,6 +8,7 @@ import { Product } from "@/types/Product";
 import { Inertia } from "@inertiajs/inertia";
 import { router, useForm } from "@inertiajs/react";
 import { Button, Grid } from "@radix-ui/themes";
+import { confirmAlert } from "react-confirm-alert";
 import { BiArrowBack, BiSave, BiTrash } from "react-icons/bi";
 import { GiCancel } from "react-icons/gi";
 
@@ -42,9 +43,22 @@ const Form = ({ product, flash }: FormProps) => {
     };
 
     const handleOnDelete = () => {
-        if (confirm("¿Estás seguro de que deseas eliminar este producto?")) {
-            Inertia.delete(route("products.destroy", product!.id));
-        }
+        confirmAlert({
+            title: "Eliminar producto",
+            message: "¿Estás seguro de eliminar este producto?",
+            buttons: [
+                {
+                    label: "Sí",
+                    onClick: () => {
+                        Inertia.delete(route("products.destroy", product!.id));
+                    },
+                },
+                {
+                    label: "No",
+                    onClick: () => {},
+                },
+            ],
+        });
     };
 
     return (
@@ -58,7 +72,7 @@ const Form = ({ product, flash }: FormProps) => {
                         type="button"
                         color="gray"
                         onClick={() => {
-                            router.visit(route("products"));
+                            window.history.back();
                         }}
                     >
                         Regresar a la lista

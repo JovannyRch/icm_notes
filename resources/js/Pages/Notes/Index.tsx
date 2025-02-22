@@ -11,14 +11,24 @@ import { Branch } from "@/types/Branch";
 import { Note } from "@/types/Note";
 import { Inertia } from "@inertiajs/inertia";
 import { router } from "@inertiajs/react";
-import { Badge, Button, Checkbox, Flex, Table, Text } from "@radix-ui/themes";
+import {
+    Badge,
+    Button,
+    Checkbox,
+    Flex,
+    Grid,
+    Table,
+    Text,
+} from "@radix-ui/themes";
 import { useState } from "react";
 import { BiArchive, BiArrowBack } from "react-icons/bi";
-import { CgAdd, CgCheck } from "react-icons/cg";
+import { CgAdd } from "react-icons/cg";
 import { GiCancel } from "react-icons/gi";
-import { LuPackageOpen } from "react-icons/lu";
 import { MdUnarchive } from "react-icons/md";
-import { TbTrash, TbTruckDelivery } from "react-icons/tb";
+import { TbTrash } from "react-icons/tb";
+import DateFilter from "./components/DateFilter";
+import NoteSearchInput from "./components/NoteSearchInput";
+import SaleCustomerStatusFilter from "./components/SaleCustomerStatusFilter";
 
 interface Props extends PageProps {
     pagination: any;
@@ -193,6 +203,30 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                     </Flex>
                 </Flex>
 
+                <Grid gap="5" columns="8" className="mb-4">
+                    <Grid
+                        gridColumn={{
+                            lg: "span 3",
+                            md: "span 4",
+                            xs: "span 8",
+                        }}
+                    >
+                        <NoteSearchInput />
+                    </Grid>
+                    <Grid
+                        gridColumn={{
+                            lg: "span 5",
+                            md: "span 4",
+                            xs: "span 8",
+                        }}
+                    >
+                        <Flex gap="5" align="center">
+                            <DateFilter />
+                            <SaleCustomerStatusFilter />
+                        </Flex>
+                    </Grid>
+                </Grid>
+
                 <Table.Root>
                     <Table.Header>
                         <Table.Row>
@@ -254,6 +288,7 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                                             checked={selectedItems.includes(
                                                 note.id!
                                             )}
+                                            onChange={() => {}}
                                             onClick={() => {
                                                 if (
                                                     selectedItems.includes(

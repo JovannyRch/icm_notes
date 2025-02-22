@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
+import SearchInput from "../SearchInput";
 
 const MIN_SEARCH_LENGTH = 2;
 
@@ -53,38 +54,12 @@ const ProductsModal = ({
                         Buscar producto
                     </Dialog.Title>
 
-                    <div className="max-w-md mx-auto my-4">
-                        <label className="mb-2 text-sm font-medium text-gray-900 sr-only ">
-                            Search
-                        </label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 flex items-center pointer-events-none start-0 ps-3">
-                                <svg
-                                    className="w-4 h-4 text-gray-500 "
-                                    aria-hidden="true"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 20 20"
-                                >
-                                    <path
-                                        stroke="currentColor"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
-                                    />
-                                </svg>
-                            </div>
-                            <input
-                                type="search"
-                                id="default-search"
-                                className="block w-full p-2 text-sm text-gray-900 border border-gray-300 rounded-lg ps-10 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 "
-                                placeholder="Buscar producto..."
-                                onChange={(e) => setSearchInput(e.target.value)}
-                                value={searchInput}
-                            />
-                        </div>
-                    </div>
+                    <SearchInput
+                        value={searchInput}
+                        onChange={setSearchInput}
+                        placeholder="Buscar producto..."
+                        className="max-w-md mx-auto my-4"
+                    />
 
                     <div className="min-h-[300px] max-h-[500px] overflow-y-auto">
                         <p className="text-center text-gray-500">

@@ -5,7 +5,14 @@ import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
 import { router } from "@inertiajs/react";
-import { Button, Flex, Table, Text } from "@radix-ui/themes";
+import {
+    Button,
+    DropdownMenu,
+    Flex,
+    Grid,
+    Table,
+    Text,
+} from "@radix-ui/themes";
 import { useState } from "react";
 import { CgAdd } from "react-icons/cg";
 import { FaFileExcel, FaListCheck } from "react-icons/fa6";
@@ -17,6 +24,9 @@ import { formatCurrency } from "@/helpers/formatters";
 import { confirmAlert } from "react-confirm-alert";
 import { MdDeleteSweep } from "react-icons/md";
 import { BiDownload } from "react-icons/bi";
+import SearchInput from "@/Components/SearchInput";
+import ProductsSearchInput from "./components/ProductsSearchInput";
+import DateFilter from "../Notes/components/DateFilter";
 
 interface Props extends PageProps {
     pagination: any;
@@ -31,8 +41,14 @@ const Index = ({ pagination, flash }: Props) => {
 
     const handleDelete = () => {
         confirmAlert({
-            title: "Eliminar productos",
-            message: "¿Estás seguro de que deseas eliminar los productos?",
+            title:
+                selectedItems.length > 1
+                    ? "Eliminar productos"
+                    : "Eliminar producto",
+            message:
+                selectedItems.length > 1
+                    ? "¿Estás seguro de que deseas eliminar los productos seleccionados? Esta acción no se puede deshacer."
+                    : "¿Estás seguro de que deseas eliminar el producto seleccionado? Esta acción no se puede deshacer.",
             buttons: [
                 {
                     label: "Sí",
@@ -85,28 +101,28 @@ const Index = ({ pagination, flash }: Props) => {
                     </Text>
                 </div>
                 <Flex justify="between" gap="4" className="my-4">
-                    <Flex gap="2" align="center">
+                    <div>
                         <Button
-                            type="button"
-                            color="gold"
-                            className="btn btn-secondary hover:cursor-pointer"
                             onClick={() => {
-                                if (selectedItems.length > 0) {
-                                    setSelectedItems([]);
-                                } else {
-                                    setSelectedItems(
-                                        products.map(
-                                            (product: Product) => product.id!
-                                        )
-                                    );
-                                }
+                                router.visit(route("products.create"));
                             }}
+                            className="hover:cursor-pointer"
                         >
-                            {selectedItems.length > 0
-                                ? "Deshacer selección"
-                                : "Seleccionar todo"}
-                            <FaListCheck />
+                            Registrar Producto
+                            <CgAdd className="w-5 h-5" />
                         </Button>
+                    </div>
+                    <Flex gap="2" align="center">
+                        <ImportProducts />
+                        <Button
+                            color="teal"
+                            className="hover:cursor-pointer"
+                            onClick={handleExport}
+                        >
+                            Exportar
+                            <BiDownload />
+                        </Button>
+
                         <span className="text-gray-400">|</span>
                         <Button
                             type="button"
@@ -128,34 +144,48 @@ const Index = ({ pagination, flash }: Props) => {
                             Eliminar todo
                             <MdDeleteSweep />
                         </Button>
-                        <span className="text-gray-400">|</span>
-                        <ImportProducts />
-                        <Button
-                            color="teal"
-                            className="hover:cursor-pointer"
-                            onClick={handleExport}
-                        >
-                            Exportar
-                            <BiDownload />
-                        </Button>
                     </Flex>
-                    <div>
-                        <Button
-                            onClick={() => {
-                                router.visit(route("products.create"));
-                            }}
-                            className="hover:cursor-pointer"
-                        >
-                            Registrar Producto
-                            <CgAdd className="w-5 h-5" />
-                        </Button>
-                    </div>
                 </Flex>
+
+                <Grid gap="5" columns="8" className="mb-4">
+                    <Grid
+                        gridColumn={{
+                            lg: "span 3",
+                            md: "span 4",
+                            xs: "span 8",
+                        }}
+                    >
+                        <ProductsSearchInput />
+                    </Grid>
+                </Grid>
 
                 <Table.Root>
                     <Table.Header>
                         <Table.Row>
-                            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell>
+                                <div className="flex items-center justify-center w-full h-full checkbox clickable">
+                                    <Checkbox
+                                        disabled={products.length === 0}
+                                        checked={
+                                            products.length > 0 &&
+                                            selectedItems.length ===
+                                                products.length
+                                        }
+                                        onChange={() => {
+                                            if (selectedItems.length > 0) {
+                                                setSelectedItems([]);
+                                            } else {
+                                                setSelectedItems(
+                                                    products.map(
+                                                        (product: Product) =>
+                                                            product.id!
+                                                    )
+                                                );
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>Id</Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>
                                 Marca
@@ -213,7 +243,7 @@ const Index = ({ pagination, flash }: Props) => {
                                             checked={selectedItems.includes(
                                                 product.id!
                                             )}
-                                            onClick={() => {
+                                            onChange={() => {
                                                 if (
                                                     selectedItems.includes(
                                                         product.id!

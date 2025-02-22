@@ -27,6 +27,7 @@ class ProductImportController extends Controller
 
     public function export()
     {
-        return Excel::download(new ProductsExport, 'products.xlsx');
+        $currentDate = date('d-m-Y');
+        return Excel::download(new ProductsExport, "CATALAGO_DE_PRODUCTOS_{$currentDate}.xlsx");
     }
 }
