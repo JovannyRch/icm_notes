@@ -60,6 +60,7 @@ class CorteController extends Controller
                 'expenses_total' => 'required | numeric',
                 'expenses' => 'required | string',
                 'notes' => 'required | string',
+                'returns' => 'required | string',
                 'previous_notes' => 'required | string',
                 'branch_id' => 'required| integer',
             ]);
@@ -67,6 +68,7 @@ class CorteController extends Controller
             $data['expenses'] = json_decode($data['expenses'], true);
             $data['notes'] = json_decode($data['notes'], true);
             $data['previous_notes'] = json_decode($data['previous_notes'], true);
+            $data['returns'] = json_decode($data['returns'], true);
 
 
             $corte = Corte::create($data);

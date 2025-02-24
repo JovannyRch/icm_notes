@@ -26,6 +26,7 @@ return new class extends Migration
             $table->json('expenses')->nullable();
             $table->json('notes')->nullable();
             $table->json('previous_notes')->nullable();
+            $table->json('returns')->nullable();
 
             $table->foreignId('branch_id')->constrained('branches')->onDelete('cascade');
 

@@ -3,7 +3,7 @@ import Container from "@/Components/Container";
 import DeliveryStatusBadge from "@/Components/DeliveryStatusBadge";
 import Pagination from "@/Components/Pagination";
 import StatusPaidBadge from "@/Components/StatusPaidBadge";
-import { DELIVERY_STATUS_MAP, STATUS_DELIVERY_ENUM } from "@/const";
+import { STATUS_DELIVERY_ENUM } from "@/const";
 import { formatCurrency, formatDate } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps, payment_status } from "@/types";
@@ -25,11 +25,11 @@ import { BiArchive, BiArrowBack } from "react-icons/bi";
 import { CgAdd } from "react-icons/cg";
 import { GiCancel } from "react-icons/gi";
 import { MdUnarchive } from "react-icons/md";
-import { TbTrash } from "react-icons/tb";
+import { TbCashRegister, TbTrash } from "react-icons/tb";
 import DateFilter from "./components/DateFilter";
 import NoteSearchInput from "./components/NoteSearchInput";
 import SaleCustomerStatusFilter from "./components/SaleCustomerStatusFilter";
-import { FaCut } from "react-icons/fa";
+import { BsCashCoin } from "react-icons/bs";
 
 interface Props extends PageProps {
     pagination: any;
@@ -116,7 +116,22 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                             <CgAdd className="w-5 h-5" />
                         </Button>
                         <Button
+                            type="button"
+                            color="gold"
+                            variant="soft"
+                            onClick={() => {
+                                router.visit(
+                                    route("cortes.new", { branch: branch.id })
+                                );
+                            }}
+                            className="hover:cursor-pointer"
+                        >
+                            Generar Corte
+                            <TbCashRegister className="w-5 h-5" />
+                        </Button>
+                        <Button
                             color="bronze"
+                            variant="soft"
                             className="hover:cursor-pointer"
                             onClick={() => {
                                 router.visit(
@@ -127,7 +142,7 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                             }}
                         >
                             Cortes
-                            <FaCut className="w-3 h-3" />
+                            <BsCashCoin className="w-5 h-5" />
                         </Button>
                     </Flex>
                     <Flex gap="2">

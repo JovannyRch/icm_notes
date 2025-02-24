@@ -6,7 +6,7 @@ import { Note } from "@/types/Note";
 import { Button, Flex, IconButton, Text } from "@radix-ui/themes";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
-import { BiRefresh, BiSave, BiTrash } from "react-icons/bi";
+import { BiArrowBack, BiRefresh, BiSave, BiTrash } from "react-icons/bi";
 import NotesTable from "./components/NotesTable";
 import PendingNotesTable from "./components/PendingNotesTable";
 import AmountDetailsTable from "./components/AmountDetailsTable";
@@ -16,6 +16,9 @@ import { Corte } from "@/types/Corte";
 import { Inertia } from "@inertiajs/inertia";
 import useAlerts from "@/hooks/useAlerts";
 import { confirmAlert } from "react-confirm-alert";
+import ReturnsTable from "./components/ReturnsTable";
+import { BsCashCoin } from "react-icons/bs";
+import { router } from "@inertiajs/react";
 
 interface Props extends PageProps {
     notes: Note[];
@@ -34,7 +37,8 @@ const Spacer = () => <div className="h-[60px]"></div>;
 function calculateSums(
     notes: Note[],
     expenses: ExpenseInput[],
-    previousNotes: PreviousNoteInput[]
+    previousNotes: PreviousNoteInput[],
+    returns: ReturnInput[]
 ): CutSums {
     let cardSum = 0;
     let transferSum = 0;
@@ -60,7 +64,11 @@ function calculateSums(
         return acc + (isNumber(note.amount) ? Number(note.amount) : 0);
     }, 0);
 
-    cashSum += previousNotesSum - expensesSum;
+    const returnsSum = returns.reduce((acc, note) => {
+        return acc + (isNumber(note.amount) ? Number(note.amount) : 0);
+    }, 0);
+
+    cashSum += previousNotesSum - expensesSum - returnsSum;
 
     return {
         cardSum,
@@ -123,6 +131,17 @@ const CorteForm = ({
               ]
     );
 
+    const [returns, setReturns] = useState<ReturnInput[]>(
+        isDetail
+            ? corte?.returns ?? []
+            : [
+                  {
+                      concept: "",
+                      amount: "",
+                  },
+              ]
+    );
+
     const [expenses, setExpenses] = useState<ExpenseInput[]>(
         isDetail
             ? corte.expenses
@@ -144,6 +163,7 @@ const CorteForm = ({
             cash_total: cashSum,
             previous_notes_total: previousNotesSum,
             expenses_total: expensesSum,
+
             notes: JSON.stringify(
                 notes.map(
                     ({
@@ -173,18 +193,36 @@ const CorteForm = ({
             previous_notes: JSON.stringify(
                 previousNotes.slice(0, previousNotes.length - 1)
             ),
+            returns: JSON.stringify(returns.slice(0, returns.length - 1)),
             branch_id: branch.id,
         });
     };
 
     useEffect(() => {
-        setSums(calculateSums(notes, expenses, previousNotes));
-    }, [notes, expenses, previousNotes]);
+        setSums(calculateSums(notes, expenses, previousNotes, returns));
+    }, [notes, expenses, previousNotes, returns]);
 
     return (
         <Container headTitle="Nuevo Corte">
             <div className="flex justify-center">
                 <div className="max-w-[800px] min-w-[400px] w-full border border-gray-300 p-4 py-12">
+                    <Flex gap="2" className="mb-4">
+                        <Button
+                            color="gray"
+                            variant="soft"
+                            className="hover:cursor-pointer"
+                            onClick={() => {
+                                router.visit(
+                                    route("cortes", {
+                                        branch: branch.id,
+                                    })
+                                );
+                            }}
+                        >
+                            <BiArrowBack />
+                            Lista de cortes
+                        </Button>
+                    </Flex>
                     <Flex justify="between" className="mb-4" gap="2">
                         <div className="flex flex-col gap-1">
                             <Text size="2" className="text-gray-500">
@@ -268,6 +306,12 @@ const CorteForm = ({
                     <PendingNotesTable
                         previousNotes={previousNotes}
                         setPreviousNotes={setPreviousNotes}
+                        isDisabled={isDetail}
+                    />
+                    <Spacer />
+                    <ReturnsTable
+                        returns={returns}
+                        setReturns={setReturns}
                         isDisabled={isDetail}
                     />
                     <Spacer />

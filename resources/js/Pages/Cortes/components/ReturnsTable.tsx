@@ -2,13 +2,13 @@ import DynamicTable, { Column } from "@/Components/DynamicTable";
 import { Flex, Text } from "@radix-ui/themes";
 
 interface Props {
-    expenses: ExpenseInput[];
-    setExpenses: (notes: ExpenseInput[]) => void;
+    returns: ReturnInput[];
+    setReturns: (returns: ReturnInput[]) => void;
     isDisabled?: boolean;
 }
 
-const ExpensesTable = ({ expenses, setExpenses, isDisabled }: Props) => {
-    const columns: Column<ExpenseInput>[] = [
+const ReturnsTable = ({ returns, setReturns, isDisabled }: Props) => {
+    const columns: Column<ReturnInput>[] = [
         { label: "CONCEPTO", key: "concept" },
         { label: "CANTIDAD", key: "amount" },
     ];
@@ -17,18 +17,18 @@ const ExpensesTable = ({ expenses, setExpenses, isDisabled }: Props) => {
         <>
             <Flex justify="center" className="mb-4">
                 <Text size="4" weight="bold">
-                    GASTOS
+                    DEVOLUCIONES
                 </Text>
             </Flex>
 
-            <DynamicTable<ExpenseInput>
+            <DynamicTable<ReturnInput>
                 columns={columns}
-                rows={expenses}
-                setRows={setExpenses}
+                rows={returns}
+                setRows={setReturns}
                 isEditable={!isDisabled}
             />
         </>
     );
 };
 
-export default ExpensesTable;
+export default ReturnsTable;

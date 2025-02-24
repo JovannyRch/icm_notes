@@ -19,3 +19,8 @@ interface CutSums {
     previousNotesSum: number;
     notesSum: number;
 }
+
+interface ReturnInput {
+    concept: string;
+    amount: string;
+}

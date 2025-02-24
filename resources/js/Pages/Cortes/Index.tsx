@@ -6,7 +6,8 @@ import { PageProps } from "@/types";
 import { Branch } from "@/types/Branch";
 import { Corte } from "@/types/Corte";
 import { router } from "@inertiajs/react";
-import { Button, Flex, Grid, Table, Text } from "@radix-ui/themes";
+import { Button, Flex, Table, Text } from "@radix-ui/themes";
+import { BiArrowBack } from "react-icons/bi";
 
 import { CgAdd } from "react-icons/cg";
 
@@ -29,7 +30,7 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                     </Text>
                 </div>
                 <Flex justify="between" gap="4" className="my-4">
-                    <div>
+                    <Flex gap="2">
                         <Button
                             onClick={() => {
                                 router.visit(
@@ -41,7 +42,23 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                             Crear un corte
                             <CgAdd className="w-5 h-5" />
                         </Button>
-                    </div>
+                        <Button
+                            type="button"
+                            color="gray"
+                            variant="soft"
+                            className="btn btn-secondary hover:cursor-pointer"
+                            onClick={() => {
+                                router.visit(
+                                    route("notas", {
+                                        branch: branch.id,
+                                    })
+                                );
+                            }}
+                        >
+                            Regresar al listado de notas
+                            <BiArrowBack />
+                        </Button>
+                    </Flex>
                 </Flex>
 
                 <Table.Root>
@@ -58,6 +75,19 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
 
                             <Table.ColumnHeaderCell>
                                 Efectivo
+                            </Table.ColumnHeaderCell>
+                            {/*  <Table.ColumnHeaderCell>
+                                Transferencia
+                            </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell>
+                                Tarjeta
+                            </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell>
+                                Entradas
+                            </Table.ColumnHeaderCell> */}
+
+                            <Table.ColumnHeaderCell>
+                                Gastos
                             </Table.ColumnHeaderCell>
                         </Table.Row>
                     </Table.Header>
@@ -82,10 +112,18 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                                 <Table.Cell>{corte.id}</Table.Cell>
                                 <Table.Cell>{corte.date}</Table.Cell>
                                 <Table.Cell>
-                                    {formatCurrency(corte.sale_total)}
+                                    <Text weight="bold">
+                                        {formatCurrency(corte.sale_total)}
+                                    </Text>
                                 </Table.Cell>
                                 <Table.Cell>
-                                    {formatCurrency(corte.cash_total)}
+                                    <Text weight="bold">
+                                        {formatCurrency(corte.cash_total)}
+                                    </Text>
+                                </Table.Cell>
+
+                                <Table.Cell>
+                                    {formatCurrency(corte.expenses_total)}
                                 </Table.Cell>
                             </Table.Row>
                         ))}

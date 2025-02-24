@@ -17,6 +17,7 @@ class Corte extends Model
         'expenses_total',
         'expenses',
         'notes',
+        'returns',
         'previous_notes',
         'branch_id',
     ];
@@ -25,6 +26,7 @@ class Corte extends Model
         'expenses' => 'array',
         'notes' => 'array',
         'previous_notes' => 'array',
+        'returns' => 'array'
     ];
 
     public function branch()

@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Note;
 use App\Models\NoteProduct;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class NoteController extends Controller
@@ -198,10 +199,11 @@ class NoteController extends Controller
 
     private function applyFilters($branch_id, $archived, $query, $date, $status)
     {
+        $now = now()->timezone('America/Mexico_City');
 
         $notes = Note::where('branch_id', $branch_id)
             ->where('archived', $archived)
-            ->where(function ($q) use ($query, $date, $status) {
+            ->where(function ($q) use ($query, $date, $status, $now) {
                 if ($query) {
                     $q->where('folio', 'like', '%' . $query . '%');
                 }
@@ -213,34 +215,36 @@ class NoteController extends Controller
                 if ($date) {
                     switch ($date) {
                         case 'TODAY':
-                            $q->whereDate('date', now());
+                            $q->whereDate('date', $now->toDateString());
                             break;
                         case 'YESTERDAY':
-                            $q->whereDate('date', now()->subDay());
+                            $q->whereDate('date', $now->clone()->subDay()->toDateString());
                             break;
                         case 'THIS_WEEK':
-                            $q->whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()]);
+                            $q->whereBetween('date', [
+                                $now->clone()->startOfWeek()->toDateString(),
+                                $now->clone()->endOfWeek()->toDateString()
+                            ]);
                             break;
                         case 'LAST_WEEK':
-                            $q->whereBetween('date', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()]);
+                            $q->whereBetween('date', [
+                                $now->clone()->subWeek()->startOfWeek()->toDateString(),
+                                $now->clone()->subWeek()->endOfWeek()->toDateString()
+                            ]);
                             break;
                         case 'THIS_MONTH':
-                            $q->whereMonth('date', now()->month);
+                            $q->whereMonth('date', $now->month)
+                                ->whereYear('date', $now->year);
                             break;
                         case 'LAST_MONTH':
-                            $q->whereMonth('date', now()->subMonth()->month);
+                            $q->whereMonth('date', $now->clone()->subMonth()->month)
+                                ->whereYear('date', $now->clone()->subMonth()->year);
                             break;
                         case 'THIS_YEAR':
-                            $q->whereYear('date', now()->year);
+                            $q->whereYear('date', $now->year);
                             break;
                         case 'LAST_YEAR':
-                            $q->whereYear('date', now()->subYear()->year);
-                            break;
-                        case 'ALL_TIME':
-                            break;
-
-                        default:
-
+                            $q->whereYear('date', $now->clone()->subYear()->year);
                             break;
                     }
                 }
@@ -248,9 +252,9 @@ class NoteController extends Controller
             ->orderBy('date', 'desc')
             ->paginate(10);
 
-
         return $notes;
     }
+
 
 
     public function home()

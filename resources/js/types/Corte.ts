@@ -13,6 +13,7 @@ export interface Corte {
     expenses: ExpenseInput[];
     notes: Note[];
     previous_notes: PreviousNoteInput[];
+    returns: ReturnInput[];
     branch_id: number;
     created_at: string;
     updated_at: string;

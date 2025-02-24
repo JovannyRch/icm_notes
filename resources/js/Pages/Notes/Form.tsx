@@ -7,7 +7,7 @@ import LineDivider from "@/Components/LineDivider";
 import NoteItem from "@/Components/NoteItem";
 import ProductsModal from "@/Components/ProductsModal/ProductsModal";
 import { STATUS_DELIVERY_ENUM } from "@/const";
-import { formatCurrency } from "@/helpers/formatters";
+import { formatCurrency, getToday } from "@/helpers/formatters";
 import {
     calculatePurchaseSubtotal,
     calculateSaleSubtotal,
@@ -104,7 +104,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
         purchase_status: isEdit
             ? (note?.purchase_status as payment_status)
             : "pending",
-        date: isEdit ? note?.date : new Date().toISOString().split("T")[0],
+        date: isEdit ? note?.date : getToday(),
         delivery_status: isEdit
             ? note?.delivery_status
             : STATUS_DELIVERY_ENUM.PENDING,
@@ -160,18 +160,20 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
         if (delivery_status !== STATUS_DELIVERY_ENUM.CANCELED) {
             if (isPaymentComplete && Number(data.balance) !== 0) {
                 toast.warning(
-                    "Si la nota está pagada completamente, el balance debe ser 0"
+                    "El monto restante del cliente debe ser 0 si la venta está pagada completamente"
                 );
                 return;
             }
             if (!isPaymentComplete && Number(data.balance) === 0) {
-                toast.warning("Revise si la venta está pagada completamente");
+                toast.warning(
+                    "Revise el monto restante cliente, al parecer la nota está pagada completamente"
+                );
                 return;
             }
 
             if (Number(data.balance) < 0) {
                 toast.warning(
-                    "Revise el balance de la nota, no puede ser negativo"
+                    "El monto restante del cliente no puede ser negativo, revise los montos de pago"
                 );
                 return;
             }
@@ -264,10 +266,14 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 variant="soft"
                                 className="btn btn-secondary hover:cursor-pointer"
                                 onClick={() => {
-                                    window.history.back();
+                                    router.visit(
+                                        route("notas", {
+                                            branch: branch.id,
+                                        })
+                                    );
                                 }}
                             >
-                                Regresar
+                                Regresar al listado
                                 <BiArrowBack />
                             </Button>
                             {isEdit && (
@@ -729,7 +735,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                             align="center"
                                         >
                                             <Text size="3" weight="medium">
-                                                Balance:
+                                                Restante:
                                             </Text>
                                             <Text size="3" weight="bold">
                                                 {formatCurrency(
