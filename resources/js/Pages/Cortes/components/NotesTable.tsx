@@ -2,6 +2,7 @@ import { formatCurrency, formatDate } from "@/helpers/formatters";
 import { getPaymentMethods } from "@/helpers/utils";
 import { Note } from "@/types/Note";
 import { Flex, IconButton, Table, Text } from "@radix-ui/themes";
+import { useMemo } from "react";
 import { CgRemove } from "react-icons/cg";
 
 interface Props {
@@ -11,12 +12,18 @@ interface Props {
 }
 
 const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
-    const cashTotal = notes.reduce((prev, current) => prev + current.cash, 0);
-    const transferTotal = notes.reduce(
-        (prev, current) => prev + current.transfer,
-        0
+    const cashTotal = useMemo(
+        () => notes.reduce((prev, current) => prev + current.cash, 0),
+        [notes]
     );
-    const cardTotal = notes.reduce((prev, current) => prev + current.card, 0);
+    const transferTotal = useMemo(
+        () => notes.reduce((prev, current) => prev + current.transfer, 0),
+        [notes]
+    );
+    const cardTotal = useMemo(
+        () => notes.reduce((prev, current) => prev + current.card, 0),
+        [notes]
+    );
 
     return (
         <div>
