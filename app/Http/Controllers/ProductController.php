@@ -31,20 +31,39 @@ class ProductController extends Controller
 
 
         $query = $request->input('query');
+        $brand = $request->input('brand');
+
+
+        $brands = Product::select('brand')->distinct()->get();
 
         if ($query) {
-            $products = $this->getSearchQuery($query);
+            $products = $this->getSearchQuery($query, $brand);
             return Inertia::render(
                 'Products/Index',
-                ['pagination' => $products->paginate(15)]
+                [
+                    'pagination' => $products->paginate(15),
+                    'brands' => $brands,
+                ]
             );
         }
 
+        $pagination  = null;
 
-        $pagination = Product::paginate(15);
+        if ($brand) {
+            $products = Product::where('brand', $brand);
+            $pagination = $products->paginate(15);
+        } else {
+            $pagination = Product::paginate(15);
+        }
+
+
+
         return Inertia::render(
             'Products/Index',
-            ['pagination' => $pagination]
+            [
+                'pagination' => $pagination,
+                'brands' => $brands,
+            ]
         );
     }
 
@@ -129,17 +148,25 @@ class ProductController extends Controller
         }
     }
 
-    public function destroyAll()
+    public function destroyAll(Request $request)
     {
         try {
-            DB::table('products')->delete();
+
+            $brand = $request->input('brand');
+
+            if ($brand) {
+                Product::where('brand', $brand)->delete();
+            } else {
+                DB::table('products')->delete();
+            }
+
             return redirect()->back()->with('success', 'Productos eliminados correctamente.');
         } catch (\Throwable $th) {
             return redirect()->back()->with('error', 'Error al eliminar los productos.');
         }
     }
 
-    public function getSearchQuery($query)
+    public function getSearchQuery($query, $brand = null)
     {
 
         $isPostgreSQL = DB::connection()->getDriverName() === 'pgsql';
@@ -160,6 +187,10 @@ class ProductController extends Controller
                     ->orWhere('cost', $likeOperator, "%{$keyword}%")
                     ->orWhere('brand', $likeOperator, "%{$keyword}%");
             });
+        }
+
+        if ($brand) {
+            $products->where('brand', $brand);
         }
 
         return $products;

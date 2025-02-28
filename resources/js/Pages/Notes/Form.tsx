@@ -153,32 +153,6 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
     const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const { delivery_status } = data;
-
-        const isPaymentComplete = data.status === "paid";
-
-        if (delivery_status !== STATUS_DELIVERY_ENUM.CANCELED) {
-            if (isPaymentComplete && Number(data.balance) !== 0) {
-                toast.warning(
-                    "El monto restante del cliente debe ser 0 si la venta está pagada completamente"
-                );
-                return;
-            }
-            if (!isPaymentComplete && Number(data.balance) === 0) {
-                toast.warning(
-                    "Revise el monto restante cliente, al parecer la nota está pagada completamente"
-                );
-                return;
-            }
-
-            if (Number(data.balance) < 0) {
-                toast.warning(
-                    "El monto restante del cliente no puede ser negativo, revise los montos de pago"
-                );
-                return;
-            }
-        }
-
         if (isEdit) {
             put(route("notes.update", note?.id), {
                 onFinish: () => {
@@ -576,7 +550,6 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                     <InlineInput
                                         label="Flete"
                                         name="flete"
-                                        type="text"
                                         value={data.flete}
                                         onChange={(e) => {
                                             setData("flete", e.target.value);
@@ -650,18 +623,6 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                             ? "paid"
                                                             : "pending"
                                                     );
-
-                                                    if (value && !isEdit) {
-                                                        setData(
-                                                            "cash",
-                                                            data.sale_total
-                                                        );
-                                                        setData("card", "0");
-                                                        setData(
-                                                            "transfer",
-                                                            "0"
-                                                        );
-                                                    }
                                                 }}
                                             />
                                         </Flex>

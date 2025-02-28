@@ -19,6 +19,7 @@ import { confirmAlert } from "react-confirm-alert";
 import ReturnsTable from "./components/ReturnsTable";
 import { BsCashCoin } from "react-icons/bs";
 import { router } from "@inertiajs/react";
+import { FaDownload } from "react-icons/fa6";
 
 interface Props extends PageProps {
     notes: Note[];
@@ -61,7 +62,12 @@ function calculateSums(
     }, 0);
 
     const previousNotesSum = previousNotes.reduce((acc, note) => {
-        return acc + (isNumber(note.amount) ? Number(note.amount) : 0);
+        return (
+            acc +
+            (isNumber(note.cash) ? Number(note.cash) : 0) +
+            (isNumber(note.card) ? Number(note.card) : 0) +
+            (isNumber(note.transfer) ? Number(note.transfer) : 0)
+        );
     }, 0);
 
     const returnsSum = returns.reduce((acc, note) => {
@@ -79,6 +85,7 @@ function calculateSums(
         expensesSum,
         previousNotesSum,
         notesSum,
+        returnsSum,
     };
 }
 
@@ -105,6 +112,7 @@ const CorteForm = ({
         balanceSum: 0,
         expensesSum: 0,
         previousNotesSum: 0,
+        returnsSum: 0,
         total: 0,
     });
 
@@ -126,7 +134,9 @@ const CorteForm = ({
                   {
                       folio: "",
                       date: "",
-                      amount: "",
+                      cash: "",
+                      card: "",
+                      transfer: "",
                   },
               ]
     );
@@ -205,7 +215,7 @@ const CorteForm = ({
     return (
         <Container headTitle="Nuevo Corte">
             <div className="flex justify-center">
-                <div className="max-w-[800px] min-w-[400px] w-full border border-gray-300 p-4 py-12">
+                <div className="max-w-[1200px] min-w-[400px] w-full border border-gray-300 p-4 py-12">
                     <Flex gap="2" className="mb-4">
                         <Button
                             color="gray"
@@ -248,7 +258,21 @@ const CorteForm = ({
                                 </IconButton>
                             </div>
                         ) : (
-                            <div>
+                            <Flex gap="2">
+                                <IconButton
+                                    color="green"
+                                    className="hover:cursor-pointer"
+                                    size="2"
+                                    onClick={() => {
+                                        Inertia.get(
+                                            route("cortes.export", {
+                                                corte: corte.id,
+                                            })
+                                        );
+                                    }}
+                                >
+                                    <FaDownload />
+                                </IconButton>
                                 <IconButton
                                     color="red"
                                     className="hover:cursor-pointer"
@@ -281,7 +305,7 @@ const CorteForm = ({
                                 >
                                     <BiTrash className="w-5 h-5" />
                                 </IconButton>
-                            </div>
+                            </Flex>
                         )}
                     </Flex>
                     <AmountDetailsTable
@@ -293,6 +317,7 @@ const CorteForm = ({
                         date={date}
                         expensesSum={sums.expensesSum}
                         previousNotesTotal={sums.previousNotesSum}
+                        returnsSum={sums.returnsSum}
                         isDisabled={isDetail}
                         branch={branch}
                     />

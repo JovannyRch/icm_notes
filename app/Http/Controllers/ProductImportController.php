@@ -25,9 +25,16 @@ class ProductImportController extends Controller
         }
     }
 
-    public function export()
+    public function export(Request $request)
     {
+        $brand = $request->input('brand');
         $currentDate = date('d-m-Y');
+
+
+        if ($brand) {
+            return Excel::download(new ProductsExport($brand), "CATALAGO_DE_PRODUCTOS_{$brand}_{$currentDate}.xlsx");
+        }
+
         return Excel::download(new ProductsExport, "CATALAGO_DE_PRODUCTOS_{$currentDate}.xlsx");
     }
 }

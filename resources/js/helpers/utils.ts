@@ -1,5 +1,6 @@
 import { Note } from "@/types/Note";
 import { NoteItemInterface } from "@/types/NoteItem";
+import { formatCurrency } from "./formatters";
 
 export const calculatePurchaseSubtotal = (
     product: NoteItemInterface
@@ -19,13 +20,13 @@ export const calculateSaleSubtotal = (product: NoteItemInterface): number => {
 export const getPaymentMethods = (note: Note): string[] => {
     const result: string[] = [];
     if (note.cash > 0) {
-        result.push("Efectivo");
+        result.push(`Efect (${formatCurrency(note.cash)})`);
     }
     if (note.card > 0) {
-        result.push("Tarjeta");
+        result.push(`Tarj (${formatCurrency(note.card)})`);
     }
     if (note.transfer > 0) {
-        result.push("Transferencia");
+        result.push(`Trans (${formatCurrency(note.transfer)})`);
     }
 
     return result;

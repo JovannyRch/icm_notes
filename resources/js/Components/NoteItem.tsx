@@ -61,13 +61,13 @@ const NoteItem = ({
         };
     };
 
-    const [detailMode, setDetailMode] = useState<boolean>(
+    /*   const [detailMode, setDetailMode] = useState<boolean>(
         Boolean(isEdit && item?.id)
-    );
+    ); */
 
     const isOdd = index % 2 === 0;
 
-    if (detailMode) {
+    /*  if (detailMode) {
         return (
             <div
                 className={`mb-6 rounded-md border border-gray-800 px-1 ${
@@ -213,7 +213,7 @@ const NoteItem = ({
                 <LineDivider className="mt-8" />
             </div>
         );
-    }
+    } */
 
     return (
         <Grid
@@ -291,7 +291,7 @@ const NoteItem = ({
                             </Grid>
                             <Grid gridColumn="span 2">
                                 <InputWithLabel
-                                    label="m²"
+                                    label="MC"
                                     value={item.mc}
                                     name="mc"
                                     onChange={(e) => {
@@ -444,14 +444,14 @@ const NoteItem = ({
                         >
                             <FaMagnifyingGlass color="white" />
                         </IconButton>
-                        <IconButton
+                        {/*  <IconButton
                             color="green"
                             onClick={() => setDetailMode(true)}
                             type="button"
                             className="hover:cursor-pointer"
                         >
                             <BiSave />
-                        </IconButton>
+                        </IconButton> */}
                         <IconButton
                             color="red"
                             onClick={() => onDelete(index)}

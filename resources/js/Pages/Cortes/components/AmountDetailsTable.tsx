@@ -13,6 +13,7 @@ interface Props {
     balanceSum: number;
     expensesSum: number;
     previousNotesTotal: number;
+    returnsSum: number;
     date: string;
     isDisabled: boolean;
     branch: Branch;
@@ -26,12 +27,13 @@ const AmountDetailsTable = ({
     balanceSum,
     expensesSum,
     previousNotesTotal,
+    returnsSum,
     date,
     isDisabled,
     branch,
 }: Props) => {
     return (
-        <>
+        <div>
             <Table.Root>
                 <Table.Body>
                     <Table.Row className="border-b border-gray-200 hover:bg-gray-100 odd:bg-white even:bg-gray-50 ">
@@ -148,9 +150,21 @@ const AmountDetailsTable = ({
                             </Text>
                         </Table.Cell>
                     </Table.Row>
+                    <Table.Row className="border-b border-gray-200 hover:bg-gray-100 odd:bg-white even:bg-gray-50 ">
+                        <Table.Cell>
+                            <Text size="3" weight="bold">
+                                Devoluciones:
+                            </Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                            <Text size="3" weight="medium">
+                                {formatCurrency(returnsSum)}
+                            </Text>
+                        </Table.Cell>
+                    </Table.Row>
                 </Table.Body>
             </Table.Root>
-        </>
+        </div>
     );
 };
 

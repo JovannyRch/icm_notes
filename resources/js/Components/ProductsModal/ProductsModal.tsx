@@ -87,7 +87,7 @@ const ProductsModal = ({
                                                 Medida
                                             </th>
                                             <th scope="col" className="p-3">
-                                                m²
+                                                MC
                                             </th>
                                             <th scope="col" className="p-3">
                                                 Unidad

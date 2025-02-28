@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\CorteExport;
+use App\Exports\CortesExport;
 use App\Models\Branch;
 use App\Models\Corte;
 use App\Models\Note;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CorteController extends Controller
 {
@@ -95,6 +98,13 @@ class CorteController extends Controller
             'date' => $date,
             'branch' => $branch
         ]);
+    }
+
+    public function export(Corte $corte)
+    {
+        $currentDate = date('d-m-Y');
+        dd($corte);
+        return Excel::download(new CorteExport($corte), "cortes_{$corte->id}.xlsx");
     }
 
     /**

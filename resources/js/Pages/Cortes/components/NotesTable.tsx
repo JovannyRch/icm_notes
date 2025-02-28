@@ -11,8 +11,15 @@ interface Props {
 }
 
 const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
+    const cashTotal = notes.reduce((prev, current) => prev + current.cash, 0);
+    const transferTotal = notes.reduce(
+        (prev, current) => prev + current.transfer,
+        0
+    );
+    const cardTotal = notes.reduce((prev, current) => prev + current.card, 0);
+
     return (
-        <>
+        <div>
             <Flex justify="center" className="mb-4">
                 <Text size="4" weight="bold">
                     VENTA CON NOTAS DE PEDIDO
@@ -39,7 +46,7 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                             TOTAL
                         </Table.ColumnHeaderCell>
                         <Table.ColumnHeaderCell className="text-center">
-                            MP
+                            MÉTODO DE PAGO
                         </Table.ColumnHeaderCell>
 
                         {isEditable && (
@@ -118,7 +125,27 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                     ))}
                 </Table.Body>
             </Table.Root>
-        </>
+            <div className="flex justify-around gap-4">
+                <div className="flex justify-end mt-6">
+                    <Text weight="bold">
+                        Total efectivo:
+                        {formatCurrency(cashTotal)}
+                    </Text>
+                </div>
+                <div className="flex justify-end mt-6">
+                    <Text weight="bold">
+                        Total transferencia:
+                        {formatCurrency(transferTotal)}
+                    </Text>
+                </div>
+                <div className="flex justify-end mt-6">
+                    <Text weight="bold">
+                        Total tarjeta:
+                        {formatCurrency(cardTotal)}
+                    </Text>
+                </div>
+            </div>
+        </div>
     );
 };
 

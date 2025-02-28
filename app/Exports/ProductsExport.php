@@ -11,8 +11,21 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ProductsExport implements FromCollection, WithHeadings, WithStyles, ShouldAutoSize
 {
+
+    protected $brand;
+
+    public function __construct($brand = null)
+    {
+        $this->brand = $brand;
+    }
+
     public function collection()
     {
+
+        if ($this->brand) {
+            return Product::where('brand', $this->brand)->select('brand', 'model', 'measure', 'mc', 'unit', 'price', 'cost', 'iva', 'extra')->get();
+        }
+
         return Product::select('brand', 'model', 'measure', 'mc', 'unit', 'price', 'cost', 'iva', 'extra')->get();
     }
 

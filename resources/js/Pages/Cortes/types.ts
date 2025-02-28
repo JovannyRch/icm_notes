@@ -1,7 +1,9 @@
 interface PreviousNoteInput {
     folio: string;
     date: string;
-    amount: string;
+    card: string;
+    cash: string;
+    transfer: string;
 }
 
 interface ExpenseInput {
@@ -18,6 +20,7 @@ interface CutSums {
     total: number;
     previousNotesSum: number;
     notesSum: number;
+    returnsSum: number;
 }
 
 interface ReturnInput {

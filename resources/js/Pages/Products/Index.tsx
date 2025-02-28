@@ -15,8 +15,6 @@ import {
 } from "@radix-ui/themes";
 import { useState } from "react";
 import { CgAdd } from "react-icons/cg";
-import { FaFileExcel, FaListCheck } from "react-icons/fa6";
-import { GiCancel } from "react-icons/gi";
 import { TbTrash } from "react-icons/tb";
 import ImportProducts from "./ImportProducts";
 import { Inertia } from "@inertiajs/inertia";
@@ -24,16 +22,20 @@ import { formatCurrency } from "@/helpers/formatters";
 import { confirmAlert } from "react-confirm-alert";
 import { MdDeleteSweep } from "react-icons/md";
 import { BiDownload } from "react-icons/bi";
-import SearchInput from "@/Components/SearchInput";
 import ProductsSearchInput from "./components/ProductsSearchInput";
-import DateFilter from "../Notes/components/DateFilter";
+import BrandSelect from "./components/BrandSelect";
 
 interface Props extends PageProps {
     pagination: any;
+    brands: {
+        brand: string;
+    }[];
 }
 
-const Index = ({ pagination, flash }: Props) => {
+const Index = ({ pagination, flash, brands }: Props) => {
     const { data: products } = pagination;
+
+    const brandQuery = route().params.brand;
 
     const [selectedItems, setSelectedItems] = useState<number[]>([]);
 
@@ -70,13 +72,23 @@ const Index = ({ pagination, flash }: Props) => {
 
     const handleDeleteAll = () => {
         confirmAlert({
-            title: "Eliminar todos los productos",
+            title: brandQuery
+                ? `Eliminar productos de ${brandQuery}`
+                : "Eliminar todos los productos",
             message:
                 "¿Estás seguro de que deseas eliminar todos los productos? Esta acción no se puede deshacer.",
             buttons: [
                 {
                     label: "Sí",
                     onClick: () => {
+                        if (brandQuery) {
+                            Inertia.post(
+                                route("products.destroy.all", {
+                                    brand: brandQuery,
+                                })
+                            );
+                            return;
+                        }
                         Inertia.post(route("products.destroy.all"));
                     },
                 },
@@ -89,6 +101,11 @@ const Index = ({ pagination, flash }: Props) => {
     };
 
     const handleExport = () => {
+        if (brandQuery) {
+            Inertia.get(route("export.products", { brand: brandQuery }));
+            return;
+        }
+
         Inertia.get(route("export.products"));
     };
 
@@ -141,7 +158,7 @@ const Index = ({ pagination, flash }: Props) => {
                             className="btn btn-secondary hover:cursor-pointer"
                             onClick={handleDeleteAll}
                         >
-                            Eliminar todo
+                            Eliminar {brandQuery ?? "todos"}
                             <MdDeleteSweep />
                         </Button>
                     </Flex>
@@ -156,6 +173,17 @@ const Index = ({ pagination, flash }: Props) => {
                         }}
                     >
                         <ProductsSearchInput />
+                    </Grid>
+                    <Grid
+                        gridColumn={{
+                            lg: "span 2",
+                            md: "span 2",
+                            xs: "span 4",
+                        }}
+                    >
+                        <div>
+                            <BrandSelect brands={brands} />
+                        </div>
                     </Grid>
                 </Grid>
 
@@ -199,13 +227,13 @@ const Index = ({ pagination, flash }: Props) => {
                                 Medida
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
-                                m²
+                                MC
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
                                 Unidad
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
-                                Precio
+                                Precio Público
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
                                 Costo

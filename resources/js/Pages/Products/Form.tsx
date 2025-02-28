@@ -127,7 +127,7 @@ const Form = ({ product, flash }: FormProps) => {
                             </Grid>
                             <Grid gridColumn="span 1">
                                 <InputWithLabel
-                                    label="m²"
+                                    label="MC"
                                     name="mc"
                                     value={data.mc}
                                     onChange={(e) =>

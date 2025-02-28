@@ -32,17 +32,6 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                 <Flex justify="between" gap="4" className="my-4">
                     <Flex gap="2">
                         <Button
-                            onClick={() => {
-                                router.visit(
-                                    route("cortes.new", { branch: branch.id })
-                                );
-                            }}
-                            className="hover:cursor-pointer"
-                        >
-                            Crear un corte
-                            <CgAdd className="w-5 h-5" />
-                        </Button>
-                        <Button
                             type="button"
                             color="gray"
                             variant="soft"
@@ -55,8 +44,19 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                                 );
                             }}
                         >
-                            Regresar al listado de notas
                             <BiArrowBack />
+                            Notas
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                router.visit(
+                                    route("cortes.new", { branch: branch.id })
+                                );
+                            }}
+                            className="hover:cursor-pointer"
+                        >
+                            Crear un corte
+                            <CgAdd className="w-5 h-5" />
                         </Button>
                     </Flex>
                 </Flex>
