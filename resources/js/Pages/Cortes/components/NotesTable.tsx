@@ -2,7 +2,7 @@ import { formatCurrency, formatDate } from "@/helpers/formatters";
 import { getPaymentMethods } from "@/helpers/utils";
 import { Note } from "@/types/Note";
 import { Flex, IconButton, Table, Text } from "@radix-ui/themes";
-import { useMemo } from "react";
+/* import { useMemo } from "react"; */
 import { CgRemove } from "react-icons/cg";
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 }
 
 const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
-    const cashTotal = useMemo(
+    /*  const cashTotal = useMemo(
         () => notes.reduce((prev, current) => prev + current.cash, 0),
         [notes]
     );
@@ -23,7 +23,7 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
     const cardTotal = useMemo(
         () => notes.reduce((prev, current) => prev + current.card, 0),
         [notes]
-    );
+    ); */
 
     return (
         <div>
@@ -132,7 +132,7 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                     ))}
                 </Table.Body>
             </Table.Root>
-            <div className="flex justify-around gap-4">
+            {/* <div className="flex justify-around gap-4">
                 <div className="flex justify-end mt-6">
                     <Text weight="bold">
                         Total efectivo:
@@ -151,7 +151,7 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                         {formatCurrency(cardTotal)}
                     </Text>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 };
