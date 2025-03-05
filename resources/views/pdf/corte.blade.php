@@ -173,6 +173,7 @@ function getPaymentMethods($note): string
     <br>
 
     <div class="divider"></div>
+    <br>
 
     <div class="table-title">VENTA CON NOTAS DE PEDIDO</div>
     <br>
@@ -203,79 +204,87 @@ function getPaymentMethods($note): string
         </tbody>
     </table>
 
-    <br>
-    <br>
+    @if (count($corte->previous_notes) > 0)
+        <br>
+        <br>
 
 
-    <div class="table-title">ENTRADAS ANTERIORES</div>
-    <br>
-    <table class="ticket-table">
-        <thead>
-            <tr>
-                <th>No NOTA</th>
-                <th>FECHA</th>
-                <th>EFECTIVO</th>
-                <th>TRANSFERENCIA</th>
-                <th>TARJETA</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($corte->previous_notes as $note)
+        <div class="table-title">ENTRADAS ANTERIORES</div>
+        <br>
+        <table class="ticket-table">
+            <thead>
                 <tr>
-                    <td>{{ $note['folio'] }}</td>
-                    <td>{{ $note['date'] }}</td>
-                    <td>{{ format_currency($note['cash'], 2) }}</td>
-                    <td>{{ format_currency($note['card'], 2) }}</td>
-                    <td>{{ format_currency($note['transfer'], 2) }}</td>
-
+                    <th>No NOTA</th>
+                    <th>FECHA</th>
+                    <th>EFECTIVO</th>
+                    <th>TRANSFERENCIA</th>
+                    <th>TARJETA</th>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
-    <br>
-    <br>
+            </thead>
+            <tbody>
+                @foreach ($corte->previous_notes as $note)
+                    <tr>
+                        <td>{{ $note['folio'] }}</td>
+                        <td>{{ $note['date'] }}</td>
+                        <td>{{ format_currency($note['cash'], 2) }}</td>
+                        <td>{{ format_currency($note['card'], 2) }}</td>
+                        <td>{{ format_currency($note['transfer'], 2) }}</td>
 
-    <div class="table-title">DEVOLUCIONES</div>
-    <br>
-    <table class="ticket-table">
-        <thead>
-            <tr>
-                <th>CONCEPTO</th>
-                <th>CANTIDAD</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($corte->returns as $note)
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    @if (count($corte->returns) > 0)
+        <br>
+        <br>
+
+        <div class="table-title">DEVOLUCIONES</div>
+        <br>
+        <table class="ticket-table">
+            <thead>
                 <tr>
-                    <td>{{ $note['concept'] }}</td>
-                    <td>{{ format_currency($note['amount'], 2) }}</td>
-
+                    <th>CONCEPTO</th>
+                    <th>CANTIDAD</th>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
-    <br>
-    <br>
+            </thead>
+            <tbody>
+                @foreach ($corte->returns as $note)
+                    <tr>
+                        <td>{{ $note['concept'] }}</td>
+                        <td>{{ format_currency($note['amount'], 2) }}</td>
 
-    <div class="table-title">GASTOS</div>
-    <br>
-    <table class="ticket-table">
-        <thead>
-            <tr>
-                <th>CONCEPTO</th>
-                <th>CANTIDAD</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($corte->expenses as $note)
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    @if (count($corte->expenses) > 0)
+        <br>
+        <br>
+
+        <div class="table-title">GASTOS</div>
+        <br>
+        <table class="ticket-table">
+            <thead>
                 <tr>
-                    <td>{{ $note['concept'] }}</td>
-                    <td>{{ format_currency($note['amount'], 2) }}</td>
-
+                    <th>CONCEPTO</th>
+                    <th>CANTIDAD</th>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach ($corte->expenses as $note)
+                    <tr>
+                        <td>{{ $note['concept'] }}</td>
+                        <td>{{ format_currency($note['amount'], 2) }}</td>
+
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
 
 </body>
 

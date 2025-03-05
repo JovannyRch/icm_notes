@@ -28,6 +28,6 @@ class PdfController extends Controller
         $pdf = Pdf::loadView('pdf.corte', $data);
 
 
-        return $pdf->stream("CORTE_{$branch_name}_{$corte->date}.pdf");
+        return $pdf->download("CORTE_{$branch_name}_{$corte->date}.pdf");
     }
 }
