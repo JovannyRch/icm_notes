@@ -1,7 +1,6 @@
 import Container from "@/Components/Container";
 import Pagination from "@/Components/Pagination";
 import { formatCurrency } from "@/helpers/formatters";
-import { numberMonthToString } from "@/helpers/utils";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Branch } from "@/types/Branch";
@@ -39,8 +38,17 @@ const CortesIndex = ({
                         Cortes - {branch.name}
                     </Text>
                 </div>
-                <Flex justify="between" gap="4" className="my-4">
-                    <Flex gap="2">
+                <Flex
+                    gap="2"
+                    className="my-5"
+                    direction={{
+                        md: "row",
+                        xs: "column",
+                        sm: "column",
+                        initial: "column",
+                    }}
+                >
+                    <div>
                         <Button
                             type="button"
                             color="gray"
@@ -57,6 +65,9 @@ const CortesIndex = ({
                             <BiArrowBack />
                             Notas
                         </Button>
+                    </div>
+
+                    <div>
                         <Button
                             onClick={() => {
                                 router.visit(
@@ -68,10 +79,10 @@ const CortesIndex = ({
                             Crear un corte
                             <CgAdd className="w-5 h-5" />
                         </Button>
-                        <div>
-                            <MonthSelector branch={branch} />
-                        </div>
-                    </Flex>
+                    </div>
+                    <div>
+                        <MonthSelector branch={branch} />
+                    </div>
                 </Flex>
 
                 <Table.Root>

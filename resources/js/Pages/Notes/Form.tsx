@@ -233,7 +233,10 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             <form onSubmit={handleOnSubmit}>
                 <Box className="mb-4">
                     <Flex gap="2" justify="between">
-                        <Flex gap="2">
+                        <Flex
+                            gap="2"
+                            direction={{ initial: "column", md: "row" }}
+                        >
                             <Button
                                 type="button"
                                 color="gray"
@@ -304,7 +307,10 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 </>
                             )}
                         </Flex>
-                        <Flex gap="4">
+                        <Flex
+                            gap="4"
+                            direction={{ initial: "column", md: "row" }}
+                        >
                             {isEdit && (
                                 <Button
                                     type="button"

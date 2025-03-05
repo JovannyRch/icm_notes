@@ -78,10 +78,15 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
         <Container headTitle="Notas">
             <div style={{ minHeight: "calc(100vh - 130px)" }}>
                 <Flex
-                    direction="row"
                     justify="between"
                     align="center"
                     className="mb-6"
+                    direction={{
+                        md: "row",
+                        xs: "column",
+                        sm: "column",
+                        initial: "column",
+                    }}
                 >
                     <Text size="6" className="font-semibold">
                         {`Notas ${archivedParam ? "archivadas" : ""} (${
@@ -101,7 +106,15 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                     </div>
                 </Flex>
                 <Flex justify="between" gap="4" className="my-4">
-                    <Flex gap="2">
+                    <Flex
+                        gap="2"
+                        direction={{
+                            md: "row",
+                            xs: "column",
+                            sm: "column",
+                            initial: "column",
+                        }}
+                    >
                         <Button
                             onClick={() => {
                                 router.visit(
@@ -145,7 +158,15 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                             <BsCashCoin className="w-5 h-5" />
                         </Button>
                     </Flex>
-                    <Flex gap="2">
+                    <Flex
+                        gap="2"
+                        direction={{
+                            md: "row",
+                            xs: "column",
+                            sm: "column",
+                            initial: "column",
+                        }}
+                    >
                         {archivedParam ? (
                             <>
                                 <Button
@@ -239,6 +260,7 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                             lg: "span 3",
                             md: "span 4",
                             xs: "span 8",
+                            initial: "span 8",
                         }}
                     >
                         <NoteSearchInput />
@@ -250,7 +272,18 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                             xs: "span 8",
                         }}
                     >
-                        <Flex gap="5" align="center">
+                        <Flex
+                            gap="5"
+                            align="center"
+                            justify={{
+                                md: "start",
+                                initial: "between",
+                            }}
+                            direction={{
+                                md: "row",
+                                initial: "column",
+                            }}
+                        >
                             <DateFilter />
                             <SaleCustomerStatusFilter />
                         </Flex>
