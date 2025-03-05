@@ -10,7 +10,6 @@ use App\Models\Note;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-use Maatwebsite\Excel\Facades\Excel;
 
 class CorteController extends Controller
 {
@@ -19,7 +18,47 @@ class CorteController extends Controller
      */
     public function index(Branch $branch)
     {
+
+        $filter = request('filter') ?? "THIS_MONTH";
+
         $cortes = Corte::where('branch_id', $branch->id)->orderBy('date', 'desc')->paginate(15);
+
+
+
+        switch ($filter) {
+            case 'THIS_MONTH':
+                $cortes = Corte::where('branch_id', $branch->id)
+                    ->whereMonth('date', date('m'))
+                    ->whereYear('date', date('Y'))
+                    ->orderBy('date', 'desc')
+                    ->paginate(15);
+                break;
+            case 'LAST_MONTH':
+                $cortes = Corte::where('branch_id', $branch->id)
+                    ->whereMonth('date', date('m', strtotime('-1 month')))
+                    ->whereYear('date', date('Y', strtotime('-1 month')))
+                    ->orderBy('date', 'desc')
+                    ->paginate(15);
+                break;
+            case 'THIS_YEAR':
+                $cortes = Corte::where('branch_id', $branch->id)
+                    ->whereYear('date', date('Y'))
+                    ->orderBy('date', 'desc')
+                    ->paginate(15);
+                break;
+            case 'LAST_YEAR':
+                $cortes = Corte::where('branch_id', $branch->id)
+                    ->whereYear('date', date('Y', strtotime('-1 year')))
+                    ->orderBy('date', 'desc')
+                    ->paginate(15);
+                break;
+            case 'ALL_TIME':
+                $cortes = Corte::where('branch_id', $branch->id)
+                    ->orderBy('date', 'desc')
+                    ->paginate(15);
+                break;
+        }
+
 
 
         return Inertia::render('Cortes/Index', [

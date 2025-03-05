@@ -1,6 +1,7 @@
 import Container from "@/Components/Container";
 import Pagination from "@/Components/Pagination";
 import { formatCurrency } from "@/helpers/formatters";
+import { numberMonthToString } from "@/helpers/utils";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Branch } from "@/types/Branch";
@@ -10,13 +11,22 @@ import { Button, Flex, Table, Text } from "@radix-ui/themes";
 import { BiArrowBack } from "react-icons/bi";
 
 import { CgAdd } from "react-icons/cg";
+import MonthSelector from "./components/MonthSelector";
 
 interface CortesProps extends PageProps {
     branch: Branch;
     pagination: any;
+    month: string;
+    year: string;
 }
 
-const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
+const CortesIndex = ({
+    branch,
+    pagination,
+    flash,
+    month,
+    year,
+}: CortesProps) => {
     const { data: cortes } = pagination;
 
     useAlerts(flash);
@@ -58,6 +68,9 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                             Crear un corte
                             <CgAdd className="w-5 h-5" />
                         </Button>
+                        <div>
+                            <MonthSelector branch={branch} />
+                        </div>
                     </Flex>
                 </Flex>
 

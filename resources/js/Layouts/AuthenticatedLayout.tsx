@@ -16,23 +16,6 @@ export default function Authenticated({
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            axios("/api/check-session")
-                .then((response) => {
-                    console.log("response.status", response.status);
-                    if (response.status === 401) {
-                        window.location.reload(); // Recarga la página si la sesión expiró
-                    }
-                })
-                .catch(console.error);
-        }, 10 * 1000);
-
-        return () => {
-            clearInterval(interval);
-        };
-    }, []);
-
     return (
         <div className="min-h-screen bg-gray-100">
             <nav className="bg-white border-b border-gray-100">
@@ -95,11 +78,11 @@ export default function Authenticated({
                                     </Dropdown.Trigger>
 
                                     <Dropdown.Content>
-                                        {/*  <Dropdown.Link
+                                        <Dropdown.Link
                                             href={route("profile.edit")}
                                         >
-                                            Profile
-                                        </Dropdown.Link> */}
+                                            Perfil
+                                        </Dropdown.Link>
                                         <Dropdown.Link
                                             href={route("logout")}
                                             method="post"
@@ -187,9 +170,9 @@ export default function Authenticated({
                         </div>
 
                         <div className="mt-3 space-y-1">
-                            {/*  <ResponsiveNavLink href={route("profile.edit")}>
-                                Profile
-                            </ResponsiveNavLink> */}
+                            <ResponsiveNavLink href={route("profile.edit")}>
+                                Perfil
+                            </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 method="post"
                                 href={route("logout")}
