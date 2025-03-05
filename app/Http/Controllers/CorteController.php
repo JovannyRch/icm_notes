@@ -102,9 +102,7 @@ class CorteController extends Controller
 
     public function export(Corte $corte)
     {
-        $currentDate = date('d-m-Y');
-        dd($corte);
-        return Excel::download(new CorteExport($corte), "cortes_{$corte->id}.xlsx");
+        //
     }
 
     /**

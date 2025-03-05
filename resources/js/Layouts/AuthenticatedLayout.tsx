@@ -4,7 +4,8 @@ import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
 import { Link, usePage } from "@inertiajs/react";
-import { PropsWithChildren, ReactNode, useState } from "react";
+import axios from "axios";
+import { PropsWithChildren, ReactNode, useEffect, useState } from "react";
 
 export default function Authenticated({
     header,
@@ -14,6 +15,23 @@ export default function Authenticated({
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            axios("/api/check-session")
+                .then((response) => {
+                    console.log("response.status", response.status);
+                    if (response.status === 401) {
+                        window.location.reload(); // Recarga la página si la sesión expiró
+                    }
+                })
+                .catch(console.error);
+        }, 10 * 1000);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-100">

@@ -3,6 +3,7 @@
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CorteController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\ProfileController;
@@ -62,7 +63,7 @@ Route::get('/sucursal/{branch}/cortes/nuevo', [CorteController::class, 'create']
 Route::post('/cortes', [CorteController::class, 'store'])->middleware(['auth', 'verified'])->name('cortes.store');
 Route::get('/corte/{corte}', [CorteController::class, 'show'])->middleware(['auth', 'verified'])->name('cortes.show');
 Route::delete('/corte/{corte}', [CorteController::class, 'destroy'])->middleware(['auth', 'verified'])->name('cortes.destroy');
-Route::get('/corte/download/{corte}', [CorteController::class, 'export'])->middleware(['auth', 'verified'])->name('cortes.export');
+Route::get('/corte/download/{corte}', [PdfController::class, 'exportCorte'])->middleware(['auth', 'verified'])->name('cortes.export');
 
 
 require __DIR__ . '/auth.php';
