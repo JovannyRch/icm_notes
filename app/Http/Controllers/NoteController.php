@@ -6,7 +6,7 @@ use App\Models\Branch;
 use App\Models\Note;
 use App\Models\NoteProduct;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class NoteController extends Controller
@@ -249,7 +249,7 @@ class NoteController extends Controller
                     }
                 }
             })
-            ->orderBy('folio', 'desc')
+            ->orderByRaw(DB::getDriverName() === 'mysql' ? "CAST(SUBSTRING_INDEX(folio, '-', -1) AS UNSIGNED) ASC" : "CAST(split_part(folio, '-', 2) AS INTEGER) ASC")
             ->paginate(10);
 
         return $notes;
