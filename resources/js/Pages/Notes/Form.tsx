@@ -118,21 +118,32 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
         );
     }, [data.items]);
 
-    const { items, flete, cash, card, transfer } = data;
+    const { items, flete, cash, card, transfer, delivery_status } = data;
 
     const setCalculatedValues = (items: NoteItemInterface[]) => {
-        console.log("items", items);
+        const isCancelled =
+            data.delivery_status === STATUS_DELIVERY_ENUM.CANCELED &&
+            data.status === "canceled";
+
+        if (isCancelled) {
+            setData("transfer", "0");
+            setData("cash", "0");
+            setData("card", "0");
+        }
+
         const purchaseTotal = items.reduce(
             (acc, item) => acc + item.purchase_subtotal,
             0
         );
-        const saleTotal =
-            items.reduce((acc, item) => acc + Number(item.sale_subtotal), 0) +
-            Number(data.flete ?? 0);
+        const saleTotal = isCancelled
+            ? 0
+            : items.reduce((acc, item) => acc + Number(item.sale_subtotal), 0) +
+              Number(data.flete ?? 0);
 
         const { card, cash, transfer } = data;
-        const advance =
-            Number(card ?? 0) + Number(cash ?? 0) + Number(transfer ?? 0);
+        const advance = isCancelled
+            ? 0
+            : Number(card ?? 0) + Number(cash ?? 0) + Number(transfer ?? 0);
 
         const balance = saleTotal - advance;
 
@@ -230,7 +241,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
 
     useUpdateEffect(() => {
         setCalculatedValues(items);
-    }, [cash, card, transfer, flete]);
+    }, [cash, card, transfer, flete, delivery_status]);
 
     return (
         <Container headTitle={isEdit ? "Editar nota" : "Crear nota"}>
@@ -399,6 +410,17 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                             "delivery_status",
                                                             value
                                                         );
+
+                                                        if (
+                                                            value ===
+                                                            STATUS_DELIVERY_ENUM.CANCELED
+                                                        ) {
+                                                            setData(
+                                                                "status",
+                                                                "canceled"
+                                                            );
+                                                        }
+
                                                         setItems(
                                                             items.map(
                                                                 (item) => ({
@@ -550,9 +572,9 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                         </Flex>
                     </Grid>
                     <Grid gridColumn="span 2">
-                        <div className="flex flex-col justify-start">
-                            {data.delivery_status !==
-                                STATUS_DELIVERY_ENUM.CANCELED && (
+                        {data.delivery_status !==
+                            STATUS_DELIVERY_ENUM.CANCELED && (
+                            <div className="flex flex-col justify-start">
                                 <ContainerSection title="Venta cliente">
                                     <InlineInput
                                         label="Flete"
@@ -715,57 +737,58 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                         <LineDivider className="mt-2" />
                                     </Flex>
                                 </ContainerSection>
-                            )}
-                            <ContainerSection title="Compra">
-                                <Flex
-                                    justify="end"
-                                    align="center"
-                                    className="mb-2"
-                                >
-                                    <StatusPaidBadge
-                                        label={
-                                            isPurchaseComplete
-                                                ? "Compra liquidada"
-                                                : " Compra no liquidada"
-                                        }
-                                        status={data.purchase_status}
-                                    />
-                                </Flex>
 
-                                <Flex justify="between" align="center">
-                                    <Text size="3" weight="medium">
-                                        Compra liquidada
-                                    </Text>
-                                    <Switch
-                                        checked={isPurchaseComplete}
-                                        onCheckedChange={(value) => {
-                                            setIsPurchaseComplete(value);
-                                            setData(
-                                                "purchase_status",
-                                                value ? "paid" : "pending"
-                                            );
-                                        }}
-                                    />
-                                </Flex>
+                                <ContainerSection title="Compra">
+                                    <Flex
+                                        justify="end"
+                                        align="center"
+                                        className="mb-2"
+                                    >
+                                        <StatusPaidBadge
+                                            label={
+                                                isPurchaseComplete
+                                                    ? "Compra liquidada"
+                                                    : " Compra no liquidada"
+                                            }
+                                            status={data.purchase_status}
+                                        />
+                                    </Flex>
 
-                                <LineDivider className="mt-4 mb-4" />
-                                <Flex
-                                    gap="2"
-                                    justify="between"
-                                    className="mt-2 mb-2"
-                                    align="center"
-                                >
-                                    <Text size="5">
-                                        <Strong>Total compra: </Strong>
-                                    </Text>
-                                    <Text size="5" weight="bold">
-                                        {formatCurrency(
-                                            Number(data.purchase_total)
-                                        )}
-                                    </Text>
-                                </Flex>
-                            </ContainerSection>
-                        </div>
+                                    <Flex justify="between" align="center">
+                                        <Text size="3" weight="medium">
+                                            Compra liquidada
+                                        </Text>
+                                        <Switch
+                                            checked={isPurchaseComplete}
+                                            onCheckedChange={(value) => {
+                                                setIsPurchaseComplete(value);
+                                                setData(
+                                                    "purchase_status",
+                                                    value ? "paid" : "pending"
+                                                );
+                                            }}
+                                        />
+                                    </Flex>
+
+                                    <LineDivider className="mt-4 mb-4" />
+                                    <Flex
+                                        gap="2"
+                                        justify="between"
+                                        className="mt-2 mb-2"
+                                        align="center"
+                                    >
+                                        <Text size="5">
+                                            <Strong>Total compra: </Strong>
+                                        </Text>
+                                        <Text size="5" weight="bold">
+                                            {formatCurrency(
+                                                Number(data.purchase_total)
+                                            )}
+                                        </Text>
+                                    </Flex>
+                                </ContainerSection>
+                            </div>
+                        )}
                     </Grid>
                 </Grid>
             </form>

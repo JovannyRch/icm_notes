@@ -76,7 +76,6 @@ class CorteController extends Controller
 
         $notes = Note::where('branch_id', $branch->id)
             ->where('date', $date)
-            ->where('status', '!=', 'canceled')
             ->get();
 
         return Inertia::render('Cortes/Form', [

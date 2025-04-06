@@ -79,32 +79,80 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                             key={note.id}
                         >
                             <Table.Cell className="text-center">
-                                <Text size="3" weight="bold">
+                                <Text
+                                    size="3"
+                                    weight="bold"
+                                    className={
+                                        note.status === "canceled"
+                                            ? "text-red-500"
+                                            : ""
+                                    }
+                                >
                                     {note.folio}
                                 </Text>
                             </Table.Cell>
                             <Table.Cell className="text-center">
-                                <Text size="3" weight="medium">
+                                <Text
+                                    size="3"
+                                    weight="medium"
+                                    className={
+                                        note.status === "canceled"
+                                            ? "text-red-500"
+                                            : ""
+                                    }
+                                >
                                     {formatDate(note.date)}
                                 </Text>
                             </Table.Cell>
                             <Table.Cell className="text-center">
-                                <Text size="3" weight="medium">
+                                <Text
+                                    size="3"
+                                    weight="medium"
+                                    className={
+                                        note.status === "canceled"
+                                            ? "text-red-500"
+                                            : ""
+                                    }
+                                >
                                     {formatCurrency(note.advance)}
                                 </Text>
                             </Table.Cell>
                             <Table.Cell className="text-center">
-                                <Text size="3" weight="medium">
+                                <Text
+                                    size="3"
+                                    weight="medium"
+                                    className={
+                                        note.status === "canceled"
+                                            ? "text-red-500"
+                                            : ""
+                                    }
+                                >
                                     {formatCurrency(note.balance)}
                                 </Text>
                             </Table.Cell>
                             <Table.Cell className="text-center">
-                                <Text size="3" weight="medium">
+                                <Text
+                                    size="3"
+                                    weight="medium"
+                                    className={
+                                        note.status === "canceled"
+                                            ? "text-red-500"
+                                            : ""
+                                    }
+                                >
                                     {formatCurrency(note.sale_total)}
                                 </Text>
                             </Table.Cell>
                             <Table.Cell className="text-center">
-                                <Text size="3" weight="medium">
+                                <Text
+                                    size="3"
+                                    weight="medium"
+                                    className={
+                                        note.status === "canceled"
+                                            ? "text-red-500"
+                                            : ""
+                                    }
+                                >
                                     {getPaymentMethods(note).join(", ")}
                                 </Text>
                             </Table.Cell>
