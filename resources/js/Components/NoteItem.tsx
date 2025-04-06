@@ -423,10 +423,20 @@ const NoteItem = ({
                                                 value={item.sale_subtotal}
                                                 label="Subtotal venta"
                                                 onChange={(e) => {
+                                                    const newSubtotal = Number(
+                                                        e.target.value
+                                                    );
                                                     onUpdate(index, {
                                                         ...item,
+                                                        price:
+                                                            Number(
+                                                                newSubtotal
+                                                            ) /
+                                                            (Number(
+                                                                item.quantity
+                                                            ) || 1.0),
                                                         sale_subtotal:
-                                                            e.target.value,
+                                                            newSubtotal,
                                                     });
                                                 }}
                                             />
