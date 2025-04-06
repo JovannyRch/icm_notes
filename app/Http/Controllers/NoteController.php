@@ -249,7 +249,7 @@ class NoteController extends Controller
                     }
                 }
             })
-            ->orderBy('folio', 'asc')
+            ->orderByRaw("CAST(SUBSTRING_INDEX(folio, '-', -1) AS UNSIGNED) ASC")
             ->paginate(10);
 
         return $notes;
