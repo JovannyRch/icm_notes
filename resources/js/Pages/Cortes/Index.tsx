@@ -11,24 +11,25 @@ import { BiArrowBack } from "react-icons/bi";
 
 import { CgAdd } from "react-icons/cg";
 import MonthSelector from "./components/MonthSelector";
+import { useLocalStorage } from "usehooks-ts";
 
 interface CortesProps extends PageProps {
     branch: Branch;
     pagination: any;
     month: string;
     year: string;
+    branches: Branch[];
 }
 
-const CortesIndex = ({
-    branch,
-    pagination,
-    flash,
-    month,
-    year,
-}: CortesProps) => {
+const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
     const { data: cortes } = pagination;
 
     useAlerts(flash);
+
+    const [filterDate] = useLocalStorage(
+        `date-filter-${branch.id}`,
+        "THIS_WEEK"
+    );
 
     return (
         <Container headTitle="Cortes">
@@ -58,6 +59,7 @@ const CortesIndex = ({
                                 router.visit(
                                     route("notas", {
                                         branch: branch.id,
+                                        date: filterDate,
                                     })
                                 );
                             }}

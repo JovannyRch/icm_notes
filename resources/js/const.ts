@@ -48,3 +48,15 @@ export const SUPPLIED_STATUS_MAP: Record<string, string> = {
     enviado_a_sucursal: "Enviado a sucursal",
     no_enviado: "No enviado",
 };
+
+export const DATE_FILTERS_VALUES = {
+    TODAY: "Hoy",
+    YESTERDAY: "Ayer",
+    THIS_WEEK: "Esta semana",
+    LAST_WEEK: "Semana pasada",
+    THIS_MONTH: "Este mes",
+    LAST_MONTH: "Mes pasado",
+    THIS_YEAR: "Este año",
+    LAST_YEAR: "Año pasado",
+    ALL_TIME: "Todo el tiempo",
+};

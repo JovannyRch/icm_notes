@@ -1,23 +1,13 @@
+import { DATE_FILTERS_VALUES } from "@/const";
 import { Inertia } from "@inertiajs/inertia";
 import { Button, DropdownMenu } from "@radix-ui/themes";
 import { useMemo } from "react";
 import { FaRegCalendarAlt } from "react-icons/fa";
-
-const DATE_FILTERS_VALUES = {
-    TODAY: "Hoy",
-    YESTERDAY: "Ayer",
-    THIS_WEEK: "Esta semana",
-    LAST_WEEK: "Semana pasada",
-    THIS_MONTH: "Este mes",
-    LAST_MONTH: "Mes pasado",
-    THIS_YEAR: "Este año",
-    LAST_YEAR: "Año pasado",
-    ALL_TIME: "Todo el tiempo",
-};
+import { useLocalStorage } from "usehooks-ts";
 
 type DateFilterKeys = keyof typeof DATE_FILTERS_VALUES;
 
-const DateFilter = () => {
+const DateFilter = ({ branchId }: { branchId: number }) => {
     const date = route().params.date as DateFilterKeys;
 
     const additionalParams = useMemo(() => {
@@ -28,9 +18,10 @@ const DateFilter = () => {
         return params;
     }, []);
 
-    const defaultDate = date
-        ? DATE_FILTERS_VALUES[date]
-        : DATE_FILTERS_VALUES.THIS_WEEK;
+    const [filterDate, setFilterDate] = useLocalStorage(
+        `date-filter-${branchId}`,
+        "THIS_WEEK"
+    );
 
     return (
         <div className="flex items-center gap-2">
@@ -38,8 +29,7 @@ const DateFilter = () => {
                 <DropdownMenu.Trigger>
                     <Button variant="soft">
                         <FaRegCalendarAlt />
-                        {defaultDate}
-
+                        {DATE_FILTERS_VALUES[filterDate as DateFilterKeys]}
                         <DropdownMenu.TriggerIcon />
                     </Button>
                 </DropdownMenu.Trigger>
@@ -48,12 +38,14 @@ const DateFilter = () => {
                         <DropdownMenu.Item
                             key={key}
                             onSelect={() => {
+                                console.log("key", key);
+                                setFilterDate(key as DateFilterKeys);
                                 Inertia.get(route("notas"), {
                                     ...additionalParams,
                                     date: key as DateFilterKeys,
                                 });
                             }}
-                            color={value === defaultDate ? "indigo" : undefined}
+                            color={value === filterDate ? "indigo" : undefined}
                         >
                             {value}
                         </DropdownMenu.Item>

@@ -17,7 +17,6 @@ import { Inertia } from "@inertiajs/inertia";
 import useAlerts from "@/hooks/useAlerts";
 import { confirmAlert } from "react-confirm-alert";
 import ReturnsTable from "./components/ReturnsTable";
-import { BsCashCoin } from "react-icons/bs";
 import { router } from "@inertiajs/react";
 import { FaDownload } from "react-icons/fa6";
 

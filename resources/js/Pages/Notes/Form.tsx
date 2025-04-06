@@ -6,7 +6,7 @@ import InputWithLabel from "@/Components/InputWithLabel";
 import LineDivider from "@/Components/LineDivider";
 import NoteItem from "@/Components/NoteItem";
 import ProductsModal from "@/Components/ProductsModal/ProductsModal";
-import { STATUS_DELIVERY_ENUM } from "@/const";
+import { DATE_FILTERS_VALUES, STATUS_DELIVERY_ENUM } from "@/const";
 import { formatCurrency, getToday } from "@/helpers/formatters";
 import {
     calculatePurchaseSubtotal,
@@ -47,6 +47,7 @@ import { SuppliedStatusSelect } from "@/Components/SuppliedStatusSelect";
 import { DeliveryStatusSelect } from "@/Components/DeliveryStatusSelect";
 import StatusPaidBadge from "@/Components/StatusPaidBadge";
 import { confirmAlert } from "react-confirm-alert";
+import { useLocalStorage } from "usehooks-ts";
 
 interface Props extends PageProps {
     branch: Branch;
@@ -243,6 +244,11 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
         setCalculatedValues(items);
     }, [cash, card, transfer, flete, delivery_status]);
 
+    const [filterDate] = useLocalStorage(
+        `date-filter-${branch.id}`,
+        "THIS_WEEK"
+    );
+
     return (
         <Container headTitle={isEdit ? "Editar nota" : "Crear nota"}>
             <form onSubmit={handleOnSubmit}>
@@ -258,8 +264,12 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 variant="soft"
                                 className="btn btn-secondary hover:cursor-pointer"
                                 onClick={() => {
-                                    //back
-                                    window.history.back();
+                                    router.visit(
+                                        route("notas", {
+                                            branch: branch.id,
+                                            date: filterDate,
+                                        })
+                                    );
                                 }}
                             >
                                 Regresar al listado

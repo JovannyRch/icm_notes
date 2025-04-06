@@ -4,6 +4,9 @@ import { Branch } from "@/types/Branch";
 import { Inertia } from "@inertiajs/inertia";
 import { router } from "@inertiajs/react";
 import { Flex, Table, Text } from "@radix-ui/themes";
+import { formatDate } from "date-fns";
+import DatePicker from "react-datepicker";
+import { es } from "date-fns/locale/es";
 
 interface Props {
     total: number;
@@ -29,9 +32,10 @@ const AmountDetailsTable = ({
     previousNotesTotal,
     returnsSum,
     date,
-    isDisabled,
     branch,
 }: Props) => {
+    const selectedDate = new Date(date + "T00:00");
+
     return (
         <div>
             <Table.Root>
@@ -44,16 +48,22 @@ const AmountDetailsTable = ({
                                     Fecha
                                 </Text>
 
-                                <input
-                                    type="date"
-                                    value={date}
-                                    className="min-w-[200px] text-right rounded-md h-8 px-2"
-                                    disabled={isDisabled}
-                                    onChange={(e) => {
+                                <DatePicker
+                                    locale={es}
+                                    dateFormat={"dd/MM/yyyy"}
+                                    className="min-w-[200px]  rounded-md h-8 px-2"
+                                    selected={selectedDate}
+                                    onSelect={(date) => {
+                                        if (!date) {
+                                            return;
+                                        }
                                         router.visit(
                                             route("cortes.new", {
                                                 branch: branch.id,
-                                                date: e.target.value,
+                                                date: formatDate(
+                                                    date,
+                                                    "yyyy-MM-dd"
+                                                ),
                                             })
                                         );
                                     }}

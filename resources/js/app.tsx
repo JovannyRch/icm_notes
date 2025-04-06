@@ -10,6 +10,7 @@ import { createRoot } from "react-dom/client";
 import { Theme } from "@radix-ui/themes";
 import { ToastContainer } from "react-toastify";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import "react-datepicker/dist/react-datepicker.css";
 
 const queryClient = new QueryClient();
 const appName = import.meta.env.VITE_APP_NAME || "Laravel";

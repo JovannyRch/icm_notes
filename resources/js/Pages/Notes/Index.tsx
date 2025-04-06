@@ -34,10 +34,9 @@ import { BsCashCoin } from "react-icons/bs";
 interface Props extends PageProps {
     pagination: any;
     branch: Branch;
-    branches: Branch[];
 }
 
-const Home = ({ pagination, flash, branch, branches }: Props) => {
+const Home = ({ pagination, flash, branch }: Props) => {
     const { data: notes } = pagination;
 
     const archivedParam = Boolean(route().params.archived);
@@ -94,7 +93,7 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                         }) - ${branch.name}`}
                     </Text>
                     <div>
-                        <BranchSelector
+                        {/*  <BranchSelector
                             branches={branches}
                             branch={branch}
                             onChange={(branch) => {
@@ -102,7 +101,7 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                                     route("notas", { branch: branch.id })
                                 );
                             }}
-                        />
+                        /> */}
                     </div>
                 </Flex>
                 <Flex justify="between" gap="4" className="my-4">
@@ -284,7 +283,7 @@ const Home = ({ pagination, flash, branch, branches }: Props) => {
                                 initial: "column",
                             }}
                         >
-                            <DateFilter />
+                            <DateFilter branchId={branch.id} />
                             <SaleCustomerStatusFilter />
                         </Flex>
                     </Grid>

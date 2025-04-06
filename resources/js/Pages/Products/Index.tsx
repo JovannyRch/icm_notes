@@ -24,6 +24,7 @@ import { MdDeleteSweep } from "react-icons/md";
 import { BiDownload } from "react-icons/bi";
 import ProductsSearchInput from "./components/ProductsSearchInput";
 import BrandSelect from "./components/BrandSelect";
+import { Branch } from "@/types/Branch";
 
 interface Props extends PageProps {
     pagination: any;
