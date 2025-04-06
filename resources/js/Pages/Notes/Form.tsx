@@ -247,11 +247,8 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                 variant="soft"
                                 className="btn btn-secondary hover:cursor-pointer"
                                 onClick={() => {
-                                    router.visit(
-                                        route("notas", {
-                                            branch: branch.id,
-                                        })
-                                    );
+                                    //back
+                                    window.history.back();
                                 }}
                             >
                                 Regresar al listado
