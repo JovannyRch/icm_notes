@@ -249,7 +249,7 @@ class NoteController extends Controller
                     }
                 }
             })
-            ->orderBy('date', 'desc')
+            ->orderBy('folio', 'asc')
             ->paginate(10);
 
         return $notes;

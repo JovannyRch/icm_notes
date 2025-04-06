@@ -428,13 +428,14 @@ const NoteItem = ({
                                                     );
                                                     onUpdate(index, {
                                                         ...item,
-                                                        price:
+                                                        price: (
                                                             Number(
                                                                 newSubtotal
                                                             ) /
                                                             (Number(
                                                                 item.quantity
-                                                            ) || 1.0),
+                                                            ) || 1.0)
+                                                        ).toFixed(2),
                                                         sale_subtotal:
                                                             newSubtotal,
                                                     });
