@@ -12,7 +12,7 @@ export interface NoteItemInterface {
     quantity: number | string;
     stock: number;
     purchase_subtotal: number;
-    sale_subtotal: number;
+    sale_subtotal: string | number;
     product_id?: number;
     delivery_status: string;
     supplied_status: string;

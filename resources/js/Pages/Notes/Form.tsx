@@ -112,18 +112,22 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
     });
 
     const productsSubtotal = useMemo(() => {
-        return data.items.reduce((acc, item) => acc + item.sale_subtotal, 0);
+        return data.items.reduce(
+            (acc, item) => acc + Number(item.sale_subtotal),
+            0
+        );
     }, [data.items]);
 
     const { items, flete, cash, card, transfer } = data;
 
     const setCalculatedValues = (items: NoteItemInterface[]) => {
+        console.log("items", items);
         const purchaseTotal = items.reduce(
             (acc, item) => acc + item.purchase_subtotal,
             0
         );
         const saleTotal =
-            items.reduce((acc, item) => acc + item.sale_subtotal, 0) +
+            items.reduce((acc, item) => acc + Number(item.sale_subtotal), 0) +
             Number(data.flete ?? 0);
 
         const { card, cash, transfer } = data;

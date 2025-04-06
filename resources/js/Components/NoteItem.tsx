@@ -15,6 +15,7 @@ import { formatCurrency } from "@/helpers/formatters";
 import {
     calculatePurchaseSubtotal,
     calculateSaleSubtotal,
+    isNumber,
 } from "@/helpers/utils";
 import { useState } from "react";
 import InlineInput from "./InlineInput";
@@ -31,6 +32,7 @@ interface NoteItemProps {
     onOpenSearchModal: (position: number) => void;
     onUpdate: (index: number, item: NoteItemInterface) => void;
     isEdit: boolean;
+    updateCalculatedValues?: (item: NoteItemInterface) => void;
 }
 
 const CenteredCell = ({ children }: { children: React.ReactNode }) => (
@@ -48,6 +50,7 @@ const NoteItem = ({
     onOpenSearchModal,
     onUpdate,
     isEdit,
+    updateCalculatedValues,
 }: NoteItemProps) => {
     const calculateSubtotals = (
         product: NoteItemInterface
@@ -415,12 +418,18 @@ const NoteItem = ({
                                 <div className="flex justify-end ">
                                     <div className="flex flex-col gap-4">
                                         <div className="flex items-center justify-between">
-                                            <Strong>Subtotal venta:</Strong>
-                                            <Strong>
-                                                {formatCurrency(
-                                                    item.sale_subtotal
-                                                )}
-                                            </Strong>
+                                            <InlineInput
+                                                name="subtotal_venta"
+                                                value={item.sale_subtotal}
+                                                label="Subtotal venta"
+                                                onChange={(e) => {
+                                                    onUpdate(index, {
+                                                        ...item,
+                                                        sale_subtotal:
+                                                            e.target.value,
+                                                    });
+                                                }}
+                                            />
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <Strong>Subtotal compra:</Strong>
