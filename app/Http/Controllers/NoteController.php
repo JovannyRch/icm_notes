@@ -249,7 +249,7 @@ class NoteController extends Controller
                     }
                 }
             })
-            ->orderByRaw(DB::getDriverName() === 'mysql' ? "CAST(SUBSTRING_INDEX(folio, '-', -1) AS UNSIGNED) ASC" : "CAST(split_part(folio, '-', 2) AS INTEGER) ASC")
+            ->orderByRaw(DB::getDriverName() === 'mysql' ? "CAST(folio AS UNSIGNED) ASC" : "CAST(folio AS INTEGER) ASC")
             ->paginate(10);
 
         return $notes;
