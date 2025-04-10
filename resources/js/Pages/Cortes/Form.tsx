@@ -60,20 +60,29 @@ function calculateSums(
         return acc + (isNumber(expense.amount) ? Number(expense.amount) : 0);
     }, 0);
 
-    const previousNotesSum = previousNotes.reduce((acc, note) => {
-        return (
-            acc +
-            (isNumber(note.cash) ? Number(note.cash) : 0) +
-            (isNumber(note.card) ? Number(note.card) : 0) +
-            (isNumber(note.transfer) ? Number(note.transfer) : 0)
-        );
-    }, 0);
+    let previousNotesCashSum = 0;
+    let previousNotesTransferSum = 0;
+    let previousNotesCardSum = 0;
+
+    previousNotes.forEach((note) => {
+        const cash = Number(note.cash ?? 0);
+        const transfer = Number(note.transfer ?? 0);
+        const card = Number(note.card ?? 0);
+
+        previousNotesCashSum += cash;
+        previousNotesTransferSum += transfer;
+        previousNotesCardSum += card;
+    });
+
+    cashSum += previousNotesCashSum;
+    transferSum += previousNotesTransferSum;
+    cardSum += previousNotesCardSum;
 
     const returnsSum = returns.reduce((acc, note) => {
         return acc + (isNumber(note.amount) ? Number(note.amount) : 0);
     }, 0);
 
-    cashSum += previousNotesSum - expensesSum - returnsSum;
+    cashSum = cashSum - expensesSum - returnsSum;
 
     return {
         cardSum,
@@ -82,7 +91,10 @@ function calculateSums(
         balanceSum,
         total,
         expensesSum,
-        previousNotesSum,
+        previousNotesSum:
+            previousNotesCashSum +
+            previousNotesTransferSum +
+            previousNotesCardSum,
         notesSum,
         returnsSum,
     };

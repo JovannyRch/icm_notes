@@ -22,11 +22,12 @@ export const getPaymentMethods = (note: Note): string[] => {
     if (note.cash > 0) {
         result.push(`Efect (${formatCurrency(note.cash)})`);
     }
-    if (note.card > 0) {
-        result.push(`Tarj (${formatCurrency(note.card)})`);
-    }
+
     if (note.transfer > 0) {
         result.push(`Trans (${formatCurrency(note.transfer)})`);
+    }
+    if (note.card > 0) {
+        result.push(`Tarj (${formatCurrency(note.card)})`);
     }
 
     return result;
