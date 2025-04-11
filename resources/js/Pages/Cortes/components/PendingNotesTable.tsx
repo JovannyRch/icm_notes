@@ -1,19 +1,25 @@
 import DynamicTable, { Column } from "@/Components/DynamicTable";
 import { formatCurrency } from "@/helpers/formatters";
 import { isNumber } from "@/helpers/utils";
+import { Branch } from "@/types/Branch";
+import { router } from "@inertiajs/react";
 import { Flex, Text } from "@radix-ui/themes";
+import axios from "axios";
 import { useMemo } from "react";
+import { toast } from "react-toastify";
 
 interface Props {
     previousNotes: PreviousNoteInput[];
     setPreviousNotes: (notes: PreviousNoteInput[]) => void;
     isDisabled?: boolean;
+    branch: Branch;
 }
 
 const PendingNotesTable = ({
     previousNotes,
     setPreviousNotes,
     isDisabled,
+    branch,
 }: Props) => {
     const columns: Column<PreviousNoteInput>[] = [
         { label: "No NOTA", key: "folio" },
@@ -67,6 +73,26 @@ const PendingNotesTable = ({
                 rows={previousNotes}
                 setRows={setPreviousNotes}
                 isEditable={!isDisabled}
+                onRowClick={({ folio = "" }) => {
+                    axios
+                        .get(`/api/notes/${branch.id}/searchByFolio/${folio}`)
+                        .then(({ data }) => {
+                            const { id = null } = data;
+
+                            if (id) {
+                                window.open(route("notes.show", id), "_blank");
+                            } else {
+                                toast.error(
+                                    `No se encontró la nota ${folio} en sucursal ${branch.name}`
+                                );
+                            }
+                        })
+                        .catch((error) => {
+                            toast.error(
+                                `Error al buscar la nota ${folio} en sucursal ${branch.name}`
+                            );
+                        });
+                }}
             />
             <div className="flex justify-around gap-4">
                 <div className="flex justify-end mt-6">

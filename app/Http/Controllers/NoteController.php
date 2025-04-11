@@ -291,4 +291,14 @@ class NoteController extends Controller
         $notes = Note::where('status', 'pending')->whereNot('date', $today)->get();
         return response()->json($notes);
     }
+
+    public function searchNoteByFolio($branchId, $folio)
+    {
+        $note  = Note::where('branch_id', $branchId)
+            ->where('folio', $folio)
+            ->first();
+
+
+        return response()->json($note);
+    }
 }

@@ -343,6 +343,7 @@ const CorteForm = ({
                         previousNotes={previousNotes}
                         setPreviousNotes={setPreviousNotes}
                         isDisabled={isDetail}
+                        branch={branch}
                     />
                     <Spacer />
                     <ReturnsTable

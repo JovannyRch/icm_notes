@@ -1,4 +1,5 @@
 import { IconButton } from "@radix-ui/themes";
+import { BsEye, BsEyeFill } from "react-icons/bs";
 import { CgRemove } from "react-icons/cg";
 
 export type Column<T> = {
@@ -12,6 +13,7 @@ type DynamicTableProps<T> = {
     rows: T[];
     setRows: (rows: T[]) => void;
     isEditable?: boolean;
+    onRowClick?: (row: T) => void;
 };
 
 const DynamicTable = <T extends Record<string, any>>({
@@ -19,6 +21,7 @@ const DynamicTable = <T extends Record<string, any>>({
     rows,
     setRows,
     isEditable = true,
+    onRowClick,
 }: DynamicTableProps<T>) => {
     // Manejo del cambio en los inputs
     const handleInputChange = (
@@ -82,19 +85,37 @@ const DynamicTable = <T extends Record<string, any>>({
                                     key={colIndex}
                                     className="p-2 border border-gray-300"
                                 >
-                                    <input
-                                        type={column.type || "text"}
-                                        disabled={!isEditable}
-                                        value={row[column.key] as string}
-                                        onChange={(e) =>
-                                            handleInputChange(
-                                                rowIndex,
-                                                column.key,
-                                                e.target.value as T[keyof T]
-                                            )
-                                        }
-                                        className="w-full p-1 text-center border border-gray-300 rounded"
-                                    />
+                                    <div className="flex items-center">
+                                        {onRowClick &&
+                                            colIndex === 0 &&
+                                            row[column.key] && (
+                                                <div>
+                                                    <div
+                                                        className="flex justify-center w-8 bg-green-600 rounded-l-lg cursor-pointer hover:bg-green-400"
+                                                        onClick={() =>
+                                                            onRowClick(row)
+                                                        }
+                                                    >
+                                                        <span className="text-xl text-white">
+                                                            <BsEyeFill />
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        <input
+                                            type={column.type || "text"}
+                                            disabled={!isEditable}
+                                            value={row[column.key] as string}
+                                            onChange={(e) =>
+                                                handleInputChange(
+                                                    rowIndex,
+                                                    column.key,
+                                                    e.target.value as T[keyof T]
+                                                )
+                                            }
+                                            className="w-full p-1 text-center border border-gray-300 rounded"
+                                        />
+                                    </div>
                                 </td>
                             ))}
                             {isEditable && (
