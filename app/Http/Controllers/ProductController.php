@@ -41,7 +41,7 @@ class ProductController extends Controller
             return Inertia::render(
                 'Products/Index',
                 [
-                    'pagination' => $products->paginate(15),
+                    'pagination' => $products->paginate(50),
                     'brands' => $brands,
                 ]
             );
@@ -51,9 +51,9 @@ class ProductController extends Controller
 
         if ($brand) {
             $products = Product::where('brand', $brand);
-            $pagination = $products->paginate(15);
+            $pagination = $products->paginate(50);
         } else {
-            $pagination = Product::paginate(15);
+            $pagination = Product::paginate(50);
         }
 
 

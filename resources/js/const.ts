@@ -50,8 +50,8 @@ export const SUPPLIED_STATUS_MAP: Record<string, string> = {
 };
 
 export const DATE_FILTERS_VALUES = {
-    TODAY: "Hoy",
-    YESTERDAY: "Ayer",
+    /*   TODAY: "Hoy",
+    YESTERDAY: "Ayer", */
     THIS_WEEK: "Esta semana",
     LAST_WEEK: "Semana pasada",
     THIS_MONTH: "Este mes",

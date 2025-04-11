@@ -31,31 +31,31 @@ class CorteController extends Controller
                     ->whereMonth('date', date('m'))
                     ->whereYear('date', date('Y'))
                     ->orderBy('date', 'desc')
-                    ->paginate(15);
+                    ->paginate(50);
                 break;
             case 'LAST_MONTH':
                 $cortes = Corte::where('branch_id', $branch->id)
                     ->whereMonth('date', date('m', strtotime('-1 month')))
                     ->whereYear('date', date('Y', strtotime('-1 month')))
                     ->orderBy('date', 'desc')
-                    ->paginate(15);
+                    ->paginate(50);
                 break;
             case 'THIS_YEAR':
                 $cortes = Corte::where('branch_id', $branch->id)
                     ->whereYear('date', date('Y'))
                     ->orderBy('date', 'desc')
-                    ->paginate(15);
+                    ->paginate(50);
                 break;
             case 'LAST_YEAR':
                 $cortes = Corte::where('branch_id', $branch->id)
                     ->whereYear('date', date('Y', strtotime('-1 year')))
                     ->orderBy('date', 'desc')
-                    ->paginate(15);
+                    ->paginate(50);
                 break;
             case 'ALL_TIME':
                 $cortes = Corte::where('branch_id', $branch->id)
                     ->orderBy('date', 'desc')
-                    ->paginate(15);
+                    ->paginate(50);
                 break;
         }
 
