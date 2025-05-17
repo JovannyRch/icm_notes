@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CorteController;
+use App\Http\Controllers\CorteSemanalController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProductController;
@@ -64,6 +65,14 @@ Route::post('/cortes', [CorteController::class, 'store'])->middleware(['auth', '
 Route::get('/corte/{corte}', [CorteController::class, 'show'])->middleware(['auth', 'verified'])->name('cortes.show');
 Route::delete('/corte/{corte}', [CorteController::class, 'destroy'])->middleware(['auth', 'verified'])->name('cortes.destroy');
 Route::get('/corte/download/{corte}', [PdfController::class, 'exportCorte'])->middleware(['auth', 'verified'])->name('cortes.export');
+
+//Corte Semanal
+Route::get('/sucursal/{branch}/corte_semanales', [CorteSemanalController::class, 'index'])->middleware(['auth', 'verified'])->name('cortes_semanales.index');
+Route::get('/sucursal/{branch}/corte_semanales/new', [CorteSemanalController::class, 'create'])->middleware(['auth', 'verified'])->name('cortes_semanales.create');
+Route::post('/corte_semanal', [CorteSemanalController::class, 'store'])->middleware(['auth', 'verified'])->name('cortes_semanales.store');
+Route::get('/corte_semanal/{corte}', [CorteSemanalController::class, 'show'])->middleware(['auth', 'verified'])->name('cortes_semanales.show');
+Route::delete('/corte_semanal/{corte}', [CorteSemanalController::class, 'destroy'])->middleware(['auth', 'verified'])->name('cortes_semanales.destroy');
+/* Route::get('/corte_semanal/download/{corte}', [PdfController::class, 'exportCorte'])->middleware(['auth', 'verified'])->name('cortes_semanales.export'); */
 
 
 require __DIR__ . '/auth.php';

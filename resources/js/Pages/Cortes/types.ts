@@ -17,6 +17,7 @@ interface CutSums {
     cashSum: number;
     balanceSum: number;
     expensesSum: number;
+    purchasesSum: number;
     total: number;
     previousNotesSum: number;
     notesSum: number;

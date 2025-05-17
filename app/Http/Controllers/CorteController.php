@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\CorteExport;
-use App\Exports\CortesExport;
 use App\Models\Branch;
 use App\Models\Corte;
 use App\Models\Note;
@@ -21,7 +19,7 @@ class CorteController extends Controller
 
         $filter = request('filter') ?? "THIS_MONTH";
 
-        $cortes = Corte::where('branch_id', $branch->id)->orderBy('date', 'desc')->paginate(15);
+        $cortes = Corte::where('branch_id', $branch->id)->orderBy('date', 'desc')->paginate(20);
 
 
 

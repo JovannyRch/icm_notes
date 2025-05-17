@@ -21,10 +21,10 @@ import {
     Text,
 } from "@radix-ui/themes";
 import { useState } from "react";
-import { BiArchive, BiArrowBack } from "react-icons/bi";
+import { BiArchive, BiArrowBack, BiCalendarWeek } from "react-icons/bi";
 import { CgAdd } from "react-icons/cg";
 import { GiCancel } from "react-icons/gi";
-import { MdUnarchive } from "react-icons/md";
+import { MdUnarchive, MdViewWeek, MdWeekend } from "react-icons/md";
 import { TbCashRegister, TbTrash } from "react-icons/tb";
 import DateFilter from "./components/DateFilter";
 import NoteSearchInput from "./components/NoteSearchInput";
@@ -155,6 +155,21 @@ const Home = ({ pagination, flash, branch }: Props) => {
                         >
                             Cortes
                             <BsCashCoin className="w-5 h-5" />
+                        </Button>
+                        <Button
+                            color="bronze"
+                            variant="soft"
+                            className="hover:cursor-pointer"
+                            onClick={() => {
+                                router.visit(
+                                    route("cortes_semanales.index", {
+                                        branch: branch.id,
+                                    })
+                                );
+                            }}
+                        >
+                            Cortes semanales
+                            <BiCalendarWeek className="w-5 h-5" />
                         </Button>
                     </Flex>
                     <Flex

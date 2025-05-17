@@ -6,9 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Note extends Model
 {
-
-
-
     protected $fillable = [
         'folio',
         'customer',
@@ -25,13 +22,16 @@ class Note extends Model
         'payment_method',
         'delivery_status',
         'archived',
-        'purchase_total',
         'sale_total',
         'payment_method',
         'flete',
         'card',
         'transfer',
         'cash',
+        'card2',
+        'transfer2',
+        'cash2',
+        'second_payment_date',
     ];
 
     public function branch()

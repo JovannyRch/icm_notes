@@ -50,10 +50,13 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                             RESTA
                         </Table.ColumnHeaderCell>
                         <Table.ColumnHeaderCell className="text-center">
-                            TOTAL
+                            TOTAL VENTA
                         </Table.ColumnHeaderCell>
                         <Table.ColumnHeaderCell className="text-center">
                             MÉTODO DE PAGO
+                        </Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell className="text-center">
+                            TOTAL COMPRA
                         </Table.ColumnHeaderCell>
 
                         {isEditable && (
@@ -154,6 +157,21 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                                     }
                                 >
                                     {getPaymentMethods(note).join(", ")}
+                                </Text>
+                            </Table.Cell>
+                            <Table.Cell className="text-center">
+                                <Text
+                                    size="3"
+                                    weight="medium"
+                                    className={
+                                        note.status === "canceled"
+                                            ? "text-red-500"
+                                            : ""
+                                    }
+                                >
+                                    {note?.purchase_total
+                                        ? formatCurrency(note?.purchase_total)
+                                        : "-"}
                                 </Text>
                             </Table.Cell>
                             {isEditable && (

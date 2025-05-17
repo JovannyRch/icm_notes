@@ -46,14 +46,16 @@ function calculateSums(
     let balanceSum = 0;
     let total = 0;
     let notesSum = 0;
+    let purchasesSum = 0;
 
     notes.forEach((note) => {
-        cardSum += Number(note.card ?? 0);
-        transferSum += Number(note.transfer ?? 0);
-        cashSum += Number(note.cash ?? 0);
+        cardSum += Number(note.card ?? 0) + Number(note.card2 ?? 0);
+        transferSum += Number(note.transfer ?? 0) + Number(note.transfer2 ?? 0);
+        cashSum += Number(note.cash ?? 0) + Number(note.cash2 ?? 0);
         balanceSum += Number(note.balance ?? 0);
         total += Number(note.sale_total ?? 0);
         notesSum += Number(note.sale_total ?? 0);
+        purchasesSum += Number(note?.purchase_total ?? 0);
     });
 
     const expensesSum = expenses.reduce((acc, expense) => {
@@ -97,6 +99,7 @@ function calculateSums(
             previousNotesCardSum,
         notesSum,
         returnsSum,
+        purchasesSum: purchasesSum,
     };
 }
 
@@ -122,6 +125,7 @@ const CorteForm = ({
         cashSum: 0,
         balanceSum: 0,
         expensesSum: 0,
+        purchasesSum: 0,
         previousNotesSum: 0,
         returnsSum: 0,
         total: 0,
@@ -194,9 +198,13 @@ const CorteForm = ({
                         balance,
                         sale_total,
                         cash,
+                        cash2,
                         card,
+                        card2,
                         transfer,
+                        transfer2,
                         folio,
+                        purchase_total,
                     }) => ({
                         id,
                         folio,
@@ -204,9 +212,10 @@ const CorteForm = ({
                         advance,
                         balance,
                         sale_total,
-                        cash,
-                        card,
-                        transfer,
+                        cash: Number(cash ?? 0) + Number(cash2 ?? 0),
+                        card: Number(card ?? 0) + Number(card2 ?? 0),
+                        transfer: Number(transfer) + Number(transfer2 ?? 0),
+                        purchase_total,
                     })
                 )
             ),
@@ -220,7 +229,9 @@ const CorteForm = ({
     };
 
     useEffect(() => {
-        setSums(calculateSums(notes, expenses, previousNotes, returns));
+        const sums = calculateSums(notes, expenses, previousNotes, returns);
+
+        setSums(sums);
     }, [notes, expenses, previousNotes, returns]);
 
     return (
@@ -331,10 +342,22 @@ const CorteForm = ({
                         returnsSum={sums.returnsSum}
                         isDisabled={isDetail}
                         branch={branch}
+                        purchasesSum={sums.purchasesSum}
                     />
                     <Spacer />
                     <NotesTable
-                        notes={notes}
+                        notes={notes.map((note) => ({
+                            ...note,
+                            card:
+                                Number(note.card ?? 0) +
+                                Number(note.card2 ?? 0),
+                            transfer:
+                                Number(note.transfer ?? 0) +
+                                Number(note.transfer2 ?? 0),
+                            cash:
+                                Number(note.cash ?? 0) +
+                                Number(note.cash2 ?? 0),
+                        }))}
                         setNotes={setNotes}
                         isEditable={!isDetail}
                     />

@@ -20,6 +20,7 @@ interface Props {
     date: string;
     isDisabled: boolean;
     branch: Branch;
+    purchasesSum: number;
 }
 
 const AmountDetailsTable = ({
@@ -33,6 +34,7 @@ const AmountDetailsTable = ({
     returnsSum,
     date,
     branch,
+    purchasesSum = 0,
 }: Props) => {
     const selectedDate = new Date(date + "T00:00");
 
@@ -169,6 +171,18 @@ const AmountDetailsTable = ({
                         <Table.Cell>
                             <Text size="3" weight="medium">
                                 {formatCurrency(returnsSum)}
+                            </Text>
+                        </Table.Cell>
+                    </Table.Row>
+                    <Table.Row className="border-b border-gray-200 hover:bg-gray-100 odd:bg-white even:bg-gray-50 ">
+                        <Table.Cell>
+                            <Text size="3" weight="bold">
+                                Total de compra a pisos Leo:
+                            </Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                            <Text size="3" weight="medium">
+                                {formatCurrency(purchasesSum)}
                             </Text>
                         </Table.Cell>
                     </Table.Row>

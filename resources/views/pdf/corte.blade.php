@@ -56,6 +56,19 @@ function getPaymentMethods($note): string
     return implode(', ', $result);
 }
 
+function getPurchaseTotal($corte)
+{
+    $sum = 0;
+
+    foreach ($corte->notes as $note) {
+        if (isset($note['purchase_total']) && is_numeric($note['purchase_total'])) {
+            $sum += $note['purchase_total'];
+        }
+    }
+
+    return format_currency($sum, 2);
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -169,6 +182,7 @@ function getPaymentMethods($note): string
         <p>Restan notas: {{ getBalance($corte) }}</p>
         <p>Gastos: {{ getExpenses($corte) }}</p>
         <p>Devoluciones: {{ getReturns($corte) }}</p>
+        <p>Total de compra a pisos Leo: {{ getPurchaseTotal($corte) }}</p>
     </div>
     <br>
 
@@ -184,8 +198,9 @@ function getPaymentMethods($note): string
                 <th>FECHA</th>
                 <th>A CTA</th>
                 <th>RESTA</th>
-                <th>TOTAL</th>
+                <th>TOTAL VENTA</th>
                 <th>MÉTODO DE PAGO</th>
+                <th>TOTAL COMPRA</th>
             </tr>
         </thead>
         <tbody>
@@ -199,6 +214,8 @@ function getPaymentMethods($note): string
                     <td>
                         {{ getPaymentMethods($note) }}
                     </td>
+                    <td>{{ isset($note['purchase_total']) ? format_currency($note['purchase_total'], 2) : '-' }}</td>
+
                 </tr>
             @endforeach
         </tbody>

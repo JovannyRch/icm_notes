@@ -24,8 +24,10 @@ class NoteController extends Controller
      */
     public function create(Branch $branch)
     {
+        $date = date('Y-m-d');
         return Inertia::render('Notes/Form', [
-            'branch' => $branch
+            'branch' => $branch,
+            'date' => $date,
         ]);
     }
 
@@ -47,7 +49,6 @@ class NoteController extends Controller
             'branch_id' => 'required',
             'delivery_status' => 'required',
             'sale_total' => 'required',
-            'purchase_total' => 'required',
             'status' => 'required',
             'purchase_status' => 'required',
             'items' => 'required',
@@ -91,6 +92,13 @@ class NoteController extends Controller
             $request->merge(['status' => 'canceled']);
         }
 
+        $request = $request->merge([
+            'card2' => null,
+            'transfer2' => null,
+            'cash2' => null,
+            'second_payment_date' => null,
+        ]);
+
         $items = $request->items;
         $note = Note::create($request->all());
         $this->createItems($note, $items);
@@ -107,6 +115,7 @@ class NoteController extends Controller
     public function show(Note $note)
     {
         $branch = $note->branch;
+        $date = date('Y-m-d');
 
         $items = NoteProduct::where('note_id', $note->id)->get();
 
@@ -114,6 +123,7 @@ class NoteController extends Controller
             'note' => $note,
             'branch' => $branch,
             'items' => $items,
+            'date' => $date,
         ]);
     }
 
@@ -160,11 +170,16 @@ class NoteController extends Controller
 
     public function archiveNotes(Request $request)
     {
-        $branch_id = $request->branch;
+
         $ids = $request->ids;
 
         Note::whereIn('id', $ids)->update(['archived' => true]);
         $total = count($ids);
+
+        if ($total == 1) {
+            return redirect()->back()->with('success', 'Nota archivada');
+        }
+
         return redirect()->back()->with('success', $total . ' notas archivadas');
     }
 
@@ -174,6 +189,9 @@ class NoteController extends Controller
         $ids = $request->ids;
         Note::whereIn('id', $ids)->update(['archived' => false]);
         $total = count($ids);
+        if ($total == 1) {
+            return redirect()->back()->with('success', 'Nota desarchivada');
+        }
         return redirect()->back()->with('success', $total . ' notas desarchivadas');
     }
 

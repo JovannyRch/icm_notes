@@ -14,6 +14,7 @@ export default {
         "./resources/**/*.jsx",
         "./resources/**/*.ts",
         "./resources/**/*.tsx",
+        "./node_modules/react-tailwindcss-datepicker/dist/index.esm.{js,ts}",
     ],
 
     theme: {

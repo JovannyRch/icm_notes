@@ -6,7 +6,7 @@ import InputWithLabel from "@/Components/InputWithLabel";
 import LineDivider from "@/Components/LineDivider";
 import NoteItem from "@/Components/NoteItem";
 import ProductsModal from "@/Components/ProductsModal/ProductsModal";
-import { DATE_FILTERS_VALUES, STATUS_DELIVERY_ENUM } from "@/const";
+import { STATUS_DELIVERY_ENUM } from "@/const";
 import { formatCurrency, getToday } from "@/helpers/formatters";
 import {
     calculatePurchaseSubtotal,
@@ -40,7 +40,7 @@ import {
     MdSave,
     MdUnarchive,
 } from "react-icons/md";
-import { TbTrash } from "react-icons/tb";
+import { TbCashRegister, TbTrash } from "react-icons/tb";
 import { toast } from "react-toastify";
 import { Inertia } from "@inertiajs/inertia";
 import { SuppliedStatusSelect } from "@/Components/SuppliedStatusSelect";
@@ -48,12 +48,18 @@ import { DeliveryStatusSelect } from "@/Components/DeliveryStatusSelect";
 import StatusPaidBadge from "@/Components/StatusPaidBadge";
 import { confirmAlert } from "react-confirm-alert";
 import { useLocalStorage } from "usehooks-ts";
+import DatePicker from "react-datepicker";
+import { es } from "date-fns/locale";
+import { format } from "date-fns";
 
 interface Props extends PageProps {
     branch: Branch;
     note?: Note;
     items?: NoteItemInterface[];
+    date: string;
 }
+
+const today = new Date();
 
 interface NoteFormData {
     folio: string;
@@ -72,10 +78,20 @@ interface NoteFormData {
     delivery_status: string;
     status: payment_status;
     items: NoteItemInterface[];
+    cash2: string;
+    card2: string;
+    transfer2: string;
+    second_payment_date: string;
     [key: string]: any;
 }
 
-const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
+const NoteForm = ({
+    branch,
+    note,
+    flash,
+    items: initialItems = [],
+    date,
+}: Props) => {
     useAlerts(flash);
     const isEdit = !!note;
 
@@ -110,6 +126,14 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             ? note?.delivery_status
             : STATUS_DELIVERY_ENUM.PENDING,
         items: initialItems,
+        cash2: String(isEdit ? note?.cash2 ?? 0 : "0"),
+        card2: String(isEdit ? note?.card2 ?? 0 : "0"),
+        transfer2: String(isEdit ? note?.transfer2 ?? 0 : "0"),
+        second_payment_date: isEdit
+            ? !note?.second_payment_date
+                ? date
+                : note?.second_payment_date
+            : date,
     });
 
     const productsSubtotal = useMemo(() => {
@@ -119,7 +143,17 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
         );
     }, [data.items]);
 
-    const { items, flete, cash, card, transfer, delivery_status } = data;
+    const {
+        items,
+        flete,
+        cash,
+        card,
+        transfer,
+        delivery_status,
+        cash2,
+        card2,
+        transfer2,
+    } = data;
 
     const setCalculatedValues = (items: NoteItemInterface[]) => {
         const isCancelled =
@@ -130,6 +164,9 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             setData("transfer", "0");
             setData("cash", "0");
             setData("card", "0");
+            setData("transfer2", "0");
+            setData("cash2", "0");
+            setData("card2", "0");
         }
 
         const purchaseTotal = items.reduce(
@@ -141,10 +178,15 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
             : items.reduce((acc, item) => acc + Number(item.sale_subtotal), 0) +
               Number(data.flete ?? 0);
 
-        const { card, cash, transfer } = data;
+        const { card, cash, transfer, card2, cash2, transfer2 } = data;
         const advance = isCancelled
             ? 0
-            : Number(card ?? 0) + Number(cash ?? 0) + Number(transfer ?? 0);
+            : Number(card ?? 0) +
+              Number(cash ?? 0) +
+              Number(transfer ?? 0) +
+              Number(card2 ?? 0) +
+              Number(cash2 ?? 0) +
+              Number(transfer2 ?? 0);
 
         const balance = saleTotal - advance;
 
@@ -242,7 +284,7 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
 
     useUpdateEffect(() => {
         setCalculatedValues(items);
-    }, [cash, card, transfer, flete, delivery_status]);
+    }, [cash, card, transfer, flete, delivery_status, card2, cash2, transfer2]);
 
     const [filterDate] = useLocalStorage(
         `date-filter-${branch.id}`,
@@ -325,6 +367,22 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                     >
                                         Nueva nota
                                         <BiPlus />
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        color="gold"
+                                        variant="soft"
+                                        onClick={() => {
+                                            router.visit(
+                                                route("cortes.new", {
+                                                    branch: branch.id,
+                                                })
+                                            );
+                                        }}
+                                        className="hover:cursor-pointer"
+                                    >
+                                        Generar Corte
+                                        <TbCashRegister className="w-5 h-5" />
                                     </Button>
                                 </>
                             )}
@@ -743,6 +801,98 @@ const NoteForm = ({ branch, note, flash, items: initialItems = [] }: Props) => {
                                                 )}
                                             </Text>
                                         </Flex>
+                                        {isEdit && (
+                                            <>
+                                                <LineDivider className="my-3" />
+
+                                                <Text size="3" weight="bold">
+                                                    Segundo pago
+                                                </Text>
+
+                                                <InlineInput
+                                                    label="Efectivo"
+                                                    name="cash"
+                                                    type="text"
+                                                    value={data.cash2}
+                                                    onChange={(e) => {
+                                                        setData(
+                                                            "cash2",
+                                                            e.target.value
+                                                        );
+                                                    }}
+                                                    leading={<BiDollar />}
+                                                    error={errors.cash}
+                                                />
+                                                <InlineInput
+                                                    label="Transferencia"
+                                                    name="transfer"
+                                                    type="text"
+                                                    value={data.transfer2}
+                                                    onChange={(e) => {
+                                                        setData(
+                                                            "transfer2",
+                                                            e.target.value
+                                                        );
+                                                    }}
+                                                    leading={<BiDollar />}
+                                                    error={errors.transfer}
+                                                />
+
+                                                <InlineInput
+                                                    label="TDC/TDD"
+                                                    name="card"
+                                                    type="text"
+                                                    value={data.card2}
+                                                    onChange={(e) => {
+                                                        setData(
+                                                            "card2",
+                                                            e.target.value
+                                                        );
+                                                    }}
+                                                    leading={<BiDollar />}
+                                                    error={errors.card}
+                                                />
+                                                <Flex
+                                                    gap="2"
+                                                    justify="between"
+                                                    align="center"
+                                                >
+                                                    <Text
+                                                        size="3"
+                                                        weight="medium"
+                                                    >
+                                                        Fecha de pago:
+                                                    </Text>
+                                                    <DatePicker
+                                                        locale={es}
+                                                        dateFormat={
+                                                            "dd/MM/yyyy"
+                                                        }
+                                                        className="min-w-[200px]  rounded-md h-8 px-2"
+                                                        selected={
+                                                            data.second_payment_date
+                                                                ? new Date(
+                                                                      data.second_payment_date +
+                                                                          "T00:00"
+                                                                  )
+                                                                : new Date(
+                                                                      today +
+                                                                          "T00:00"
+                                                                  )
+                                                        }
+                                                        onSelect={(date) => {
+                                                            setData(
+                                                                "second_payment_date",
+                                                                format(
+                                                                    date as Date,
+                                                                    "yyyy-MM-dd"
+                                                                )
+                                                            );
+                                                        }}
+                                                    />
+                                                </Flex>
+                                            </>
+                                        )}
 
                                         <LineDivider className="mt-2" />
                                     </Flex>

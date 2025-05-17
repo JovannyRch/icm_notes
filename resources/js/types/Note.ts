@@ -22,4 +22,8 @@ export interface Note {
     cash: number;
     card: number;
     transfer: number;
+    cash2: number;
+    card2: number;
+    transfer2: number;
+    second_payment_date: string;
 }
