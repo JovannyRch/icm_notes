@@ -19,7 +19,7 @@ export const calculateSaleSubtotal = (product: NoteItemInterface): number => {
 
 export const getPaymentMethods = (note: Note): string[] => {
     const result: string[] = [];
-    console.log("note", note);
+
     if (note.cash > 0) {
         result.push(`Efect (${formatCurrency(note.cash)})`);
     }

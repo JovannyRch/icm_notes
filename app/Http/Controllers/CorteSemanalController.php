@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ReporteSemanalExport;
 use App\Models\Branch;
 use App\Models\Corte;
 use App\Models\CorteSemanal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CorteSemanalController extends Controller
 {
@@ -72,5 +74,10 @@ class CorteSemanalController extends Controller
         } else {
             return response()->json(['message' => 'Corte not found'], 404);
         }
+    }
+
+    public function exportCorteSemanal(Request $request)
+    {
+        return Excel::download(new ReporteSemanalExport($request->all()), 'reporte-semanal.xlsx');
     }
 }

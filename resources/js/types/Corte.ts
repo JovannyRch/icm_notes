@@ -9,6 +9,7 @@ export interface Corte {
     card_total: number;
     transfer_total: number;
     previous_total: number;
+    previous_notes_total: number;
     expenses_total: number;
     expenses: ExpenseInput[];
     notes: Note[];

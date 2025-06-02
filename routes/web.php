@@ -72,7 +72,9 @@ Route::get('/sucursal/{branch}/corte_semanales/new', [CorteSemanalController::cl
 Route::post('/corte_semanal', [CorteSemanalController::class, 'store'])->middleware(['auth', 'verified'])->name('cortes_semanales.store');
 Route::get('/corte_semanal/{corte}', [CorteSemanalController::class, 'show'])->middleware(['auth', 'verified'])->name('cortes_semanales.show');
 Route::delete('/corte_semanal/{corte}', [CorteSemanalController::class, 'destroy'])->middleware(['auth', 'verified'])->name('cortes_semanales.destroy');
-/* Route::get('/corte_semanal/download/{corte}', [PdfController::class, 'exportCorte'])->middleware(['auth', 'verified'])->name('cortes_semanales.export'); */
+
+//export corte semanal
+Route::get('export/corte_semanal', [CorteSemanalController::class, 'exportCorteSemanal'])->middleware(['auth', 'verified'])->name('cortes_semanales.export');
 
 
 require __DIR__ . '/auth.php';

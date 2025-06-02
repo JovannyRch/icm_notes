@@ -29,7 +29,7 @@ import { TbCashRegister, TbTrash } from "react-icons/tb";
 import DateFilter from "./components/DateFilter";
 import NoteSearchInput from "./components/NoteSearchInput";
 import SaleCustomerStatusFilter from "./components/SaleCustomerStatusFilter";
-import { BsCashCoin } from "react-icons/bs";
+import { BsCashCoin, BsFileExcel } from "react-icons/bs";
 
 interface Props extends PageProps {
     pagination: any;
@@ -162,13 +162,13 @@ const Home = ({ pagination, flash, branch }: Props) => {
                             className="hover:cursor-pointer"
                             onClick={() => {
                                 router.visit(
-                                    route("cortes_semanales.index", {
+                                    route("cortes_semanales.create", {
                                         branch: branch.id,
                                     })
                                 );
                             }}
                         >
-                            Cortes semanales
+                            Generar corte semanal
                             <BiCalendarWeek className="w-5 h-5" />
                         </Button>
                     </Flex>

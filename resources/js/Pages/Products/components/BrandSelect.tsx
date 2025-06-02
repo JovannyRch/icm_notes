@@ -39,7 +39,6 @@ const BrandSelect = ({ brands }: Props) => {
                     <DropdownMenu.Item
                         key={brand}
                         onSelect={() => {
-                            console.log("brand", brand);
                             if (brand === defaultDate) {
                                 Inertia.get(route("products"), {
                                     ...additionalParams,

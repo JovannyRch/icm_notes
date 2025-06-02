@@ -38,7 +38,6 @@ const DateFilter = ({ branchId }: { branchId: number }) => {
                         <DropdownMenu.Item
                             key={key}
                             onSelect={() => {
-                                console.log("key", key);
                                 setFilterDate(key as DateFilterKeys);
                                 Inertia.get(route("notas"), {
                                     ...additionalParams,
