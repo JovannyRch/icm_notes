@@ -231,7 +231,7 @@ const CorteSemanalForm = ({
         } al ${day2} de ${spanishMonth} de ${year}`.toUpperCase();
     };
 
-    const handleSubmitData = () => {
+    const handleSubmitData = async () => {
         const data = {
             title: getTitle(),
             ...Object.fromEntries(
@@ -245,14 +245,21 @@ const CorteSemanalForm = ({
             material: "0",
             branch_id: String(branch.id),
             percent: String(fiftyPercent),
-            cortes: JSON.stringify(cortesWithTotals),
+            cortes: cortesWithTotals,
         };
 
-        const query = new URLSearchParams(data).toString();
+        const response = await axios.post(
+            route("cortes_semanales.export"),
+            data
+        );
 
-        const url = route("cortes_semanales.export") + "?" + query;
+        console.log("response", response);
 
-        window.open(url, "_blank");
+        if (response.data?.url) {
+            window.open(response.data?.url, "_blank");
+        } else {
+            alert("Error al generar el corte semanal");
+        }
     };
 
     useEffect(() => {

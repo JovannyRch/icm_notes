@@ -51,7 +51,6 @@ class ReporteSemanalExport implements FromArray, WithEvents
         $rows[15] = ['', 'FECHA', 'VENTA', 'RESTA', 'TRANSFERENCIA', 'ENTRADAS', 'GASTOS', 'EFECTIVO', 'MATERIAL'];
 
 
-        $data['cortes'] = json_decode($data['cortes'], true);
 
         foreach ($data['cortes'] as $i => $note) {
 
@@ -115,6 +114,13 @@ class ReporteSemanalExport implements FromArray, WithEvents
 
 
                 $sheet->mergeCells('B2:I2');
+
+                $sheet->getStyle('A1:J40')->applyFromArray([
+                    'font' => [
+                        'size' => 14,
+                    ],
+                ]);
+
                 $sheet->getStyle('B2')->applyFromArray([
                     'font' => [
                         'bold' => true,

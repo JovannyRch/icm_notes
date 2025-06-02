@@ -8,8 +8,10 @@ use App\Models\Corte;
 use App\Models\CorteSemanal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Str;
 
 class CorteSemanalController extends Controller
 {
@@ -78,6 +80,13 @@ class CorteSemanalController extends Controller
 
     public function exportCorteSemanal(Request $request)
     {
-        return Excel::download(new ReporteSemanalExport($request->all()), 'reporte-semanal.xlsx');
+        $filename = 'reporte_' . Str::uuid() . '.xlsx';
+        $path = 'temp_reports/' . $filename;
+
+        Excel::store(new ReporteSemanalExport($request->all()), $path, 'public');
+
+        return response()->json([
+            'url' => Storage::url($path),
+        ]);
     }
 }
