@@ -80,13 +80,7 @@ class CorteSemanalController extends Controller
 
     public function exportCorteSemanal(Request $request)
     {
-        $filename = 'reporte_' . Str::uuid() . '.xlsx';
-        $path = 'temp_reports/' . $filename;
 
-        Excel::store(new ReporteSemanalExport($request->all()), $path, 'public');
-
-        return response()->json([
-            'url' => Storage::url($path),
-        ]);
+        return Excel::download(new ReporteSemanalExport($request->all()), 'reporte.xlsx');
     }
 }

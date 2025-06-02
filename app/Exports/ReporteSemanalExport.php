@@ -51,6 +51,7 @@ class ReporteSemanalExport implements FromArray, WithEvents
         $rows[15] = ['', 'FECHA', 'VENTA', 'RESTA', 'TRANSFERENCIA', 'ENTRADAS', 'GASTOS', 'EFECTIVO', 'MATERIAL'];
 
 
+        $data['cortes'] = json_decode($data['cortes'], true);
 
         foreach ($data['cortes'] as $i => $note) {
 

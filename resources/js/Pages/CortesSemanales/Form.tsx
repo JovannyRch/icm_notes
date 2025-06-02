@@ -232,8 +232,9 @@ const CorteSemanalForm = ({
     };
 
     const handleSubmitData = async () => {
+        const title = getTitle();
         const data = {
-            title: getTitle(),
+            title: title,
             ...Object.fromEntries(
                 Object.entries(totals).map(([k, v]) => [k, String(v ?? "")])
             ),
@@ -245,21 +246,28 @@ const CorteSemanalForm = ({
             material: "0",
             branch_id: String(branch.id),
             percent: String(fiftyPercent),
-            cortes: cortesWithTotals,
+            cortes: JSON.stringify(cortesWithTotals),
         };
 
-        const response = await axios.post(
-            route("cortes_semanales.export"),
-            data
-        );
+        const response = await fetch(route("cortes_semanales.export"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            },
+            body: JSON.stringify(data),
+        });
 
-        console.log("response", response);
-
-        if (response.data?.url) {
-            window.open(response.data?.url, "_blank");
-        } else {
-            alert("Error al generar el corte semanal");
-        }
+        const fileName = `corte_semanal_${title}.xlsx`
+            .replace(/\s+/g, "_")
+            .toLowerCase();
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        window.URL.revokeObjectURL(url);
     };
 
     useEffect(() => {
