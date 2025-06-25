@@ -111,7 +111,7 @@ class ReporteSemanalExport implements FromArray, WithEvents
         $this->setTotalValue('MATERIAL:', '=I' . $totalRow, $rows, 9);
         $this->setTotalValue('SUELDOS:', $data['salary'] ?? 0, $rows, 10);
         $this->setTotalValue('GASTOS EXTRA:', '=G9', $rows, 11);
-        $this->setTotalValue('50%:', '=(C4-C11-C12)*0.5', $rows, 12);
+        $this->setTotalValue('50%:', '=(C4-C10-C11-C12)*0.5', $rows, 12);
 
 
 

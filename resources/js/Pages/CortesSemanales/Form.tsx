@@ -186,6 +186,7 @@ const CorteSemanalForm = ({
         return (
             (totals.sale_total -
                 (cleanNumber(salary) ?? 0) -
+                (cleanNumber(totals.material_total) ?? 0) -
                 (cleanNumber(extraExpenses) ?? 0)) *
             0.5
         );
@@ -241,9 +242,9 @@ const CorteSemanalForm = ({
             renta: cleanNumber(expenses.renta).toString(),
             gasolina: cleanNumber(expenses.gasolina).toString(),
             luz: cleanNumber(expenses.luz).toString(),
-            salary: String(salary),
-            extra_expenses: String(extraExpenses),
-            material: "0",
+            salary: String(cleanNumber(salary)),
+            extra_expenses: String(cleanNumber(extraExpenses)),
+            material: String(totals.material_total),
             branch_id: String(branch.id),
             percent: String(fiftyPercent),
             cortes: JSON.stringify(cortesWithTotals),
