@@ -15,6 +15,16 @@ class ReporteSemanalExport implements FromArray, WithEvents
     {
         $this->data = $data;
     }
+
+    //function to set a 0.0 if value is null or empty
+    private function setValue($value): string
+    {
+        if (is_null($value) || $value === '') {
+            return '0.0';
+        }
+        return (string)$value;
+    }
+
     //rows as reference
     private function setTotalValue(string $label, $value, array &$rows, int $rowIndex = 2, int $columnIndex = 1): void
 
@@ -58,18 +68,20 @@ class ReporteSemanalExport implements FromArray, WithEvents
             $rows[16 + $i] = [
                 '',
                 $note['date'],
-                $note['sale_total'] ?? "0",
-                $note['balance_total'] ?? "0",
-                $note['transfer_total'] ?? "0",
-                $note['previous_notes_total'] ?? "0",
-                $note['expenses_total'] ?? "0",
-                $note['cash_total'] ?? "0",
-                "0",
+                $this->setValue($note['sale_total']),
+                $this->setValue($note['balance_total']),
+                $this->setValue($note['transfer_total']),
+                $this->setValue($note['previous_notes_total']),
+                $this->setValue($note['expenses_total']),
+                $this->setValue($note['cash_total']),
+                $this->setValue($note['material_total']),
             ];
-            $this->lastCorteRow = 16 + $i + 1;
+            $this->lastCorteRow = $this->lastCorteRow + 1;
         }
 
-        $rows[$this->lastCorteRow + 1] = [
+        $this->lastCorteRow = $this->lastCorteRow + 1;
+
+        $rows[$this->lastCorteRow] = [
             '',
             'TOTAL',
             '=SUM(C16:C' . $this->lastCorteRow . ')',

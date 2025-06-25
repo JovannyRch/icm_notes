@@ -4,6 +4,7 @@ export interface Corte {
     id?: number;
     date: string;
     sale_total: number;
+    purchase_total: number;
     notes_total: number;
     cash_total: number;
     card_total: number;

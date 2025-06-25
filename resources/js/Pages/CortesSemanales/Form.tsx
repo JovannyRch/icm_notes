@@ -73,8 +73,6 @@ function getMonthNameInSpanish(monthIndex: number) {
     return months[monthIndex];
 }
 
-//function to calculate total of a field in an array of general objects
-
 function calculateTotal<T extends Record<string, any>>(
     items: T[],
     field: keyof T
@@ -142,6 +140,7 @@ const CorteSemanalForm = ({
     const cortesWithTotals = cortes.map((corte) => ({
         ...corte,
         balance_total: calculateTotal(corte.notes, "balance"),
+        material_total: calculateTotal(corte.notes, "purchase_total"),
         date: formatDate(corte.date),
     }));
 
@@ -163,6 +162,7 @@ const CorteSemanalForm = ({
             ),
             expenses_total: calculateTotal(cortesWithTotals, "expenses_total"),
             cash_total: calculateTotal(cortesWithTotals, "cash_total"),
+            material_total: calculateTotal(cortesWithTotals, "material_total"),
         }),
         [cortesWithTotals]
     );
@@ -423,7 +423,10 @@ const CorteSemanalForm = ({
                                     label="Efectivo"
                                     value={totals.cash_total}
                                 />
-                                <ValueInTable label="Material" value={0} />
+                                <ValueInTable
+                                    label="Material"
+                                    value={totals.material_total}
+                                />
                                 <ValueInTable
                                     label="Sueldos"
                                     value={salary}
@@ -581,12 +584,7 @@ const CorteSemanalForm = ({
                                 </Table.Cell>
                                 <Table.Cell className="text-center">
                                     <Text size="3" weight="medium">
-                                        {/*
-                                        {note?.purchase_total
-                                            ? formatCurrency(
-                                                  note?.purchase_total
-                                              )
-                                            : "-"} */}
+                                        {formatCurrency(corte.material_total)}
                                     </Text>
                                 </Table.Cell>
                             </Table.Row>
@@ -659,7 +657,12 @@ const CorteSemanalForm = ({
                             </Table.Cell>
                             <Table.Cell className="text-center">
                                 <Text size="3" weight="bold">
-                                    {/*  {formatCurrency(calculateTotal("material"))} */}
+                                    {formatCurrency(
+                                        calculateTotal(
+                                            cortesWithTotals,
+                                            "material_total"
+                                        )
+                                    )}
                                 </Text>
                             </Table.Cell>
                         </Table.Row>
