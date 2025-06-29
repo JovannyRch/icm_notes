@@ -84,10 +84,13 @@ function calculateTotal<T extends Record<string, any>>(
     items: T[],
     field: keyof T
 ): number {
-    return items.reduce((total, item) => {
+    const sum = items.reduce((total, item) => {
         const value = isNumber(Number(item[field])) ? Number(item[field]) : 0;
         return total + (typeof value === "number" ? value : 0);
     }, 0);
+
+    //round
+    return Math.round(sum * 100) / 100;
 }
 
 const ValueInTable = ({
