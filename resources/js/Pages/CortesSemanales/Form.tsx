@@ -7,7 +7,14 @@ import { Branch } from "@/types/Branch";
 import { NoteItemInterface } from "@/types/NoteItem";
 
 import { router, useForm } from "@inertiajs/react";
-import { Button, Flex, IconButton, Table, Text } from "@radix-ui/themes";
+import {
+    Button,
+    Flex,
+    IconButton,
+    Table,
+    Text,
+    TextField,
+} from "@radix-ui/themes";
 import { BiArrowBack, BiTrash } from "react-icons/bi";
 
 import { Inertia } from "@inertiajs/inertia";
@@ -137,12 +144,16 @@ const CorteSemanalForm = ({
 }: Props) => {
     useAlerts(flash);
 
-    const cortesWithTotals = cortes.map((corte) => ({
-        ...corte,
-        balance_total: calculateTotal(corte.notes, "balance"),
-        material_total: calculateTotal(corte.notes, "purchase_total"),
-        date: formatDate(corte.date),
-    }));
+    const [cortesWithTotals, setCortesWithTotals] = useState(() => {
+        return cortes.map((corte) => ({
+            ...corte,
+            balance_total: calculateTotal(corte.notes, "balance"),
+            material_total: calculateTotal(corte.notes, "purchase_total") as
+                | number
+                | string,
+            date: formatDate(corte.date),
+        }));
+    });
 
     const isDetail = !!corteSemanal;
 
@@ -427,6 +438,7 @@ const CorteSemanalForm = ({
                                 <ValueInTable
                                     label="Material"
                                     value={totals.material_total}
+                                    readonly={false}
                                 />
                                 <ValueInTable
                                     label="Sueldos"
@@ -539,11 +551,16 @@ const CorteSemanalForm = ({
                                 className="border-b border-gray-200 hover:cursor-pointer hover:bg-gray-100 odd:bg-white even:bg-gray-50 "
                                 key={corte.id}
                                 onClick={(e: any) => {
-                                    //open in a new tab
-                                    router.visit(
+                                    e.preventDefault();
+
+                                    if (e.target.tagName === "INPUT") {
+                                        return;
+                                    }
+
+                                    /* router.visit(
                                         route("cortes.show", corte.id),
                                         {}
-                                    );
+                                    ); */
                                 }}
                             >
                                 <Table.Cell className="text-center">
@@ -584,9 +601,24 @@ const CorteSemanalForm = ({
                                     </Text>
                                 </Table.Cell>
                                 <Table.Cell className="text-center">
-                                    <Text size="3" weight="medium">
-                                        {formatCurrency(corte.material_total)}
-                                    </Text>
+                                    <Input
+                                        value={corte.material_total}
+                                        onChange={(value) => {
+                                            const newValue = value.target.value;
+                                            const updatedCortes =
+                                                cortesWithTotals.map((c) =>
+                                                    c.id === corte.id
+                                                        ? {
+                                                              ...c,
+                                                              material_total:
+                                                                  newValue,
+                                                          }
+                                                        : c
+                                                );
+                                            setCortesWithTotals(updatedCortes);
+                                        }}
+                                        id={`material-${corte.id}`}
+                                    />
                                 </Table.Cell>
                             </Table.Row>
                         ))}
