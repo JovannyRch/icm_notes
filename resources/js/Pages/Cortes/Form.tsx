@@ -19,6 +19,7 @@ import { confirmAlert } from "react-confirm-alert";
 import ReturnsTable from "./components/ReturnsTable";
 import { router } from "@inertiajs/react";
 import { FaDownload } from "react-icons/fa6";
+import { CgAdd } from "react-icons/cg";
 
 interface Props extends PageProps {
     notes: Note[];
@@ -266,8 +267,9 @@ const CorteForm = ({
                                     : `Generar Corte`}
                             </Text>
                         </div>
+
                         {!isDetail ? (
-                            <div>
+                            <Flex gap="2">
                                 <IconButton
                                     color="green"
                                     className="hover:cursor-pointer"
@@ -278,7 +280,21 @@ const CorteForm = ({
                                 >
                                     <BiRefresh className="w-5 h-5" />
                                 </IconButton>
-                            </div>
+                                {/* New corte button */}
+                                <Button
+                                    onClick={() => {
+                                        router.visit(
+                                            route("cortes.new", {
+                                                branch: branch.id,
+                                            })
+                                        );
+                                    }}
+                                    className="hover:cursor-pointer"
+                                >
+                                    Crear un corte
+                                    <CgAdd className="w-5 h-5" />
+                                </Button>
+                            </Flex>
                         ) : (
                             <Flex gap="2">
                                 <IconButton
@@ -327,6 +343,19 @@ const CorteForm = ({
                                 >
                                     <BiTrash className="w-5 h-5" />
                                 </IconButton>
+                                <Button
+                                    onClick={() => {
+                                        router.visit(
+                                            route("cortes.new", {
+                                                branch: branch.id,
+                                            })
+                                        );
+                                    }}
+                                    className="hover:cursor-pointer"
+                                >
+                                    Crear un corte
+                                    <CgAdd className="w-5 h-5" />
+                                </Button>
                             </Flex>
                         )}
                     </Flex>
