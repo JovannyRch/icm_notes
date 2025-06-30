@@ -31,6 +31,7 @@ import dayjs from "dayjs";
 import { Input } from "@headlessui/react";
 import { isNumber } from "@/helpers/utils";
 import FloatingButton from "@/Components/FloatingIconButton";
+import { BsEye } from "react-icons/bs";
 
 interface Props extends PageProps {
     branch: Branch;
@@ -540,6 +541,7 @@ const CorteSemanalForm = ({
                             <Table.ColumnHeaderCell className="text-center">
                                 MATERIAL
                             </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell className="text-center"></Table.ColumnHeaderCell>
                         </Table.Row>
                     </Table.Header>
                     <Table.Body>
@@ -547,18 +549,6 @@ const CorteSemanalForm = ({
                             <Table.Row
                                 className="border-b border-gray-200 hover:cursor-pointer hover:bg-gray-100 odd:bg-white even:bg-gray-50 "
                                 key={corte.id}
-                                onClick={(e: any) => {
-                                    e.preventDefault();
-
-                                    if (e.target.tagName === "INPUT") {
-                                        return;
-                                    }
-
-                                    /* router.visit(
-                                        route("cortes.show", corte.id),
-                                        {}
-                                    ); */
-                                }}
                             >
                                 <Table.Cell className="text-center">
                                     <Text size="3" weight="bold">
@@ -597,7 +587,7 @@ const CorteSemanalForm = ({
                                         {formatCurrency(corte.cash_total)}
                                     </Text>
                                 </Table.Cell>
-                                <Table.Cell className="text-center">
+                                <Table.Cell className="text-center no-clickable">
                                     <Input
                                         value={corte.material_total}
                                         onChange={(value) => {
@@ -616,6 +606,22 @@ const CorteSemanalForm = ({
                                         }}
                                         id={`material-${corte.id}`}
                                     />
+                                </Table.Cell>
+                                <Table.Cell className="text-center">
+                                    <IconButton
+                                        className="hover:cursor-pointer"
+                                        size="1"
+                                        onClick={() => {
+                                            const link = route(
+                                                "cortes.show",
+                                                corte.id
+                                            );
+
+                                            window.open(link, "_blank");
+                                        }}
+                                    >
+                                        <BsEye />
+                                    </IconButton>
                                 </Table.Cell>
                             </Table.Row>
                         ))}
