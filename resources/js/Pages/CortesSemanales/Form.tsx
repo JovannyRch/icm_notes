@@ -26,16 +26,11 @@ import { useEffect, useMemo, useState } from "react";
 import Datepicker, { DateValueType } from "react-tailwindcss-datepicker";
 import { Corte } from "@/types/Corte";
 import { formatCurrency } from "@/helpers/formatters";
-import InlineInput from "@/Components/InlineInput";
-import { format } from "path";
 import dayjs from "dayjs";
-import InlineInput2 from "@/Components/InlineInput2";
+
 import { Input } from "@headlessui/react";
 import { isNumber } from "@/helpers/utils";
-import { useUpdateEffect } from "@/hooks/useUpdateEffect";
 import FloatingButton from "@/Components/FloatingIconButton";
-import { BsFileExcel } from "react-icons/bs";
-import axios from "axios";
 
 interface Props extends PageProps {
     branch: Branch;
@@ -218,8 +213,7 @@ const CorteSemanalForm = ({
 
             router.get(
                 route("cortes_semanales.create", { branch: branch.id }),
-                { start_date: formattedStart, end_date: formattedEnd },
-                { preserveState: true }
+                { start_date: formattedStart, end_date: formattedEnd }
             );
         }
     };
