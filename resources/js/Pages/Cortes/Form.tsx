@@ -20,6 +20,7 @@ import ReturnsTable from "./components/ReturnsTable";
 import { router } from "@inertiajs/react";
 import { FaDownload } from "react-icons/fa6";
 import { CgAdd } from "react-icons/cg";
+import axios from "axios";
 
 interface Props extends PageProps {
     notes: Note[];
@@ -270,17 +271,6 @@ const CorteForm = ({
 
                         {!isDetail ? (
                             <Flex gap="2">
-                                <IconButton
-                                    color="green"
-                                    className="hover:cursor-pointer"
-                                    size="2"
-                                    onClick={() => {
-                                        window.location.reload();
-                                    }}
-                                >
-                                    <BiRefresh className="w-5 h-5" />
-                                </IconButton>
-                                {/* New corte button */}
                                 <Button
                                     onClick={() => {
                                         router.visit(
@@ -374,6 +364,27 @@ const CorteForm = ({
                         purchasesSum={sums.purchasesSum}
                     />
                     <Spacer />
+                    <Flex justify="end">
+                        {!isDetail && (
+                            <IconButton
+                                color="green"
+                                className="hover:cursor-pointer"
+                                size="2"
+                                onClick={() => {
+                                    axios(
+                                        route("api.notas.corte", {
+                                            branch: branch.id,
+                                            date,
+                                        })
+                                    ).then((response) => {
+                                        setNotes(response.data);
+                                    });
+                                }}
+                            >
+                                <BiRefresh className="w-5 h-5" />
+                            </IconButton>
+                        )}
+                    </Flex>
                     <NotesTable
                         notes={notes.map((note) => ({
                             ...note,

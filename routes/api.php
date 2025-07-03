@@ -11,3 +11,4 @@ Route::get('/branches', [BranchController::class, 'getList']);
 Route::get('/notes/status/pending', [NoteController::class, 'getPendingNotes']);
 Route::get('/notes/{branchId}/searchByFolio/{folio}', [NoteController::class, 'searchNoteByFolio']);
 Route::post('/export/corte_semanal', [CorteSemanalController::class, 'exportCorteSemanal'])->name('cortes_semanales.export');
+Route::get('/notes/{branch}/{date}', [NoteController::class, 'getNotesByDate'])->name('api.notas.corte');

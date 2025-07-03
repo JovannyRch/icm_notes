@@ -319,4 +319,14 @@ class NoteController extends Controller
 
         return response()->json($note);
     }
+
+    public function getNotesByDate($branch, $date)
+    {
+        $notes = Note::where('branch_id', $branch)
+            ->whereDate('date', $date)
+            ->orderBy('folio', 'asc')
+            ->get();
+
+        return response()->json($notes);
+    }
 }
