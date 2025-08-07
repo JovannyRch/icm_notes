@@ -34,6 +34,11 @@ interface Props extends PageProps {
     date: string;
 }
 
+
+const cleanNotes = (notes: Note[]) => {
+    return notes.filter((note) => note?.delivery_status !== "cancelado");
+}
+
 const Spacer = () => <div className="h-[60px]"></div>;
 
 function calculateSums(
@@ -50,7 +55,7 @@ function calculateSums(
     let notesSum = 0;
     let purchasesSum = 0;
 
-    notes.forEach((note) => {
+    cleanNotes(notes).forEach((note) => {
         cardSum += Number(note.card ?? 0) + Number(note.card2 ?? 0);
         transferSum += Number(note.transfer ?? 0) + Number(note.transfer2 ?? 0);
         cashSum += Number(note.cash ?? 0) + Number(note.cash2 ?? 0);
