@@ -1,4 +1,3 @@
-import BranchSelector from "@/Components/BranchSelector";
 import Container from "@/Components/Container";
 import DeliveryStatusBadge from "@/Components/DeliveryStatusBadge";
 import Pagination from "@/Components/Pagination";
@@ -11,30 +10,29 @@ import { Branch } from "@/types/Branch";
 import { Note } from "@/types/Note";
 import { Inertia } from "@inertiajs/inertia";
 import { router } from "@inertiajs/react";
-import {
-    Badge,
-    Button,
-    Checkbox,
-    Flex,
-    Grid,
-    Table,
-    Text,
-} from "@radix-ui/themes";
-import { useState } from "react";
+import { Button, Checkbox, Flex, Grid, Table, Text } from "@radix-ui/themes";
+import { useMemo, useState } from "react";
 import { BiArchive, BiArrowBack, BiCalendarWeek } from "react-icons/bi";
 import { CgAdd } from "react-icons/cg";
 import { GiCancel } from "react-icons/gi";
-import { MdUnarchive, MdViewWeek, MdWeekend } from "react-icons/md";
+import { MdClear, MdUnarchive, MdViewWeek, MdWeekend } from "react-icons/md";
 import { TbCashRegister, TbTrash } from "react-icons/tb";
 import DateFilter from "./components/DateFilter";
 import NoteSearchInput from "./components/NoteSearchInput";
 import SaleCustomerStatusFilter from "./components/SaleCustomerStatusFilter";
 import { BsCashCoin, BsFileExcel } from "react-icons/bs";
+import PurchaseStatusFilter from "./components/PurchaseStatusFilter";
+import DeliveryStatusFilter from "./components/DeliveryStatusFilter";
+import { useLocalStorage } from "usehooks-ts";
 
 interface Props extends PageProps {
     pagination: any;
     branch: Branch;
 }
+
+const HeaderWrapper = ({ children }: { children: React.ReactNode }) => (
+    <div className="flex items-center justify-center h-full">{children}</div>
+);
 
 const Home = ({ pagination, flash, branch }: Props) => {
     const { data: notes } = pagination;
@@ -73,6 +71,35 @@ const Home = ({ pagination, flash, branch }: Props) => {
         });
     };
 
+    const hasFiltersApplied = useMemo(() => {
+        const params = route().params;
+        const noFilterParams = ["branch", "page", "archived"];
+
+        const dateFilterValue = params.date;
+
+        return (
+            Object.keys(params).some((key) => !noFilterParams.includes(key)) &&
+            dateFilterValue !== "THIS_WEEK"
+        );
+    }, []);
+
+    const noFiltersParamValues = useMemo(() => {
+        const params = route().params;
+        const noFilterParams = ["branch", "page", "archived"];
+        const filteredParams: Record<string, any> = {};
+        Object.keys(params).forEach((key) => {
+            if (noFilterParams.includes(key)) {
+                filteredParams[key] = params[key];
+            }
+        });
+        return filteredParams;
+    }, []);
+
+    const [filterDate, setFilterDate] = useLocalStorage(
+        `date-filter-${branch.id}`,
+        "THIS_WEEK"
+    );
+
     return (
         <Container headTitle="Notas">
             <div style={{ minHeight: "calc(100vh - 130px)" }}>
@@ -92,17 +119,6 @@ const Home = ({ pagination, flash, branch }: Props) => {
                             pagination.total
                         }) - ${branch.name}`}
                     </Text>
-                    <div>
-                        {/*  <BranchSelector
-                            branches={branches}
-                            branch={branch}
-                            onChange={(branch) => {
-                                router.visit(
-                                    route("notas", { branch: branch.id })
-                                );
-                            }}
-                        /> */}
-                    </div>
                 </Flex>
                 <Flex justify="between" gap="4" className="my-4">
                     <Flex
@@ -191,11 +207,14 @@ const Home = ({ pagination, flash, branch }: Props) => {
                                         router.visit(
                                             route("notas", {
                                                 branch: branch.id,
+                                                date:
+                                                    route().params.date ??
+                                                    "THIS_WEEK",
                                             })
                                         );
                                     }}
                                 >
-                                    Regresar a la lista
+                                    Ver no archivados
                                     <BiArrowBack className="w-5 h-5" />
                                 </Button>
 
@@ -221,6 +240,9 @@ const Home = ({ pagination, flash, branch }: Props) => {
                                             route("notas", {
                                                 branch: branch!.id,
                                                 archived: true,
+                                                date:
+                                                    route().params.date ??
+                                                    filterDate,
                                             })
                                         );
                                     }}
@@ -279,64 +301,62 @@ const Home = ({ pagination, flash, branch }: Props) => {
                     >
                         <NoteSearchInput />
                     </Grid>
-                    <Grid
-                        gridColumn={{
-                            lg: "span 5",
-                            md: "span 4",
-                            xs: "span 8",
-                        }}
-                    >
-                        <Flex
-                            gap="5"
-                            align="center"
-                            justify={{
-                                md: "start",
-                                initial: "between",
-                            }}
-                            direction={{
-                                md: "row",
-                                initial: "column",
-                            }}
-                        >
-                            <DateFilter branchId={branch.id} />
-                            <SaleCustomerStatusFilter />
-                        </Flex>
-                    </Grid>
+                    <div>
+                        {hasFiltersApplied && (
+                            <Button
+                                variant="soft"
+                                color="red"
+                                type="button"
+                                onClick={() => {
+                                    setFilterDate("THIS_WEEK");
+                                    Inertia.get(route("notas"), {
+                                        ...noFiltersParamValues,
+                                        date: "THIS_WEEK",
+                                    });
+                                }}
+                            >
+                                Limpiar filtros
+                                <MdClear />
+                            </Button>
+                        )}
+                    </div>
                 </Grid>
 
                 <Table.Root>
                     <Table.Header>
                         <Table.Row>
                             <Table.ColumnHeaderCell className="text-center">
-                                <div className="min-w-[25px]">
+                                <HeaderWrapper>
                                     {selectedItems.length > 0 &&
                                         `(${selectedItems.length})`}
-                                </div>
+                                </HeaderWrapper>
                             </Table.ColumnHeaderCell>
 
                             <Table.ColumnHeaderCell className="text-center">
-                                No. Nota
+                                <HeaderWrapper>No. Nota</HeaderWrapper>
                             </Table.ColumnHeaderCell>
 
                             <Table.ColumnHeaderCell className="text-center">
-                                Fecha
+                                <DateFilter />
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
-                                Total venta cliente
+                                <HeaderWrapper>
+                                    Total venta cliente
+                                </HeaderWrapper>
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
-                                Estatus venta cliente
-                            </Table.ColumnHeaderCell>
-
-                            <Table.ColumnHeaderCell className="text-center">
-                                Total compra
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                Estatus compra
+                                <SaleCustomerStatusFilter />
                             </Table.ColumnHeaderCell>
 
                             <Table.ColumnHeaderCell className="text-center">
-                                Estatus de entrega
+                                <HeaderWrapper>Total compra</HeaderWrapper>
+                            </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell className="text-center">
+                                <PurchaseStatusFilter />
+                            </Table.ColumnHeaderCell>
+
+                            <Table.ColumnHeaderCell className="text-center">
+                                <DeliveryStatusFilter />
                             </Table.ColumnHeaderCell>
                         </Table.Row>
                     </Table.Header>

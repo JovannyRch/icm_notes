@@ -11,13 +11,8 @@ use Inertia\Inertia;
 
 class NoteController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
+
+
 
     /**
      * Show the form for creating a new resource.
@@ -215,19 +210,27 @@ class NoteController extends Controller
         return redirect()->route('notas', ['branch' => $branch_id])->with('success', 'Nota eliminada');
     }
 
-    private function applyFilters($branch_id, $archived, $query, $date, $status)
+    private function applyFilters($branch_id, $archived, $query, $date, $status, $purchase_status, $delivery_status)
     {
         $now = now()->timezone('America/Mexico_City');
 
-        $notes = Note::where('branch_id', $branch_id)
+        return Note::where('branch_id', $branch_id)
             ->where('archived', $archived)
-            ->where(function ($q) use ($query, $date, $status, $now) {
+            ->where(function ($q) use ($query, $date, $status, $now, $purchase_status, $delivery_status) {
                 if ($query) {
                     $q->where('folio', 'like', '%' . $query . '%');
                 }
 
                 if ($status) {
                     $q->where('status', $status);
+                }
+
+                if ($purchase_status) {
+                    $q->where('purchase_status', $purchase_status);
+                }
+
+                if ($delivery_status) {
+                    $q->where('delivery_status', $delivery_status);
                 }
 
                 if ($date) {
@@ -269,13 +272,13 @@ class NoteController extends Controller
             })
             ->orderByRaw(DB::getDriverName() === 'mysql' ? "CAST(folio AS UNSIGNED) ASC" : "folio::INTEGER ASC")
             ->paginate(50);
-
-        return $notes;
     }
 
 
-
-    public function home()
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
     {
 
         $branches = Branch::all();
@@ -291,8 +294,10 @@ class NoteController extends Controller
         $date = request('date') ?? 'THIS_WEEK';
 
         $status = request('status');
+        $purchase_status = request('purchase_status');
+        $delivery_status = request('delivery_status');
 
-        $notes = $this->applyFilters($branch_id, $archived, $query, $date, $status);
+        $notes = $this->applyFilters($branch_id, $archived, $query, $date, $status, $purchase_status, $delivery_status);
 
         $notes->appends(request()->query());
 

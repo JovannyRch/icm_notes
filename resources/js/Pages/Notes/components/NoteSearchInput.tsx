@@ -44,23 +44,6 @@ const NoteSearchInput = () => {
                 Buscar
                 <FaMagnifyingGlass />
             </Button>
-
-            {queryParam && (
-                <>
-                    <Button
-                        variant="soft"
-                        color="red"
-                        type="button"
-                        onClick={() => {
-                            setInputValue("");
-                            fetchNotes("");
-                        }}
-                    >
-                        Limpiar
-                        <MdClear />
-                    </Button>
-                </>
-            )}
         </form>
     );
 };

@@ -1,12 +1,12 @@
 import ApplicationLogo from "@/Components/ApplicationLogo";
-import BranchSelector from "@/Components/BranchSelector";
+import { BranchSelector } from "@/Components/BranchSelector";
+
 import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
 import { Branch } from "@/types/Branch";
 import { Link, usePage } from "@inertiajs/react";
-import axios from "axios";
-import { PropsWithChildren, ReactNode, useEffect, useState } from "react";
+import { PropsWithChildren, ReactNode, useState } from "react";
 
 export default function Authenticated({
     header,
@@ -31,34 +31,16 @@ export default function Authenticated({
                             </div>
 
                             <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                {branches.map((branch) => (
-                                    <NavLink
-                                        href={route("notas", {
-                                            branch: branch.id,
-                                            date: (
-                                                localStorage.getItem(
-                                                    `date-filter-${branch.id}`
-                                                ) ?? "THIS_WEEK"
-                                            ).replace(/"/g, ""),
-                                        })}
-                                        key={branch.id}
-                                        active={false}
-                                    >
-                                        {branch.name}
-                                    </NavLink>
-                                ))}
+                                <BranchSelector
+                                    branches={branches}
+                                    currentBranchId={route().params?.branch}
+                                />
                                 <NavLink
                                     href={route("products")}
                                     active={route().current("products")}
                                 >
                                     Productos
                                 </NavLink>
-                                {/* <NavLink
-                                    href={route("cortes")}
-                                    active={route().current("cortes")}
-                                >
-                                    Cortes
-                                </NavLink> */}
                             </div>
                         </div>
 

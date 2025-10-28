@@ -69,3 +69,9 @@ export const numberMonthToString = (monthStr: string): string => {
             return "";
     }
 };
+
+export const textWithEllipsis = (name: string, maxLength: number = 20) => {
+    if (!name) return "";
+    if (name.length <= maxLength) return name;
+    return name.slice(0, maxLength - 3) + "...";
+};
