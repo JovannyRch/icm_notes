@@ -4,9 +4,11 @@ import { BranchSelector } from "@/Components/BranchSelector";
 import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
+import { useBranch } from "@/hooks/useBranch";
 
 import { Link, usePage } from "@inertiajs/react";
 import { PropsWithChildren, ReactNode, useState } from "react";
+import { useLocalStorage } from "usehooks-ts";
 
 export default function Authenticated({
     header,
@@ -16,6 +18,12 @@ export default function Authenticated({
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
+
+    const { currentBranchId } = useBranch();
+    const [filterDate] = useLocalStorage(
+        `date-filter-${currentBranchId}`,
+        "THIS_WEEK"
+    );
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -31,7 +39,7 @@ export default function Authenticated({
 
                             <div className="flex space-x-8 sm:-my-px sm:ms-10">
                                 <NavLink
-                                    href={route("notas")}
+                                    href={route("notas", { date: filterDate })}
                                     active={route().current("notas")}
                                 >
                                     Notas
