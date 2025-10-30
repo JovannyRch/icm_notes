@@ -360,10 +360,17 @@ const Form = ({
 
                     <Tabs.Content value="movements">
                         <div className="flex items-center justify-between mt-10 mb-4">
-                            <h2 className="text-xl font-semibold text-gray-800">
-                                Movimientos de inventario - Sucursal:{" "}
-                                {currentBranchName}
-                            </h2>
+                            {/* Product name */}
+                            <div>
+                                <h1 className="text-xl font-semibold text-gray-800">
+                                    {product!.brand + " " + product!.model}
+                                </h1>
+
+                                <h2 className="text-xl font-semibold text-gray-600">
+                                    Movimientos de inventario -{" "}
+                                    {currentBranchName}
+                                </h2>
+                            </div>
                             <Button
                                 color="green"
                                 onClick={() => setShowMovementModal(true)}
