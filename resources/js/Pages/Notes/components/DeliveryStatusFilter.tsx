@@ -1,5 +1,5 @@
 import { BiPackage } from "react-icons/bi";
-import { DropdownFilter } from "./DropdownFilter";
+import { DropdownFilter } from "../../../Components/ProductsModal/DropdownFilter/DropdownFilter";
 import { DELIVERY_STATUS_MAP } from "@/const";
 
 const DeliveryStatusFilter = () => (

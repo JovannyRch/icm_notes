@@ -1,28 +1,16 @@
-import {
-    Flex,
-    Grid,
-    IconButton,
-    Strong,
-    Table,
-    Text,
-    TextField,
-} from "@radix-ui/themes";
+import { Grid, IconButton, Strong, Table } from "@radix-ui/themes";
 import InputWithLabel from "./InputWithLabel";
-import { BiEdit, BiSave, BiTrash } from "react-icons/bi";
+import { BiTrash } from "react-icons/bi";
 import { NoteItemInterface } from "@/types/NoteItem";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { formatCurrency } from "@/helpers/formatters";
 import {
     calculatePurchaseSubtotal,
     calculateSaleSubtotal,
-    isNumber,
 } from "@/helpers/utils";
-import { useState } from "react";
 import InlineInput from "./InlineInput";
-import TextInput from "./TextInput";
 import { SuppliedStatusSelect } from "./SuppliedStatusSelect";
 import { DeliveryStatusSelect } from "./DeliveryStatusSelect";
-import LineDivider from "./LineDivider";
 import UnitInput from "./UnitInput";
 
 interface NoteItemProps {
@@ -49,8 +37,6 @@ const NoteItem = ({
     onDelete,
     onOpenSearchModal,
     onUpdate,
-    isEdit,
-    updateCalculatedValues,
 }: NoteItemProps) => {
     const calculateSubtotals = (
         product: NoteItemInterface
@@ -64,159 +50,7 @@ const NoteItem = ({
         };
     };
 
-    /*   const [detailMode, setDetailMode] = useState<boolean>(
-        Boolean(isEdit && item?.id)
-    ); */
-
     const isOdd = index % 2 === 0;
-
-    /*  if (detailMode) {
-        return (
-            <div
-                className={`mb-6 rounded-md border border-gray-800 px-1 ${
-                    isOdd ? "bg-gray-100" : ""
-                }`}
-            >
-                <Table.Root>
-                    <Table.Header>
-                        <Table.Row>
-                            <Table.ColumnHeaderCell className="text-left">
-                                Producto
-                            </Table.ColumnHeaderCell>
-
-                            <Table.ColumnHeaderCell className="text-center">
-                                Precio
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                Costo
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                IVA (%)
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                Extra (%)
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                Subtotal compra
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                Subtotal venta
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                Cantidad
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-                        </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                        <Table.Row>
-                            <Table.Cell>
-                                <div className="flex items-center w-full h-full font-bold">
-                                    {[
-                                        item.model,
-                                        item.brand,
-                                        item.measure,
-                                        item.unit,
-                                        item.mc,
-                                    ]
-                                        .filter(Boolean)
-                                        .join(" - ")}
-                                </div>
-                            </Table.Cell>
-
-                            <CenteredCell>
-                                {formatCurrency(Number(item.price))}
-                            </CenteredCell>
-                            <CenteredCell>
-                                {formatCurrency(Number(item.cost))}
-                            </CenteredCell>
-                            <CenteredCell>{item.iva}%</CenteredCell>
-                            <CenteredCell>{item.extra}%</CenteredCell>
-                            <CenteredCell>
-                                {formatCurrency(Number(item.purchase_subtotal))}
-                            </CenteredCell>
-                            <CenteredCell>
-                                {formatCurrency(Number(item.sale_subtotal))}
-                            </CenteredCell>
-                            <CenteredCell>
-                                <div>
-                                    <TextInput
-                                        value={item.quantity}
-                                        type="number"
-                                        className="h-8 text-right md:w-3/4 sm:w-full"
-                                        onChange={(e) => {
-                                            const product = {
-                                                ...item,
-                                                quantity: e.target.value,
-                                            };
-                                            onUpdate(index, {
-                                                ...product,
-                                                ...calculateSubtotals(product),
-                                            });
-                                        }}
-                                    />
-                                </div>
-                            </CenteredCell>
-                            <CenteredCell>
-                                <Flex direction="column" gap="2">
-                                    <IconButton
-                                        type="button"
-                                        color="bronze"
-                                        onClick={() => onOpenSearchModal(index)}
-                                        className="hover:cursor-pointer"
-                                    >
-                                        <FaMagnifyingGlass color="white" />
-                                    </IconButton>
-                                    <IconButton
-                                        type="button"
-                                        color="yellow"
-                                        onClick={() => setDetailMode(false)}
-                                        className="hover:cursor-pointer"
-                                    >
-                                        <BiEdit />
-                                    </IconButton>
-                                    <IconButton
-                                        color="red"
-                                        onClick={() => onDelete(index)}
-                                        type="button"
-                                        className="hover:cursor-pointer"
-                                    >
-                                        <BiTrash />
-                                    </IconButton>
-                                </Flex>
-                            </CenteredCell>
-                        </Table.Row>
-                    </Table.Body>
-                </Table.Root>
-
-                <Grid columns="2" gap="2" className="mt-4">
-                    <Grid>
-                        <DeliveryStatusSelect
-                            value={item.delivery_status}
-                            onChange={(value) => {
-                                onUpdate(index, {
-                                    ...item,
-                                    delivery_status: value,
-                                });
-                            }}
-                        />
-                    </Grid>
-                    <Grid>
-                        <SuppliedStatusSelect
-                            value={item.supplied_status}
-                            onChange={(value) => {
-                                onUpdate(index, {
-                                    ...item,
-                                    supplied_status: value,
-                                });
-                            }}
-                        />
-                    </Grid>
-                </Grid>
-                <LineDivider className="mt-8" />
-            </div>
-        );
-    } */
 
     return (
         <Grid

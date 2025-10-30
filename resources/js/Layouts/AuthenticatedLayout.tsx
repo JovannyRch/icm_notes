@@ -4,15 +4,14 @@ import { BranchSelector } from "@/Components/BranchSelector";
 import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
-import { Branch } from "@/types/Branch";
+
 import { Link, usePage } from "@inertiajs/react";
 import { PropsWithChildren, ReactNode, useState } from "react";
 
 export default function Authenticated({
     header,
     children,
-    branches = [],
-}: PropsWithChildren<{ header?: ReactNode; branches?: Branch[] }>) {
+}: PropsWithChildren<{ header?: ReactNode }>) {
     const user = usePage().props.auth.user;
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
@@ -30,11 +29,13 @@ export default function Authenticated({
                                 </Link>
                             </div>
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <BranchSelector
-                                    branches={branches}
-                                    currentBranchId={route().params?.branch}
-                                />
+                            <div className="flex space-x-8 sm:-my-px sm:ms-10">
+                                <NavLink
+                                    href={route("notas")}
+                                    active={route().current("notas")}
+                                >
+                                    Notas
+                                </NavLink>
                                 <NavLink
                                     href={route("products")}
                                     active={route().current("products")}
@@ -45,6 +46,7 @@ export default function Authenticated({
                         </div>
 
                         <div className="hidden sm:ms-6 sm:flex sm:items-center">
+                            <BranchSelector />
                             <div className="relative ms-3">
                                 <Dropdown>
                                     <Dropdown.Trigger>

@@ -1,21 +1,11 @@
 import Container from "@/Components/Container";
 
 import useAlerts from "@/hooks/useAlerts";
-import { payment_status } from "@/types";
 import { PageProps } from "@/types";
-import { Branch } from "@/types/Branch";
-import { NoteItemInterface } from "@/types/NoteItem";
 
-import { router, useForm } from "@inertiajs/react";
-import {
-    Button,
-    Flex,
-    IconButton,
-    Table,
-    Text,
-    TextField,
-} from "@radix-ui/themes";
-import { BiArrowBack, BiTrash } from "react-icons/bi";
+import { router } from "@inertiajs/react";
+import { Flex, IconButton, Table, Text } from "@radix-ui/themes";
+import { BiTrash } from "react-icons/bi";
 
 import { Inertia } from "@inertiajs/inertia";
 import { confirmAlert } from "react-confirm-alert";
@@ -212,10 +202,10 @@ const CorteSemanalForm = ({
             const formattedStart = start_date.toISOString().split("T")[0];
             const formattedEnd = end_date.toISOString().split("T")[0];
 
-            router.get(
-                route("cortes_semanales.create", { branch: branch.id }),
-                { start_date: formattedStart, end_date: formattedEnd }
-            );
+            router.get(route("cortes_semanales.create"), {
+                start_date: formattedStart,
+                end_date: formattedEnd,
+            });
         }
     };
 

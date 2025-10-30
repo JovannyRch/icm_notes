@@ -19,4 +19,16 @@ class Product extends Model
         'price',
         'cost',
     ];
+
+    public function stockMovements()
+    {
+        $currentBranch = currentBranchId();
+        return $this->hasMany(StockMovement::class)->where('branch_id', $currentBranch);
+    }
+
+    public function stock()
+    {
+        $currentBranch = currentBranchId();
+        return $this->hasOne(Stock::class)->where('branch_id', $currentBranch);
+    }
 }

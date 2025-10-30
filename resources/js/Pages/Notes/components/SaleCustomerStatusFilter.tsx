@@ -1,9 +1,9 @@
 import { MdPointOfSale } from "react-icons/md";
-import { DropdownFilter } from "./DropdownFilter";
+import { DropdownFilter } from "../../../Components/ProductsModal/DropdownFilter/DropdownFilter";
 
 const PURCHASE_STATUS_VALUES = {
     paid: "Pagado",
-    pending: "Pendiente de pago",
+    pending: "Pendiente",
     canceled: "Cancelado",
 } as const;
 

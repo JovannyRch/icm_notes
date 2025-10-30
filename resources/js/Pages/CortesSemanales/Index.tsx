@@ -3,7 +3,7 @@ import Pagination from "@/Components/Pagination";
 import { formatCurrency } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
-import { Branch } from "@/types/Branch";
+
 import { Corte } from "@/types/Corte";
 import { CorteSemanal } from "@/types/CorteSemanal";
 import { router } from "@inertiajs/react";
@@ -50,11 +50,7 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                             variant="soft"
                             className="btn btn-secondary hover:cursor-pointer"
                             onClick={() => {
-                                router.visit(
-                                    route("notas", {
-                                        branch: branch.id,
-                                    })
-                                );
+                                router.visit(route("notas"));
                             }}
                         >
                             <BiArrowBack />
@@ -65,11 +61,7 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                     <div>
                         <Button
                             onClick={() => {
-                                router.visit(
-                                    route("cortes_semanales.create", {
-                                        branch: branch.id,
-                                    })
-                                );
+                                router.visit(route("cortes_semanales.create"));
                             }}
                             className="hover:cursor-pointer"
                         >

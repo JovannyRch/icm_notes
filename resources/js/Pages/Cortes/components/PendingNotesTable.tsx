@@ -1,7 +1,7 @@
 import DynamicTable, { Column } from "@/Components/DynamicTable";
 import { formatCurrency } from "@/helpers/formatters";
 import { isNumber } from "@/helpers/utils";
-import { Branch } from "@/types/Branch";
+
 import { router } from "@inertiajs/react";
 import { Flex, Text } from "@radix-ui/themes";
 import axios from "axios";

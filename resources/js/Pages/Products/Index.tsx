@@ -5,14 +5,7 @@ import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
 import { router } from "@inertiajs/react";
-import {
-    Button,
-    DropdownMenu,
-    Flex,
-    Grid,
-    Table,
-    Text,
-} from "@radix-ui/themes";
+import { Button, Flex, Grid, Table, Text } from "@radix-ui/themes";
 import { useState } from "react";
 import { CgAdd } from "react-icons/cg";
 import { TbTrash } from "react-icons/tb";
@@ -23,8 +16,8 @@ import { confirmAlert } from "react-confirm-alert";
 import { MdDeleteSweep } from "react-icons/md";
 import { BiDownload } from "react-icons/bi";
 import ProductsSearchInput from "./components/ProductsSearchInput";
-import BrandSelect from "./components/BrandSelect";
-import { Branch } from "@/types/Branch";
+
+import { DropdownFilter } from "@/Components/ProductsModal/DropdownFilter/DropdownFilter";
 
 interface Props extends PageProps {
     pagination: any;
@@ -175,17 +168,6 @@ const Index = ({ pagination, flash, brands }: Props) => {
                     >
                         <ProductsSearchInput />
                     </Grid>
-                    <Grid
-                        gridColumn={{
-                            lg: "span 2",
-                            md: "span 2",
-                            xs: "span 4",
-                        }}
-                    >
-                        <div>
-                            <BrandSelect brands={brands} />
-                        </div>
-                    </Grid>
                 </Grid>
 
                 <Table.Root>
@@ -217,7 +199,20 @@ const Index = ({ pagination, flash, brands }: Props) => {
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>Id</Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>
-                                Marca
+                                <DropdownFilter
+                                    values={brands.reduce(
+                                        (acc, curr) => {
+                                            acc[curr.brand] = curr.brand;
+                                            return acc;
+                                        },
+                                        { NONE: "Todos" } as {
+                                            [key: string]: string;
+                                        }
+                                    )}
+                                    paramKey="brand"
+                                    defaultLabel="Marca"
+                                    routeName="products"
+                                />
                             </Table.ColumnHeaderCell>
 
                             <Table.ColumnHeaderCell>
@@ -244,6 +239,9 @@ const Index = ({ pagination, flash, brands }: Props) => {
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
                                 Extra
+                            </Table.ColumnHeaderCell>
+                            <Table.ColumnHeaderCell className="text-center">
+                                Existencias
                             </Table.ColumnHeaderCell>
                         </Table.Row>
                     </Table.Header>
@@ -319,6 +317,9 @@ const Index = ({ pagination, flash, brands }: Props) => {
                                 </Table.Cell>
                                 <Table.Cell className="text-center">
                                     {product.extra ?? 0}%
+                                </Table.Cell>
+                                <Table.Cell className="text-center">
+                                    <b>{product.stock?.quantity ?? "-"}</b>
                                 </Table.Cell>
                             </Table.Row>
                         ))}

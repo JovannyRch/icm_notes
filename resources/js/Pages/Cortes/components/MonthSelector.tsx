@@ -1,4 +1,3 @@
-import { Branch } from "@/types/Branch";
 import { Inertia } from "@inertiajs/inertia";
 import { router } from "@inertiajs/react";
 import { Button, DropdownMenu } from "@radix-ui/themes";
@@ -63,15 +62,10 @@ const MonthSelector = ({ branch }: Props) => {
                         key={option.value}
                         onSelect={() => {
                             if (option.value === defaultDate) {
-                                router.visit(
-                                    route("cortes", {
-                                        branch: branch.id,
-                                    })
-                                );
+                                router.visit(route("cortes"));
                             } else {
                                 router.visit(
                                     route("cortes", {
-                                        branch: branch.id,
                                         filter: option.value,
                                     })
                                 );

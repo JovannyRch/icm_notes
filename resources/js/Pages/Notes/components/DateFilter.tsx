@@ -1,12 +1,16 @@
 import { DATE_FILTERS_VALUES } from "@/const";
 import { FaRegCalendarAlt } from "react-icons/fa";
-import { DropdownFilter } from "./DropdownFilter";
+import { DropdownFilter } from "../../../Components/ProductsModal/DropdownFilter/DropdownFilter";
 import { useLocalStorage } from "usehooks-ts";
+import { useBranch } from "@/hooks/useBranch";
 
 const DateFilter = () => {
-    const branchId = route().params.branch;
+    const { currentBranchId } = useBranch();
+
+    const dateParam = route().params.date as string | undefined;
+
     const [filterDate, setFilterDate] = useLocalStorage(
-        `date-filter-${branchId}`,
+        `date-filter-${currentBranchId}`,
         "THIS_WEEK"
     );
 
@@ -20,7 +24,7 @@ const DateFilter = () => {
             onSelect={(value) => {
                 setFilterDate(value ?? "THIS_WEEK");
             }}
-            defaultValue={filterDate}
+            defaultValue={dateParam ?? filterDate}
         />
     );
 };

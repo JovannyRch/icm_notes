@@ -14,8 +14,10 @@ class CorteController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Branch $branch)
+    public function index()
     {
+        $branch_id = currentBranchId();
+        $branch = Branch::find($branch_id);
 
         $filter = request('filter') ?? "THIS_MONTH";
 
@@ -68,8 +70,10 @@ class CorteController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(Request $request, Branch $branch)
+    public function create(Request $request)
     {
+        $branch_id = currentBranchId();
+        $branch = Branch::find($branch_id);
         $date = $request->input('date') ??  date('Y-m-d');
 
         $notes = Note::where('branch_id', $branch->id)

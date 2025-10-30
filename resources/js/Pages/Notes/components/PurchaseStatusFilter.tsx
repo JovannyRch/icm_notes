@@ -1,4 +1,4 @@
-import { DropdownFilter } from "./DropdownFilter";
+import { DropdownFilter } from "../../../Components/ProductsModal/DropdownFilter/DropdownFilter";
 import { MdShoppingCart } from "react-icons/md";
 
 const PURCHASE_STATUS_VALUES = {

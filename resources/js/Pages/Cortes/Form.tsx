@@ -1,7 +1,7 @@
 import Container from "@/Components/Container";
 import { useUpdateEffect } from "@/hooks/useUpdateEffect";
 import { PageProps } from "@/types";
-import { Branch } from "@/types/Branch";
+
 import { Note } from "@/types/Note";
 import { Button, Flex, IconButton, Text } from "@radix-ui/themes";
 import { format } from "date-fns";
@@ -34,10 +34,9 @@ interface Props extends PageProps {
     date: string;
 }
 
-
 const cleanNotes = (notes: Note[]) => {
     return notes.filter((note) => note?.delivery_status !== "cancelado");
-}
+};
 
 const Spacer = () => <div className="h-[60px]"></div>;
 
@@ -251,11 +250,7 @@ const CorteForm = ({
                             variant="soft"
                             className="hover:cursor-pointer"
                             onClick={() => {
-                                router.visit(
-                                    route("cortes", {
-                                        branch: branch.id,
-                                    })
-                                );
+                                router.visit(route("cortes"));
                             }}
                         >
                             <BiArrowBack />
@@ -278,11 +273,7 @@ const CorteForm = ({
                             <Flex gap="2">
                                 <Button
                                     onClick={() => {
-                                        router.visit(
-                                            route("cortes.new", {
-                                                branch: branch.id,
-                                            })
-                                        );
+                                        router.visit(route("cortes.new"));
                                     }}
                                     className="hover:cursor-pointer"
                                 >
@@ -340,11 +331,7 @@ const CorteForm = ({
                                 </IconButton>
                                 <Button
                                     onClick={() => {
-                                        router.visit(
-                                            route("cortes.new", {
-                                                branch: branch.id,
-                                            })
-                                        );
+                                        router.visit(route("cortes.new"));
                                     }}
                                     className="hover:cursor-pointer"
                                 >

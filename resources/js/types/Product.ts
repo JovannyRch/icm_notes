@@ -9,8 +9,9 @@ export interface Product {
     iva: number;
     price: number;
     extra: number;
-    stock: number;
     created_at: string;
     updated_at: string;
     subtotal: number;
+    stock?: Stock;
+    stock_movements?: StockMovement[];
 }

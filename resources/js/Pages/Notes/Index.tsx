@@ -6,7 +6,6 @@ import { STATUS_DELIVERY_ENUM } from "@/const";
 import { formatCurrency, formatDate } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps, payment_status } from "@/types";
-import { Branch } from "@/types/Branch";
 import { Note } from "@/types/Note";
 import { Inertia } from "@inertiajs/inertia";
 import { router } from "@inertiajs/react";
@@ -24,19 +23,18 @@ import { BsCashCoin, BsFileExcel } from "react-icons/bs";
 import PurchaseStatusFilter from "./components/PurchaseStatusFilter";
 import DeliveryStatusFilter from "./components/DeliveryStatusFilter";
 import { useLocalStorage } from "usehooks-ts";
+import { useBranch } from "@/hooks/useBranch";
+import HeaderWrapper from "@/Components/TableHeaderWrapper";
 
 interface Props extends PageProps {
     pagination: any;
     branch: Branch;
 }
 
-const HeaderWrapper = ({ children }: { children: React.ReactNode }) => (
-    <div className="flex items-center justify-center h-full">{children}</div>
-);
-
-const Home = ({ pagination, flash, branch }: Props) => {
+const Home = ({ pagination, flash }: Props) => {
     const { data: notes } = pagination;
 
+    const { currentBranch: branch } = useBranch();
     const archivedParam = Boolean(route().params.archived);
 
     const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -73,7 +71,7 @@ const Home = ({ pagination, flash, branch }: Props) => {
 
     const hasFiltersApplied = useMemo(() => {
         const params = route().params;
-        const noFilterParams = ["branch", "page", "archived"];
+        const noFilterParams = ["page", "archived"];
 
         const dateFilterValue = params.date;
 
@@ -85,7 +83,7 @@ const Home = ({ pagination, flash, branch }: Props) => {
 
     const noFiltersParamValues = useMemo(() => {
         const params = route().params;
-        const noFilterParams = ["branch", "page", "archived"];
+        const noFilterParams = ["page", "archived"];
         const filteredParams: Record<string, any> = {};
         Object.keys(params).forEach((key) => {
             if (noFilterParams.includes(key)) {
@@ -96,7 +94,7 @@ const Home = ({ pagination, flash, branch }: Props) => {
     }, []);
 
     const [filterDate, setFilterDate] = useLocalStorage(
-        `date-filter-${branch.id}`,
+        `date-filter-${branch?.id}`,
         "THIS_WEEK"
     );
 
@@ -117,7 +115,7 @@ const Home = ({ pagination, flash, branch }: Props) => {
                     <Text size="6" className="font-semibold">
                         {`Notas ${archivedParam ? "archivadas" : ""} (${
                             pagination.total
-                        }) - ${branch.name}`}
+                        }) - ${branch?.name}`}
                     </Text>
                 </Flex>
                 <Flex justify="between" gap="4" className="my-4">
@@ -132,11 +130,7 @@ const Home = ({ pagination, flash, branch }: Props) => {
                     >
                         <Button
                             onClick={() => {
-                                router.visit(
-                                    route("notes.create", {
-                                        branch: branch!.id,
-                                    })
-                                );
+                                router.visit(route("notes.create"));
                             }}
                             className="hover:cursor-pointer"
                         >
@@ -148,9 +142,7 @@ const Home = ({ pagination, flash, branch }: Props) => {
                             color="gold"
                             variant="soft"
                             onClick={() => {
-                                router.visit(
-                                    route("cortes.new", { branch: branch.id })
-                                );
+                                router.visit(route("cortes.new"));
                             }}
                             className="hover:cursor-pointer"
                         >
@@ -162,11 +154,7 @@ const Home = ({ pagination, flash, branch }: Props) => {
                             variant="soft"
                             className="hover:cursor-pointer"
                             onClick={() => {
-                                router.visit(
-                                    route("cortes", {
-                                        branch: branch.id,
-                                    })
-                                );
+                                router.visit(route("cortes"));
                             }}
                         >
                             Cortes
@@ -177,11 +165,7 @@ const Home = ({ pagination, flash, branch }: Props) => {
                             variant="soft"
                             className="hover:cursor-pointer"
                             onClick={() => {
-                                router.visit(
-                                    route("cortes_semanales.create", {
-                                        branch: branch.id,
-                                    })
-                                );
+                                router.visit(route("cortes_semanales.create"));
                             }}
                         >
                             Generar corte semanal
@@ -206,7 +190,7 @@ const Home = ({ pagination, flash, branch }: Props) => {
                                     onClick={() => {
                                         router.visit(
                                             route("notas", {
-                                                branch: branch.id,
+                                                branch: branch?.id,
                                                 date:
                                                     route().params.date ??
                                                     "THIS_WEEK",
@@ -238,7 +222,6 @@ const Home = ({ pagination, flash, branch }: Props) => {
                                     onClick={() => {
                                         router.visit(
                                             route("notas", {
-                                                branch: branch!.id,
                                                 archived: true,
                                                 date:
                                                     route().params.date ??
@@ -337,7 +320,9 @@ const Home = ({ pagination, flash, branch }: Props) => {
                             </Table.ColumnHeaderCell>
 
                             <Table.ColumnHeaderCell className="text-center">
-                                <DateFilter />
+                                <HeaderWrapper>
+                                    <DateFilter />
+                                </HeaderWrapper>
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
                                 <HeaderWrapper>
@@ -345,18 +330,24 @@ const Home = ({ pagination, flash, branch }: Props) => {
                                 </HeaderWrapper>
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
-                                <SaleCustomerStatusFilter />
+                                <HeaderWrapper>
+                                    <SaleCustomerStatusFilter />
+                                </HeaderWrapper>
                             </Table.ColumnHeaderCell>
 
                             <Table.ColumnHeaderCell className="text-center">
                                 <HeaderWrapper>Total compra</HeaderWrapper>
                             </Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell className="text-center">
-                                <PurchaseStatusFilter />
+                                <HeaderWrapper>
+                                    <PurchaseStatusFilter />
+                                </HeaderWrapper>
                             </Table.ColumnHeaderCell>
 
                             <Table.ColumnHeaderCell className="text-center">
-                                <DeliveryStatusFilter />
+                                <HeaderWrapper>
+                                    <DeliveryStatusFilter />
+                                </HeaderWrapper>
                             </Table.ColumnHeaderCell>
                         </Table.Row>
                     </Table.Header>

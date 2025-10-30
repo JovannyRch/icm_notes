@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Note;
 use App\Models\NoteProduct;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -17,8 +18,10 @@ class NoteController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(Branch $branch)
+    public function create()
     {
+        $branch_id = currentBranchId();
+        $branch = Branch::find($branch_id);
         $date = date('Y-m-d');
         return Inertia::render('Notes/Form', [
             'branch' => $branch,
@@ -57,6 +60,7 @@ class NoteController extends Controller
 
     private function createItems($note, $items)
     {
+        $stockService = new StockService();
         foreach ($items as $item) {
             NoteProduct::create([
                 'note_id' => $note->id,
@@ -76,6 +80,18 @@ class NoteController extends Controller
                 'supplied_status' => $item['supplied_status'],
                 'delivery_status' => $item['delivery_status'],
             ]);
+
+            if ($item['product_id']) {
+                $currentBranchId = currentBranchId();
+                $stockService->adjustStock(
+                    $currentBranchId,
+                    $item['product_id'],
+                    $item['quantity'],
+                    'OUT',
+                    $note->id,
+                    'Salida por nota #' . $note->folio
+                );
+            }
         }
     }
 
@@ -95,6 +111,8 @@ class NoteController extends Controller
         ]);
 
         $items = $request->items;
+
+
         $note = Note::create($request->all());
         $this->createItems($note, $items);
 
@@ -281,11 +299,7 @@ class NoteController extends Controller
     public function index()
     {
 
-        $branches = Branch::all();
-
-        $branch_id = request('branch') ?? $branches->first()->id;
-        $branch = $branches->find($branch_id);
-
+        $branch_id = currentBranchId();
         $archived = request('archived') == '1' ? true : false;
 
         $notes = null;
@@ -302,8 +316,6 @@ class NoteController extends Controller
         $notes->appends(request()->query());
 
         return Inertia::render('Notes/Index', [
-            'branch' => $branch,
-            'branches' => $branches,
             'pagination' => $notes,
         ]);
     }

@@ -16,7 +16,6 @@ import useAlerts from "@/hooks/useAlerts";
 import { useUpdateEffect } from "@/hooks/useUpdateEffect";
 import { payment_status } from "@/types";
 import { PageProps } from "@/types";
-import { Branch } from "@/types/Branch";
 import { Note } from "@/types/Note";
 import { NoteItemInterface } from "@/types/NoteItem";
 import { Product } from "@/types/Product";
@@ -258,7 +257,6 @@ const NoteForm = ({
             price: product.price,
             iva: product.iva,
             extra: product.extra,
-            stock: product.stock,
             supplied_status: "no_enviado",
             delivery_status: STATUS_DELIVERY_ENUM.PENDING,
             quantity: 1,
@@ -308,7 +306,6 @@ const NoteForm = ({
                                 onClick={() => {
                                     router.visit(
                                         route("notas", {
-                                            branch: branch.id,
                                             date: filterDate,
                                         })
                                     );

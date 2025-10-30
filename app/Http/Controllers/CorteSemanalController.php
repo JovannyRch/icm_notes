@@ -8,17 +8,17 @@ use App\Models\Corte;
 use App\Models\CorteSemanal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Str;
 
 class CorteSemanalController extends Controller
 {
 
     //index
-    public function index(Branch $branch)
+    public function index()
     {
+        $branch_id = currentBranchId();
+        $branch = Branch::find($branch_id);
         $pagination = CorteSemanal::where('branch_id', $branch->id)->orderBy('date', 'desc')->paginate(20);
 
         return Inertia::render('CortesSemanales/Index', [
@@ -27,8 +27,10 @@ class CorteSemanalController extends Controller
         ]);
     }
 
-    public function create(Request $request, Branch $branch)
+    public function create(Request $request)
     {
+        $branch_id = currentBranchId();
+        $branch = Branch::find($branch_id);
         $start = $request->input('start_date', now()->startOfWeek()->format('Y-m-d'));
         $end = $request->input('end_date', now()->endOfWeek()->format('Y-m-d'));
 

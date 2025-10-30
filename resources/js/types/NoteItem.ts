@@ -10,7 +10,6 @@ export interface NoteItemInterface {
     iva: number | string;
     extra: number | string;
     quantity: number | string;
-    stock: number;
     purchase_subtotal: number;
     sale_subtotal: string | number;
     product_id?: number;

@@ -1,6 +1,6 @@
 import InlineInput from "@/Components/InlineInput";
 import { formatCurrency } from "@/helpers/formatters";
-import { Branch } from "@/types/Branch";
+
 import { Inertia } from "@inertiajs/inertia";
 import { router } from "@inertiajs/react";
 import { Flex, Table, Text } from "@radix-ui/themes";

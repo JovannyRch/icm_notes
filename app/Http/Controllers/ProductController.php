@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Stock;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -50,12 +53,11 @@ class ProductController extends Controller
         $pagination  = null;
 
         if ($brand) {
-            $products = Product::where('brand', $brand);
+            $products = Product::where('brand', $brand)->with('stock');
             $pagination = $products->paginate(50);
         } else {
-            $pagination = Product::paginate(50);
+            $pagination = Product::with('stock')->paginate(50);
         }
-
 
 
         return Inertia::render(
@@ -90,16 +92,31 @@ class ProductController extends Controller
         $this->validateRequest($request);
         $product = Product::create($request->all());
 
+
+        if ($request->has('stock')) {
+            $currentBranchId = currentBranchId();
+            $stockService = new StockService();
+            $stockService->adjustStock($currentBranchId, $product->id, $request->input('stock'), 'ADJUSTMENT', null, 'Ajuste inicial al crear producto');
+        }
+
         return redirect()->route('products.show', $product->id)->with('success', 'Producto registrado correctamente.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Product $product)
+    public function show(Request $request, Product $product)
     {
+        $product->load('stock');
+        $stockMovements = $product->stockMovements()
+            ->with('branch')
+            ->orderBy('created_at', 'desc')
+            ->paginate(50)
+            ->appends($request->only('tab'));
+
         return Inertia::render('Products/Form', [
-            'product' => $product
+            'product' => $product,
+            'stockMovements' => $stockMovements
         ]);
     }
 
@@ -119,6 +136,18 @@ class ProductController extends Controller
 
         $this->validateRequest($request);
         $product->update($request->all());
+
+        if ($request->has('stock')) {
+
+            $currentBranchId = currentBranchId();
+            $stockService = new StockService();
+
+            $existingStock = Stock::where('branch_id', $currentBranchId)
+                ->where('product_id', $product->id)
+                ->first();
+
+            $stockService->adjustStock($currentBranchId, $product->id, $request->input('stock'), 'ADJUSTMENT', null, 'Ajuste desde actualización de producto');
+        }
 
         return redirect()->route('products.show', $product->id)->with('success', 'Producto actualizado correctamente.');
     }
@@ -192,6 +221,8 @@ class ProductController extends Controller
         if ($brand) {
             $products->where('brand', $brand);
         }
+
+        $products->with('stock');
 
         return $products;
     }

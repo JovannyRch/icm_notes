@@ -1,34 +1,22 @@
 import React from "react";
-import { Link } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import { textWithEllipsis } from "@/helpers/utils";
+import { useBranch } from "@/hooks/useBranch";
+import axios from "axios";
+import { useLocalStorage } from "usehooks-ts";
 
 interface Branch {
     id: number | string;
     name: string;
 }
 
-interface BranchSelectorProps {
-    branches: Branch[];
-    currentBranchId?: string | number;
-}
-
-export const BranchSelector: React.FC<BranchSelectorProps> = ({
-    branches,
-    currentBranchId,
-}) => {
+export const BranchSelector: React.FC = () => {
     const [open, setOpen] = React.useState(false);
-
-    const currentBranch =
-        branches.find((b) => String(b.id) === String(currentBranchId)) ??
-        branches[0];
+    const { branches, currentBranch } = useBranch();
 
     const handleSelect = (branch: Branch) => {
-        const dateFilter = (
-            localStorage.getItem(`date-filter-${branch.id}`) ?? "THIS_WEEK"
-        ).replace(/"/g, "");
-        window.location.href = route("notas", {
-            branch: branch.id,
-            date: dateFilter,
+        axios.post(route("set-branch"), { branch_id: branch.id }).then(() => {
+            window.location.reload();
         });
     };
 
@@ -40,7 +28,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
                     className="flex items-center justify-between w-48 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none"
                 >
                     <span>
-                        {textWithEllipsis(currentBranch?.name) ??
+                        {textWithEllipsis(currentBranch?.name ?? "") ??
                             "Seleccionar sucursal"}
                     </span>
                     <svg

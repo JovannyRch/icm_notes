@@ -3,7 +3,7 @@ import Pagination from "@/Components/Pagination";
 import { formatCurrency } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
-import { Branch } from "@/types/Branch";
+
 import { Corte } from "@/types/Corte";
 import { router } from "@inertiajs/react";
 import { Button, Flex, Table, Text } from "@radix-ui/themes";
@@ -58,7 +58,6 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                             onClick={() => {
                                 router.visit(
                                     route("notas", {
-                                        branch: branch.id,
                                         date: filterDate,
                                     })
                                 );
@@ -72,9 +71,7 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                     <div>
                         <Button
                             onClick={() => {
-                                router.visit(
-                                    route("cortes.new", { branch: branch.id })
-                                );
+                                router.visit(route("cortes.new"));
                             }}
                             className="hover:cursor-pointer"
                         >
