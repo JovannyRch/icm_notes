@@ -71,12 +71,15 @@ export const DropdownFilter = <T extends string>({
                                 key={k}
                                 onSelect={() => {
                                     onSelect?.(k === "NONE" ? undefined : k);
-                                    Inertia.get(route(routeName), {
+                                    const url = route(routeName);
+                                    const params = {
                                         ...additionalParams,
                                         ...(k === "NONE"
                                             ? {}
                                             : { [paramKey]: k }),
-                                    });
+                                    };
+
+                                    Inertia.get(url, params);
                                 }}
                                 color={
                                     values[k] === value ? "indigo" : undefined
@@ -89,9 +92,9 @@ export const DropdownFilter = <T extends string>({
                     {hasValue && (
                         <DropdownMenu.Item
                             onSelect={() => {
-                                Inertia.get(route(routeName), {
-                                    ...additionalParams,
-                                });
+                                const url = route(routeName);
+                                const params = { ...additionalParams };
+                                Inertia.get(url, params);
                             }}
                             color="red"
                         >

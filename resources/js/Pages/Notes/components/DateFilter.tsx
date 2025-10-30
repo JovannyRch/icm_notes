@@ -3,6 +3,7 @@ import { FaRegCalendarAlt } from "react-icons/fa";
 import { DropdownFilter } from "../../../Components/ProductsModal/DropdownFilter/DropdownFilter";
 import { useLocalStorage } from "usehooks-ts";
 import { useBranch } from "@/hooks/useBranch";
+import { useEffect } from "react";
 
 const DateFilter = () => {
     const { currentBranchId } = useBranch();
@@ -13,6 +14,12 @@ const DateFilter = () => {
         `date-filter-${currentBranchId}`,
         "THIS_WEEK"
     );
+
+    useEffect(() => {
+        if (dateParam !== filterDate && dateParam !== undefined) {
+            setFilterDate(dateParam);
+        }
+    }, [dateParam]);
 
     return (
         <DropdownFilter
