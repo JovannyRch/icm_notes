@@ -212,6 +212,8 @@ const Index = ({ pagination, flash, brands }: Props) => {
                                     paramKey="brand"
                                     defaultLabel="Marca"
                                     routeName="products"
+                                    resetPage
+
                                 />
                             </Table.ColumnHeaderCell>
 

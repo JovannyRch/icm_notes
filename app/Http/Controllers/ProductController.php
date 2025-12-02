@@ -41,6 +41,7 @@ class ProductController extends Controller
 
         if ($query) {
             $products = $this->getSearchQuery($query, $brand);
+            $products->appends(request()->query());
             return Inertia::render(
                 'Products/Index',
                 [
@@ -55,8 +56,10 @@ class ProductController extends Controller
         if ($brand) {
             $products = Product::where('brand', $brand)->with('stock');
             $pagination = $products->paginate(50);
+            $pagination->appends(request()->query());
         } else {
             $pagination = Product::with('stock')->paginate(50);
+            $pagination->appends(request()->query());
         }
 
 
@@ -189,7 +192,7 @@ class ProductController extends Controller
                 DB::table('products')->delete();
             }
 
-            return redirect()->back()->with('success', 'Productos eliminados correctamente.');
+            return redirect()->route('products')->with('success', 'Productos eliminados correctamente.');
         } catch (\Throwable $th) {
             return redirect()->back()->with('error', 'Error al eliminar los productos.');
         }

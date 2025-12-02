@@ -12,6 +12,7 @@ interface DropdownFilterProps<T extends string> {
     className?: string;
     defaultValue?: string;
     onSelect?: (value: T | undefined) => void;
+    resetPage?: boolean;
 }
 
 export const DropdownFilter = <T extends string>({
@@ -23,14 +24,18 @@ export const DropdownFilter = <T extends string>({
     className = "",
     defaultValue,
     onSelect,
+    resetPage = false,
 }: DropdownFilterProps<T>) => {
     const currentValue = route().params[paramKey] as T | undefined;
 
     const additionalParams = useMemo(() => {
         const params = { ...route().params };
         delete params[paramKey];
+        if (resetPage) {
+            delete params.page;
+        }
         return params;
-    }, [paramKey]);
+    }, [paramKey, resetPage]);
 
     const value = currentValue
         ? values[currentValue]
