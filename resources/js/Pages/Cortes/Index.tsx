@@ -155,7 +155,7 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
 
                 {cortes.length === 0 && (
                     <div className="flex items-center justify-center w-full h-full min-h-[52vh]">
-                        <Text size="6">No se econtraron cortes</Text>
+                        <Text size="6">No se encontraron cortes</Text>
                     </div>
                 )}
 

@@ -330,7 +330,7 @@ const Index = ({ pagination, flash, brands }: Props) => {
 
                 {products.length === 0 && (
                     <div className="flex items-center justify-center w-full h-full min-h-[52vh]">
-                        <Text size="6">No se econtraron productos</Text>
+                        <Text size="6">No se encontraron productos</Text>
                     </div>
                 )}
 

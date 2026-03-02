@@ -455,7 +455,7 @@ const Home = ({ pagination, flash }: Props) => {
 
                 {notes.length === 0 && (
                     <div className="flex items-center justify-center w-full h-full min-h-[52vh]">
-                        <Text size="6">No se econtraron notas</Text>
+                        <Text size="6">No se encontraron notas</Text>
                     </div>
                 )}
 
