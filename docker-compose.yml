@@ -1,4 +1,3 @@
-
 services:
     # Aplicación Laravel
     app:
