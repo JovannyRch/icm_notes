@@ -59,7 +59,7 @@ class CorteController extends Controller
                 break;
         }
 
-
+        $cortes->appends(request()->query());
 
         return Inertia::render('Cortes/Index', [
             'branch' => $branch,
