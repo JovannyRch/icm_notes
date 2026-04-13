@@ -1,10 +1,18 @@
 <?php
 
+// Filtrar notas canceladas (igual que en el frontend)
+function cleanNotes($notes)
+{
+    return array_filter($notes, function ($note) {
+        return ($note['delivery_status'] ?? '') !== 'cancelado' && ($note['status'] ?? '') !== 'canceled';
+    });
+}
+
 function getBalance($corte)
 {
     $sum = 0;
 
-    foreach ($corte->notes as $note) {
+    foreach (cleanNotes($corte->notes) as $note) {
         if (is_numeric($note['balance'])) {
             $sum += $note['balance'];
         }
@@ -60,7 +68,7 @@ function getPurchaseTotal($corte)
 {
     $sum = 0;
 
-    foreach ($corte->notes as $note) {
+    foreach (cleanNotes($corte->notes) as $note) {
         if (isset($note['purchase_total']) && is_numeric($note['purchase_total'])) {
             $sum += $note['purchase_total'];
         }
@@ -204,7 +212,7 @@ function getPurchaseTotal($corte)
             </tr>
         </thead>
         <tbody>
-            @foreach ($corte->notes as $note)
+            @foreach (cleanNotes($corte->notes) as $note)
                 <tr>
                     <td>{{ $note['folio'] }}</td>
                     <td>{{ $note['date'] }}</td>
