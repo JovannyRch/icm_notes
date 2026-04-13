@@ -35,7 +35,7 @@ interface Props extends PageProps {
 }
 
 const cleanNotes = (notes: Note[]) => {
-    return notes.filter((note) => note?.delivery_status !== "cancelado");
+    return notes.filter((note) => note?.delivery_status !== "cancelado" && note?.status !== "canceled");
 };
 
 const Spacer = () => <div className="h-[60px]"></div>;
@@ -211,6 +211,8 @@ const CorteForm = ({
                         transfer2,
                         folio,
                         purchase_total,
+                        status,
+                        delivery_status
                     }) => ({
                         id,
                         folio,
@@ -222,6 +224,8 @@ const CorteForm = ({
                         card: Number(card ?? 0) + Number(card2 ?? 0),
                         transfer: Number(transfer) + Number(transfer2 ?? 0),
                         purchase_total,
+                        status,
+                        delivery_status
                     })
                 )
             ),
