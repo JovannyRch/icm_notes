@@ -363,7 +363,7 @@ const Form = ({
                             {/* Product name */}
                             <div>
                                 <h1 className="text-xl font-semibold text-gray-800">
-                                    {product!.brand + " " + product!.model}
+                                    {product?.brand + " " + product?.model}
                                 </h1>
 
                                 <h2 className="text-xl font-semibold text-gray-600">
@@ -410,7 +410,7 @@ const Form = ({
                                 </Table.Row>
                             </Table.Header>
                             <Table.Body>
-                                {(stockMovements as []).length === 0 && (
+                                {(stockMovements as [])?.length === 0 && (
                                     <Table.Row>
                                         <Table.Cell
                                             className="h-20 py-4 text-center"
@@ -424,7 +424,7 @@ const Form = ({
                                     </Table.Row>
                                 )}
 
-                                {(stockMovements as StockMovement[]).map(
+                                {(stockMovements as StockMovement[])?.map(
                                     (m) => (
                                         <Table.Row key={m.id}>
                                             <Table.Cell>
