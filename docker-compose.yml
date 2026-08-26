@@ -45,18 +45,7 @@ services:
         volumes:
             - dbdata:/var/lib/mysql
         ports:
-            - "3306:3306"
-        networks:
-            - icm_notes_network
-        command: --default-authentication-plugin=mysql_native_password
-
-    # Redis (opcional, para cache y colas)
-    redis:
-        image: redis:alpine
-        container_name: icm_notes_redis
-        restart: unless-stopped
-        ports:
-            - "6379:6379"
+            - "33060:3306"
         networks:
             - icm_notes_network
 
