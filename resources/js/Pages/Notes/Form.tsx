@@ -18,6 +18,7 @@ import { payment_status } from "@/types";
 import { PageProps } from "@/types";
 import { Note } from "@/types/Note";
 import { NoteItemInterface } from "@/types/NoteItem";
+import { NotePayment, PaymentInput } from "@/types/NotePayment";
 import { Product } from "@/types/Product";
 import { router, useForm } from "@inertiajs/react";
 import {
@@ -26,12 +27,13 @@ import {
     Button,
     Flex,
     Grid,
+    IconButton,
     Strong,
     Switch,
     Text,
     TextArea,
 } from "@radix-ui/themes";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { BiArchive, BiArrowBack, BiDollar, BiPlus } from "react-icons/bi";
 import {
     MdCancel,
@@ -55,10 +57,26 @@ interface Props extends PageProps {
     branch: Branch;
     note?: Note;
     items?: NoteItemInterface[];
+    payments?: NotePayment[];
     date: string;
 }
 
-const today = new Date();
+const emptyPayment = (date: string): PaymentInput => ({
+    date,
+    cash: "0",
+    card: "0",
+    transfer: "0",
+});
+
+const paymentsTotal = (payments: PaymentInput[]): number =>
+    payments.reduce(
+        (acc, payment) =>
+            acc +
+            Number(payment.cash || 0) +
+            Number(payment.card || 0) +
+            Number(payment.transfer || 0),
+        0
+    );
 
 interface NoteFormData {
     folio: string;
@@ -68,19 +86,13 @@ interface NoteFormData {
     sale_total: string;
     advance: string;
     balance: string;
-    cash: string;
-    card: string;
-    transfer: string;
     flete: string;
     branch_id: number;
     date: string;
     delivery_status: string;
     status: payment_status;
     items: NoteItemInterface[];
-    cash2: string;
-    card2: string;
-    transfer2: string;
-    second_payment_date: string;
+    payments: PaymentInput[];
     [key: string]: any;
 }
 
@@ -89,10 +101,24 @@ const NoteForm = ({
     note,
     flash,
     items: initialItems = [],
+    payments: initialPayments = [],
     date,
 }: Props) => {
     useAlerts(flash);
     const isEdit = !!note;
+
+    const noteDate = isEdit ? note?.date : getToday();
+
+    // Siempre hay al menos una fila de pago: el "primer pago" de la nota.
+    const initialPaymentRows: PaymentInput[] = initialPayments.length
+        ? initialPayments.map((payment) => ({
+              id: payment.id,
+              date: payment.date,
+              cash: String(payment.cash ?? 0),
+              card: String(payment.card ?? 0),
+              transfer: String(payment.transfer ?? 0),
+          }))
+        : [emptyPayment(noteDate)];
 
     const [modalValues, setModalValues] = useState<{
         mode: "append" | "replace";
@@ -103,15 +129,12 @@ const NoteForm = ({
     });
     const [selectedProductIndex, setSelectedProductIndex] = useState(0);
 
-    const { data, setData, errors, post, put } = useForm<NoteFormData>({
+    const { data, setData, errors, post, put, transform } = useForm<NoteFormData>({
         folio: isEdit ? note?.folio : "",
         customer: isEdit ? note?.customer : "",
         sale_total: String(isEdit ? note?.sale_total : 0),
         purchase_total: String(isEdit ? note?.purchase_total : 0),
         notes: isEdit ? note?.notes : "",
-        cash: String(isEdit ? note?.cash ?? 0 : "0"),
-        card: String(isEdit ? note?.card ?? 0 : "0"),
-        transfer: String(isEdit ? note?.transfer ?? 0 : "0"),
         advance: String(isEdit ? note?.advance ?? 0 : "0"),
         flete: String(isEdit ? note?.flete ?? 0 : "0"),
         balance: String(isEdit ? note?.balance ?? 0 : "0"),
@@ -120,19 +143,12 @@ const NoteForm = ({
         purchase_status: isEdit
             ? (note?.purchase_status as payment_status)
             : "pending",
-        date: isEdit ? note?.date : getToday(),
+        date: noteDate,
         delivery_status: isEdit
             ? note?.delivery_status
             : STATUS_DELIVERY_ENUM.PENDING,
         items: initialItems,
-        cash2: String(isEdit ? note?.cash2 ?? 0 : "0"),
-        card2: String(isEdit ? note?.card2 ?? 0 : "0"),
-        transfer2: String(isEdit ? note?.transfer2 ?? 0 : "0"),
-        second_payment_date: isEdit
-            ? !note?.second_payment_date
-                ? date
-                : note?.second_payment_date
-            : date,
+        payments: initialPaymentRows,
     });
 
     const productsSubtotal = useMemo(() => {
@@ -142,17 +158,36 @@ const NoteForm = ({
         );
     }, [data.items]);
 
-    const {
-        items,
-        flete,
-        cash,
-        card,
-        transfer,
-        delivery_status,
-        cash2,
-        card2,
-        transfer2,
-    } = data;
+    const { items, flete, delivery_status, payments } = data;
+
+    // Clave estable para las dependencias del efecto: `payments` es un arreglo y
+    // usarlo directo como dependencia vuelve a disparar el efecto en cada render.
+    const paymentsKey = JSON.stringify(payments);
+
+    const updatePayment = (
+        index: number,
+        field: keyof PaymentInput,
+        value: string
+    ) => {
+        setData(
+            "payments",
+            data.payments.map((payment, i) =>
+                i === index ? { ...payment, [field]: value } : payment
+            )
+        );
+    };
+
+    const addPayment = () => {
+        setData("payments", [...data.payments, emptyPayment(data.date)]);
+    };
+
+    const removePayment = (index: number) => {
+        const remaining = data.payments.filter((_, i) => i !== index);
+        setData(
+            "payments",
+            remaining.length ? remaining : [emptyPayment(data.date)]
+        );
+    };
 
     const setCalculatedValues = (items: NoteItemInterface[]) => {
         const isCancelled =
@@ -160,12 +195,18 @@ const NoteForm = ({
             data.status === "canceled";
 
         if (isCancelled) {
-            setData("transfer", "0");
-            setData("cash", "0");
-            setData("card", "0");
-            setData("transfer2", "0");
-            setData("cash2", "0");
-            setData("card2", "0");
+            // Una nota cancelada no conserva importes. Se compara antes de escribir
+            // para que el efecto que observa `payments` converja en lugar de ciclar.
+            const zeroed = data.payments.map((payment) => ({
+                ...payment,
+                cash: "0",
+                card: "0",
+                transfer: "0",
+            }));
+
+            if (JSON.stringify(zeroed) !== JSON.stringify(data.payments)) {
+                setData("payments", zeroed);
+            }
         }
 
         const purchaseTotal = items.reduce(
@@ -177,15 +218,7 @@ const NoteForm = ({
             : items.reduce((acc, item) => acc + Number(item.sale_subtotal), 0) +
               Number(data.flete ?? 0);
 
-        const { card, cash, transfer, card2, cash2, transfer2 } = data;
-        const advance = isCancelled
-            ? 0
-            : Number(card ?? 0) +
-              Number(cash ?? 0) +
-              Number(transfer ?? 0) +
-              Number(card2 ?? 0) +
-              Number(cash2 ?? 0) +
-              Number(transfer2 ?? 0);
+        const advance = isCancelled ? 0 : paymentsTotal(data.payments);
 
         const balance = saleTotal - advance;
 
@@ -209,6 +242,27 @@ const NoteForm = ({
 
     const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        // El primer pago siempre lleva la fecha de la nota; los demás la suya.
+        // Las filas sin importe no se envían.
+        transform((formData) => ({
+            ...formData,
+            payments: formData.payments
+                .map((payment, index) => ({
+                    ...payment,
+                    date: index === 0 ? formData.date : payment.date,
+                    cash: String(Number(payment.cash || 0)),
+                    card: String(Number(payment.card || 0)),
+                    transfer: String(Number(payment.transfer || 0)),
+                }))
+                .filter(
+                    (payment) =>
+                        Number(payment.cash) +
+                            Number(payment.card) +
+                            Number(payment.transfer) >
+                        0
+                ),
+        }));
 
         if (isEdit) {
             put(route("notes.update", note?.id), {
@@ -282,7 +336,7 @@ const NoteForm = ({
 
     useUpdateEffect(() => {
         setCalculatedValues(items);
-    }, [cash, card, transfer, flete, delivery_status, card2, cash2, transfer2]);
+    }, [paymentsKey, flete, delivery_status]);
 
     const [filterDate] = useLocalStorage(
         `date-filter-${branch.id}`,
@@ -724,40 +778,53 @@ const NoteForm = ({
 
                                         <InlineInput
                                             label="Efectivo"
-                                            name="cash"
+                                            name="payments.0.cash"
                                             type="text"
-                                            value={data.cash}
+                                            value={data.payments[0]?.cash ?? "0"}
                                             onChange={(e) => {
-                                                setData("cash", e.target.value);
+                                                updatePayment(
+                                                    0,
+                                                    "cash",
+                                                    e.target.value
+                                                );
                                             }}
                                             leading={<BiDollar />}
-                                            error={errors.cash}
+                                            error={errors["payments.0.cash"]}
                                         />
                                         <InlineInput
                                             label="Transferencia"
-                                            name="transfer"
+                                            name="payments.0.transfer"
                                             type="text"
-                                            value={data.transfer}
+                                            value={
+                                                data.payments[0]?.transfer ?? "0"
+                                            }
                                             onChange={(e) => {
-                                                setData(
+                                                updatePayment(
+                                                    0,
                                                     "transfer",
                                                     e.target.value
                                                 );
                                             }}
                                             leading={<BiDollar />}
-                                            error={errors.transfer}
+                                            error={
+                                                errors["payments.0.transfer"]
+                                            }
                                         />
 
                                         <InlineInput
                                             label="TDC/TDD"
-                                            name="card"
+                                            name="payments.0.card"
                                             type="text"
-                                            value={data.card}
+                                            value={data.payments[0]?.card ?? "0"}
                                             onChange={(e) => {
-                                                setData("card", e.target.value);
+                                                updatePayment(
+                                                    0,
+                                                    "card",
+                                                    e.target.value
+                                                );
                                             }}
                                             leading={<BiDollar />}
-                                            error={errors.card}
+                                            error={errors["payments.0.card"]}
                                         />
 
                                         <LineDivider className="my-2" />
@@ -798,98 +865,175 @@ const NoteForm = ({
                                                 )}
                                             </Text>
                                         </Flex>
-                                        {isEdit && (
-                                            <>
-                                                <LineDivider className="my-3" />
+                                        {data.payments
+                                            .slice(1)
+                                            .map((payment, offset) => {
+                                                const index = offset + 1;
 
-                                                <Text size="3" weight="bold">
-                                                    Segundo pago
-                                                </Text>
-
-                                                <InlineInput
-                                                    label="Efectivo"
-                                                    name="cash"
-                                                    type="text"
-                                                    value={data.cash2}
-                                                    onChange={(e) => {
-                                                        setData(
-                                                            "cash2",
-                                                            e.target.value
-                                                        );
-                                                    }}
-                                                    leading={<BiDollar />}
-                                                    error={errors.cash}
-                                                />
-                                                <InlineInput
-                                                    label="Transferencia"
-                                                    name="transfer"
-                                                    type="text"
-                                                    value={data.transfer2}
-                                                    onChange={(e) => {
-                                                        setData(
-                                                            "transfer2",
-                                                            e.target.value
-                                                        );
-                                                    }}
-                                                    leading={<BiDollar />}
-                                                    error={errors.transfer}
-                                                />
-
-                                                <InlineInput
-                                                    label="TDC/TDD"
-                                                    name="card"
-                                                    type="text"
-                                                    value={data.card2}
-                                                    onChange={(e) => {
-                                                        setData(
-                                                            "card2",
-                                                            e.target.value
-                                                        );
-                                                    }}
-                                                    leading={<BiDollar />}
-                                                    error={errors.card}
-                                                />
-                                                <Flex
-                                                    gap="2"
-                                                    justify="between"
-                                                    align="center"
-                                                >
-                                                    <Text
-                                                        size="3"
-                                                        weight="medium"
+                                                return (
+                                                    <Fragment
+                                                        key={
+                                                            payment.id ?? index
+                                                        }
                                                     >
-                                                        Fecha de pago:
-                                                    </Text>
-                                                    <DatePicker
-                                                        locale={es}
-                                                        dateFormat={
-                                                            "dd/MM/yyyy"
-                                                        }
-                                                        className="min-w-[200px]  rounded-md h-8 px-2"
-                                                        selected={
-                                                            data.second_payment_date
-                                                                ? new Date(
-                                                                      data.second_payment_date +
-                                                                          "T00:00"
-                                                                  )
-                                                                : new Date(
-                                                                      today +
-                                                                          "T00:00"
-                                                                  )
-                                                        }
-                                                        onSelect={(date) => {
-                                                            setData(
-                                                                "second_payment_date",
-                                                                format(
-                                                                    date as Date,
-                                                                    "yyyy-MM-dd"
-                                                                )
-                                                            );
-                                                        }}
-                                                    />
-                                                </Flex>
-                                            </>
-                                        )}
+                                                        <LineDivider className="my-3" />
+
+                                                        <Flex
+                                                            justify="between"
+                                                            align="center"
+                                                        >
+                                                            <Text
+                                                                size="3"
+                                                                weight="bold"
+                                                            >
+                                                                Pago{" "}
+                                                                {index + 1}
+                                                            </Text>
+                                                            <IconButton
+                                                                type="button"
+                                                                color="red"
+                                                                variant="soft"
+                                                                size="1"
+                                                                aria-label={`Eliminar pago ${
+                                                                    index + 1
+                                                                }`}
+                                                                className="hover:cursor-pointer"
+                                                                onClick={() =>
+                                                                    removePayment(
+                                                                        index
+                                                                    )
+                                                                }
+                                                            >
+                                                                <TbTrash />
+                                                            </IconButton>
+                                                        </Flex>
+
+                                                        <InlineInput
+                                                            label="Efectivo"
+                                                            name={`payments.${index}.cash`}
+                                                            type="text"
+                                                            value={payment.cash}
+                                                            onChange={(e) => {
+                                                                updatePayment(
+                                                                    index,
+                                                                    "cash",
+                                                                    e.target
+                                                                        .value
+                                                                );
+                                                            }}
+                                                            leading={
+                                                                <BiDollar />
+                                                            }
+                                                            error={
+                                                                errors[
+                                                                    `payments.${index}.cash`
+                                                                ]
+                                                            }
+                                                        />
+                                                        <InlineInput
+                                                            label="Transferencia"
+                                                            name={`payments.${index}.transfer`}
+                                                            type="text"
+                                                            value={
+                                                                payment.transfer
+                                                            }
+                                                            onChange={(e) => {
+                                                                updatePayment(
+                                                                    index,
+                                                                    "transfer",
+                                                                    e.target
+                                                                        .value
+                                                                );
+                                                            }}
+                                                            leading={
+                                                                <BiDollar />
+                                                            }
+                                                            error={
+                                                                errors[
+                                                                    `payments.${index}.transfer`
+                                                                ]
+                                                            }
+                                                        />
+                                                        <InlineInput
+                                                            label="TDC/TDD"
+                                                            name={`payments.${index}.card`}
+                                                            type="text"
+                                                            value={payment.card}
+                                                            onChange={(e) => {
+                                                                updatePayment(
+                                                                    index,
+                                                                    "card",
+                                                                    e.target
+                                                                        .value
+                                                                );
+                                                            }}
+                                                            leading={
+                                                                <BiDollar />
+                                                            }
+                                                            error={
+                                                                errors[
+                                                                    `payments.${index}.card`
+                                                                ]
+                                                            }
+                                                        />
+                                                        <Flex
+                                                            gap="2"
+                                                            justify="between"
+                                                            align="center"
+                                                        >
+                                                            <Text
+                                                                size="3"
+                                                                weight="medium"
+                                                            >
+                                                                Fecha de pago:
+                                                            </Text>
+                                                            <DatePicker
+                                                                locale={es}
+                                                                dateFormat="dd/MM/yyyy"
+                                                                className="min-w-[200px] rounded-md h-8 px-2"
+                                                                name={`payments.${index}.date`}
+                                                                selected={
+                                                                    payment.date
+                                                                        ? new Date(
+                                                                              payment.date +
+                                                                                  "T00:00"
+                                                                          )
+                                                                        : new Date()
+                                                                }
+                                                                onChange={(
+                                                                    value
+                                                                ) => {
+                                                                    if (!value)
+                                                                        return;
+
+                                                                    updatePayment(
+                                                                        index,
+                                                                        "date",
+                                                                        format(
+                                                                            value,
+                                                                            "yyyy-MM-dd"
+                                                                        )
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </Flex>
+                                                    </Fragment>
+                                                );
+                                            })}
+
+                                        <LineDivider className="my-3" />
+                                        <Flex justify="end">
+                                            <Button
+                                                type="button"
+                                                color="green"
+                                                variant="soft"
+                                                className="hover:cursor-pointer"
+                                                onClick={addPayment}
+                                            >
+                                                <BiPlus />
+                                                Agregar pago
+                                            </Button>
+                                        </Flex>
 
                                         <LineDivider className="mt-2" />
                                     </Flex>

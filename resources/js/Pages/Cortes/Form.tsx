@@ -24,6 +24,7 @@ import axios from "axios";
 
 interface Props extends PageProps {
     notes: Note[];
+    previous_payments?: PreviousNoteInput[];
     cashSum: number;
     total: number;
     transferSum: number;
@@ -40,11 +41,39 @@ const cleanNotes = (notes: Note[]) => {
 
 const Spacer = () => <div className="h-[60px]"></div>;
 
+/**
+ * Importes que una nota aportó al corte de `date`: sólo los pagos hechos ese día.
+ *
+ * Un corte ya guardado no trae `payments` (su snapshot conserva los importes del
+ * día consolidados en cash/card/transfer), así que ahí se usan tal cual.
+ */
+export const paymentsOnDate = (note: Note, date: string) => {
+    if (!note.payments) {
+        return {
+            cash: Number(note.cash ?? 0),
+            card: Number(note.card ?? 0),
+            transfer: Number(note.transfer ?? 0),
+        };
+    }
+
+    return note.payments
+        .filter((payment) => payment.date === date)
+        .reduce(
+            (acc, payment) => ({
+                cash: acc.cash + Number(payment.cash ?? 0),
+                card: acc.card + Number(payment.card ?? 0),
+                transfer: acc.transfer + Number(payment.transfer ?? 0),
+            }),
+            { cash: 0, card: 0, transfer: 0 }
+        );
+};
+
 function calculateSums(
     notes: Note[],
     expenses: ExpenseInput[],
     previousNotes: PreviousNoteInput[],
-    returns: ReturnInput[]
+    returns: ReturnInput[],
+    date: string
 ): CutSums {
     let cardSum = 0;
     let transferSum = 0;
@@ -55,9 +84,11 @@ function calculateSums(
     let purchasesSum = 0;
 
     cleanNotes(notes).forEach((note) => {
-        cardSum += Number(note.card ?? 0) + Number(note.card2 ?? 0);
-        transferSum += Number(note.transfer ?? 0) + Number(note.transfer2 ?? 0);
-        cashSum += Number(note.cash ?? 0) + Number(note.cash2 ?? 0);
+        const paid = paymentsOnDate(note, date);
+
+        cardSum += paid.card;
+        transferSum += paid.transfer;
+        cashSum += paid.cash;
         balanceSum += Number(note.balance ?? 0);
         total += Number(note.sale_total ?? 0);
         notesSum += Number(note.sale_total ?? 0);
@@ -109,8 +140,17 @@ function calculateSums(
     };
 }
 
+const emptyPreviousNote: PreviousNoteInput = {
+    folio: "",
+    date: "",
+    cash: "",
+    card: "",
+    transfer: "",
+};
+
 const CorteForm = ({
     notes: initialNotes,
+    previous_payments: initialPreviousPayments = [],
     branch,
     corte,
     flash,
@@ -148,18 +188,13 @@ const CorteForm = ({
         previousNotesSum,
     } = sums;
 
+    // "Entradas anteriores" ya no se captura a mano: son los pagos de hoy sobre
+    // notas de días anteriores. La última fila queda vacía porque handleSubmit
+    // descarta la última (es la plantilla de captura de DynamicTable).
     const [previousNotes, setPreviousNotes] = useState<PreviousNoteInput[]>(
         isDetail
             ? corte.previous_notes
-            : [
-                  {
-                      folio: "",
-                      date: "",
-                      cash: "",
-                      card: "",
-                      transfer: "",
-                  },
-              ]
+            : [...initialPreviousPayments, emptyPreviousNote]
     );
 
     const [returns, setReturns] = useState<ReturnInput[]>(
@@ -195,39 +230,28 @@ const CorteForm = ({
             previous_notes_total: previousNotesSum,
             expenses_total: expensesSum,
 
+            // El snapshot conserva su forma histórica (cash/card/transfer por nota)
+            // para que el PDF, los Excel y el corte semanal no cambien: lo que
+            // cambia es que ahora son los pagos de ESTE día, no los de la nota.
             notes: JSON.stringify(
-                notes.map(
-                    ({
-                        id,
-                        date,
-                        advance,
-                        balance,
-                        sale_total,
-                        cash,
-                        cash2,
-                        card,
-                        card2,
-                        transfer,
-                        transfer2,
-                        folio,
-                        purchase_total,
-                        status,
-                        delivery_status
-                    }) => ({
-                        id,
-                        folio,
-                        date,
-                        advance,
-                        balance,
-                        sale_total,
-                        cash: Number(cash ?? 0) + Number(cash2 ?? 0),
-                        card: Number(card ?? 0) + Number(card2 ?? 0),
-                        transfer: Number(transfer) + Number(transfer2 ?? 0),
-                        purchase_total,
-                        status,
-                        delivery_status
-                    })
-                )
+                notes.map((note) => {
+                    const paid = paymentsOnDate(note, date);
+
+                    return {
+                        id: note.id,
+                        folio: note.folio,
+                        date: note.date,
+                        advance: note.advance,
+                        balance: note.balance,
+                        sale_total: note.sale_total,
+                        cash: paid.cash,
+                        card: paid.card,
+                        transfer: paid.transfer,
+                        purchase_total: note.purchase_total,
+                        status: note.status,
+                        delivery_status: note.delivery_status,
+                    };
+                })
             ),
             expenses: JSON.stringify(expenses.slice(0, expenses.length - 1)),
             previous_notes: JSON.stringify(
@@ -239,10 +263,16 @@ const CorteForm = ({
     };
 
     useEffect(() => {
-        const sums = calculateSums(notes, expenses, previousNotes, returns);
+        const sums = calculateSums(
+            notes,
+            expenses,
+            previousNotes,
+            returns,
+            date
+        );
 
         setSums(sums);
-    }, [notes, expenses, previousNotes, returns]);
+    }, [notes, expenses, previousNotes, returns, date]);
 
     return (
         <Container headTitle="Nuevo Corte">
@@ -373,7 +403,11 @@ const CorteForm = ({
                                             date,
                                         })
                                     ).then((response) => {
-                                        setNotes(response.data);
+                                        setNotes(response.data.notes);
+                                        setPreviousNotes([
+                                            ...response.data.previous_payments,
+                                            emptyPreviousNote,
+                                        ]);
                                     });
                                 }}
                             >
@@ -384,15 +418,7 @@ const CorteForm = ({
                     <NotesTable
                         notes={notes.map((note) => ({
                             ...note,
-                            card:
-                                Number(note.card ?? 0) +
-                                Number(note.card2 ?? 0),
-                            transfer:
-                                Number(note.transfer ?? 0) +
-                                Number(note.transfer2 ?? 0),
-                            cash:
-                                Number(note.cash ?? 0) +
-                                Number(note.cash2 ?? 0),
+                            ...paymentsOnDate(note, date),
                         }))}
                         setNotes={setNotes}
                         isEditable={!isDetail}

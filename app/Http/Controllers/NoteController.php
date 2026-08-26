@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Note;
 use App\Models\NoteProduct;
+use App\Services\CortePaymentsService;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,9 +13,6 @@ use Inertia\Inertia;
 
 class NoteController extends Controller
 {
-
-
-
     /**
      * Show the form for creating a new resource.
      */
@@ -23,6 +21,7 @@ class NoteController extends Controller
         $branch_id = currentBranchId();
         $branch = Branch::find($branch_id);
         $date = date('Y-m-d');
+
         return Inertia::render('Notes/Form', [
             'branch' => $branch,
             'date' => $date,
@@ -32,8 +31,6 @@ class NoteController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-
-
     private function validateRequest($request)
     {
         return $request->validate([
@@ -41,8 +38,6 @@ class NoteController extends Controller
             'date' => 'required',
             'purchase_total' => 'required',
             'sale_total' => 'required',
-            'advance' => 'required',
-            'balance' => 'required',
             'flete' => 'required',
             'branch_id' => 'required',
             'delivery_status' => 'required',
@@ -55,12 +50,56 @@ class NoteController extends Controller
             'items.*.iva' => 'required|numeric',
             'items.*.extra' => 'required|numeric',
             'items.*.quantity' => 'required|integer',
+            'payments' => 'array',
+            'payments.*.date' => 'required|date',
+            'payments.*.cash' => 'required|numeric|min:0',
+            'payments.*.card' => 'required|numeric|min:0',
+            'payments.*.transfer' => 'required|numeric|min:0',
+            'payments.*.description' => 'nullable|string|max:255',
         ]);
+    }
+
+    /**
+     * Reemplaza por completo los pagos de la nota (mismo patrón que las partidas).
+     *
+     * Una nota cancelada no conserva pagos: el frontend ya ponía los importes en
+     * cero, aquí simplemente no se persiste ninguna fila.
+     */
+    private function syncPayments(Note $note, array $payments, bool $isCancelled = false): void
+    {
+        $note->payments()->delete();
+
+        if ($isCancelled) {
+            return;
+        }
+
+        $position = 0;
+
+        foreach ($payments as $payment) {
+            $cash = (float) ($payment['cash'] ?? 0);
+            $card = (float) ($payment['card'] ?? 0);
+            $transfer = (float) ($payment['transfer'] ?? 0);
+
+            // Un pago sin importe no se guarda: la UI arranca con una fila vacía.
+            if ($cash + $card + $transfer <= 0) {
+                continue;
+            }
+
+            $note->payments()->create([
+                'branch_id' => $note->branch_id,
+                'date' => $payment['date'],
+                'cash' => $cash,
+                'card' => $card,
+                'transfer' => $transfer,
+                'position' => $position++,
+                'description' => $payment['description'] ?? null,
+            ]);
+        }
     }
 
     private function createItems($note, $items)
     {
-        $stockService = new StockService();
+        $stockService = new StockService;
         foreach ($items as $item) {
             NoteProduct::create([
                 'note_id' => $note->id,
@@ -89,7 +128,7 @@ class NoteController extends Controller
                     $item['quantity'],
                     'OUT',
                     $note->id,
-                    'Salida por nota #' . $note->folio
+                    'Salida por nota #'.$note->folio
                 );
             }
         }
@@ -103,21 +142,18 @@ class NoteController extends Controller
             $request->merge(['status' => 'canceled']);
         }
 
-        $request = $request->merge([
-            'card2' => null,
-            'transfer2' => null,
-            'cash2' => null,
-            'second_payment_date' => null,
-        ]);
-
         $items = $request->items;
+        $payments = $request->input('payments', []);
+        $isCancelled = $request->delivery_status == 'cancelado';
 
+        $note = DB::transaction(function () use ($request, $items, $payments, $isCancelled) {
+            $note = Note::create($request->all());
+            $this->createItems($note, $items);
+            $this->syncPayments($note, $payments, $isCancelled);
+            $note->recalculateTotalsFromPayments();
 
-        $note = Note::create($request->all());
-        $this->createItems($note, $items);
-
-
-
+            return $note;
+        });
 
         return redirect()->route('notes.show', $note->id)->with('success', 'Nota creada correctamente');
     }
@@ -136,6 +172,7 @@ class NoteController extends Controller
             'note' => $note,
             'branch' => $branch,
             'items' => $items,
+            'payments' => $note->payments()->get(),
             'date' => $date,
         ]);
     }
@@ -155,17 +192,22 @@ class NoteController extends Controller
     {
         $this->validateRequest($request);
         $items = $request->items;
+        $payments = $request->input('payments', []);
 
         if ($request->delivery_status == 'cancelado') {
             $request->merge(['status' => 'canceled']);
         }
 
-        $note->update($request->all());
+        $isCancelled = $request->delivery_status == 'cancelado';
 
+        DB::transaction(function () use ($request, $note, $items, $payments, $isCancelled) {
+            $note->update($request->all());
 
-
-        NoteProduct::where('note_id', $note->id)->delete();
-        $this->createItems($note, $items);
+            NoteProduct::where('note_id', $note->id)->delete();
+            $this->createItems($note, $items);
+            $this->syncPayments($note, $payments, $isCancelled);
+            $note->recalculateTotalsFromPayments();
+        });
 
         return redirect()->route('notes.show', $note->id)->with('success', 'Nota actualizada');
     }
@@ -173,7 +215,7 @@ class NoteController extends Controller
     public function switchArchive(Note $note)
     {
         try {
-            Note::where('id', $note->id)->update(['archived' => !$note->archived]);
+            Note::where('id', $note->id)->update(['archived' => ! $note->archived]);
         } catch (\Throwable $th) {
             return redirect()->route('notes.show', $note->id)->with('error', 'Error al archivar la nota');
         }
@@ -193,7 +235,7 @@ class NoteController extends Controller
             return redirect()->back()->with('success', 'Nota archivada');
         }
 
-        return redirect()->back()->with('success', $total . ' notas archivadas');
+        return redirect()->back()->with('success', $total.' notas archivadas');
     }
 
     public function unarchiveNotes(Request $request)
@@ -205,7 +247,8 @@ class NoteController extends Controller
         if ($total == 1) {
             return redirect()->back()->with('success', 'Nota desarchivada');
         }
-        return redirect()->back()->with('success', $total . ' notas desarchivadas');
+
+        return redirect()->back()->with('success', $total.' notas desarchivadas');
     }
 
     public function deleteNotes(Request $request)
@@ -213,7 +256,8 @@ class NoteController extends Controller
         $ids = $request->ids;
         Note::whereIn('id', $ids)->delete();
         $total = count($ids);
-        return redirect()->back()->with('success', $total . ' notas eliminados');
+
+        return redirect()->back()->with('success', $total.' notas eliminados');
     }
 
     /**
@@ -236,7 +280,7 @@ class NoteController extends Controller
             ->where('archived', $archived)
             ->where(function ($q) use ($query, $date, $status, $now, $purchase_status, $delivery_status) {
                 if ($query) {
-                    $q->where('folio', 'like', '%' . $query . '%');
+                    $q->where('folio', 'like', '%'.$query.'%');
                 }
 
                 if ($status) {
@@ -262,13 +306,13 @@ class NoteController extends Controller
                         case 'THIS_WEEK':
                             $q->whereBetween('date', [
                                 $now->clone()->startOfWeek()->toDateString(),
-                                $now->clone()->endOfWeek()->toDateString()
+                                $now->clone()->endOfWeek()->toDateString(),
                             ]);
                             break;
                         case 'LAST_WEEK':
                             $q->whereBetween('date', [
                                 $now->clone()->subWeek()->startOfWeek()->toDateString(),
-                                $now->clone()->subWeek()->endOfWeek()->toDateString()
+                                $now->clone()->subWeek()->endOfWeek()->toDateString(),
                             ]);
                             break;
                         case 'THIS_MONTH':
@@ -288,10 +332,21 @@ class NoteController extends Controller
                     }
                 }
             })
-            ->orderByRaw(DB::getDriverName() === 'mysql' ? "CAST(folio AS UNSIGNED) ASC" : "folio::INTEGER ASC")
+            // El folio es texto y puede no ser numérico. MySQL y SQLite castean sin
+            // fallar (dan 0), pero en PostgreSQL `folio::integer` LANZA ERROR con
+            // cualquier folio no numérico, así que ahí se filtra antes de castear.
+            ->orderByRaw(match (DB::getDriverName()) {
+                'mysql', 'mariadb' => 'CAST(folio AS UNSIGNED) ASC',
+                // ELSE 0 y no NULL: con NULL, PostgreSQL manda los folios no
+                // numéricos al final y MySQL al principio. Con 0 los tres motores
+                // dan el mismo orden (verificado contra pgsql 16 y mysql 8).
+                'pgsql' => 'CASE WHEN folio ~ \'^[0-9]+$\' THEN CAST(folio AS BIGINT) ELSE 0 END ASC',
+                default => 'CAST(folio AS INTEGER) ASC',
+            })
+            // Desempate estable entre folios que castean al mismo número.
+            ->orderBy('folio')
             ->paginate(50);
     }
-
 
     /**
      * Display a listing of the resource.
@@ -323,27 +378,30 @@ class NoteController extends Controller
     public function getPendingNotes()
     {
         $today = now()->format('Y-m-d');
-        $notes = Note::where('status', 'pending')->whereNot('date', $today)->get();
+        $notes = Note::with('payments')
+            ->where('branch_id', currentBranchId())
+            ->where('status', 'pending')
+            ->whereNot('date', $today)
+            ->get();
+
         return response()->json($notes);
     }
 
     public function searchNoteByFolio($branchId, $folio)
     {
-        $note  = Note::where('branch_id', $branchId)
+        $note = Note::where('branch_id', $branchId)
             ->where('folio', $folio)
             ->first();
-
 
         return response()->json($note);
     }
 
-    public function getNotesByDate($branch, $date)
+    /**
+     * Datos del corte de un día: notas emitidas ese día (con sus pagos) y los
+     * pagos de ese día que corresponden a notas anteriores.
+     */
+    public function getNotesByDate($branch, $date, CortePaymentsService $cortePayments)
     {
-        $notes = Note::where('branch_id', $branch)
-            ->whereDate('date', $date)
-            ->orderBy('folio', 'asc')
-            ->get();
-
-        return response()->json($notes);
+        return response()->json($cortePayments->forBranchAndDate((int) $branch, $date));
     }
 }

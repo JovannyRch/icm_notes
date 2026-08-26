@@ -1,4 +1,5 @@
 import { payment_status } from ".";
+import { NotePayment } from "./NotePayment";
 
 export interface Note {
     id?: number;
@@ -19,11 +20,14 @@ export interface Note {
     payment_method: string;
     sale_total: number;
     purchase_total: number;
+    // Agregados de todos los pagos (los recalcula el servidor).
     cash: number;
     card: number;
     transfer: number;
-    cash2: number;
-    card2: number;
-    transfer2: number;
-    second_payment_date: string;
+    payments?: NotePayment[];
+    // Columnas legacy: sólo aparecen en snapshots de cortes guardados antes de N pagos.
+    cash2?: number;
+    card2?: number;
+    transfer2?: number;
+    second_payment_date?: string;
 }

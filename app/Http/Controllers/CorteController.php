@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\Corte;
-use App\Models\Note;
+use App\Services\CortePaymentsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -19,11 +19,9 @@ class CorteController extends Controller
         $branch_id = currentBranchId();
         $branch = Branch::find($branch_id);
 
-        $filter = request('filter') ?? "THIS_MONTH";
+        $filter = request('filter') ?? 'THIS_MONTH';
 
         $cortes = Corte::where('branch_id', $branch->id)->orderBy('date', 'desc')->paginate(20);
-
-
 
         switch ($filter) {
             case 'THIS_MONTH':
@@ -63,27 +61,26 @@ class CorteController extends Controller
 
         return Inertia::render('Cortes/Index', [
             'branch' => $branch,
-            'pagination' => $cortes
+            'pagination' => $cortes,
         ]);
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create(Request $request)
+    public function create(Request $request, CortePaymentsService $cortePayments)
     {
         $branch_id = currentBranchId();
         $branch = Branch::find($branch_id);
-        $date = $request->input('date') ??  date('Y-m-d');
+        $date = $request->input('date') ?? date('Y-m-d');
 
-        $notes = Note::where('branch_id', $branch->id)
-            ->where('date', $date)
-            ->get();
+        $data = $cortePayments->forBranchAndDate((int) $branch->id, $date);
 
         return Inertia::render('Cortes/Form', [
-            'notes' => $notes,
+            'notes' => $data['notes'],
+            'previous_payments' => $data['previous_payments'],
             'branch' => $branch,
-            'date' => $date
+            'date' => $date,
         ]);
     }
 
@@ -114,14 +111,14 @@ class CorteController extends Controller
             $data['previous_notes'] = json_decode($data['previous_notes'], true);
             $data['returns'] = json_decode($data['returns'], true);
 
-
             $corte = Corte::create($data);
 
             return redirect()->route('cortes.show', $corte);
         } catch (\Throwable $th) {
-            Log::error('Error al guardar el corte: ' . $th->getMessage());
+            Log::error('Error al guardar el corte: '.$th->getMessage());
+
             return back()->with('error', 'Ocurrió un error al guardar el corte
-            ' . $th->getMessage());
+            '.$th->getMessage());
         }
     }
 
@@ -137,7 +134,7 @@ class CorteController extends Controller
         return Inertia::render('Cortes/Form', [
             'corte' => $corte,
             'date' => $date,
-            'branch' => $branch
+            'branch' => $branch,
         ]);
     }
 
@@ -168,6 +165,7 @@ class CorteController extends Controller
     public function destroy(Corte $corte)
     {
         $corte->delete();
+
         return redirect()->route('cortes', $corte->branch_id)->with('success', 'Corte eliminado correctamente');
     }
 }

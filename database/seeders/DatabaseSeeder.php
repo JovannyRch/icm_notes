@@ -27,12 +27,12 @@ class DatabaseSeeder extends Seeder
         ]); */
 
         //Create a branch
-        Branch::create([
+       /*  Branch::create([
             'name' => 'San Felipe del Progreso',
         ]);
 
         Branch::create([
             'name' => 'Jilotepec',
-        ]);
+        ]); */
     }
 }

@@ -21,3 +21,10 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/database/e2e.sqlite
+.env.e2e
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+.env.pgsql
