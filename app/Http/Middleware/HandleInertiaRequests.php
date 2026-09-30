@@ -3,7 +3,9 @@
 namespace App\Http\Middleware;
 
 use App\Models\Branch;
+use App\Services\BillingStatusService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Inertia\Middleware;
 
@@ -45,6 +47,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'currentBranch' => fn() => currentBranchId(),
             'branches' => fn() => Branch::all(['id', 'name']),
+            'billing' => fn() => $request->user() ? app(BillingStatusService::class)->status() : null,
+            'canManageBilling' => fn() => $request->user() && Gate::allows('manage-billing'),
         ];
     }
 }

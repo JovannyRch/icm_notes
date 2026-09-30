@@ -8,7 +8,9 @@ use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ServicePaymentController;
 use App\Http\Controllers\StockController;
+use App\Http\Controllers\StockEntryController;
 use App\Http\Controllers\StockMovementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -91,6 +93,17 @@ Route::resource('stock', StockController::class)->only(['index', 'store'])->midd
     'index' => 'stock.index',
     'store' => 'stock.store',
 ]);
+
+//Notas de entrada (compras que suman stock)
+Route::get('/nota-entrada/crear', [StockEntryController::class, 'create'])->middleware(['auth', 'verified'])->name('stock-entries.create');
+Route::post('/nota-entrada', [StockEntryController::class, 'store'])->middleware(['auth', 'verified'])->name('stock-entries.store');
+
+//Pagos del servicio (pantalla oculta, ver config/billing.php)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/admin/pagos-servicio', [ServicePaymentController::class, 'index'])->name('service-payments.index');
+    Route::post('/admin/pagos-servicio', [ServicePaymentController::class, 'store'])->name('service-payments.store');
+    Route::delete('/admin/pagos-servicio/{servicePayment}', [ServicePaymentController::class, 'destroy'])->name('service-payments.destroy');
+});
 
 //stock-movements.store
 Route::post('/stock-movements', [StockMovementController::class, 'store'])->middleware(['auth', 'verified'])->name('stock-movements.store');

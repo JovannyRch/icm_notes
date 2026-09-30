@@ -11,7 +11,12 @@ import { Inertia } from "@inertiajs/inertia";
 import { router } from "@inertiajs/react";
 import { Button, Checkbox, Flex, Grid, Table, Text } from "@radix-ui/themes";
 import { useMemo, useState } from "react";
-import { BiArchive, BiArrowBack, BiCalendarWeek } from "react-icons/bi";
+import {
+    BiArchive,
+    BiArrowBack,
+    BiCalendarWeek,
+    BiImport,
+} from "react-icons/bi";
 import { CgAdd } from "react-icons/cg";
 import { GiCancel } from "react-icons/gi";
 import { MdClear, MdUnarchive, MdViewWeek, MdWeekend } from "react-icons/md";
@@ -134,8 +139,20 @@ const Home = ({ pagination, flash }: Props) => {
                             }}
                             className="hover:cursor-pointer"
                         >
-                            Crear Nota
+                            Crear Nota de Venta
                             <CgAdd className="w-5 h-5" />
+                        </Button>
+                        <Button
+                            type="button"
+                            color="green"
+                            variant="soft"
+                            onClick={() => {
+                                router.visit(route("stock-entries.create"));
+                            }}
+                            className="hover:cursor-pointer"
+                        >
+                            Crear Nota de Entrada
+                            <BiImport className="w-5 h-5" />
                         </Button>
                         <Button
                             type="button"

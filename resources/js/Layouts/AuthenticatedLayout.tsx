@@ -1,4 +1,5 @@
 import ApplicationLogo from "@/Components/ApplicationLogo";
+import BillingBanner from "@/Components/BillingBanner";
 import { BranchSelector } from "@/Components/BranchSelector";
 
 import Dropdown from "@/Components/Dropdown";
@@ -9,12 +10,14 @@ import { useBranch } from "@/hooks/useBranch";
 import { Link, usePage } from "@inertiajs/react";
 import { PropsWithChildren, ReactNode, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
+import { PageProps } from "@/types";
 
 export default function Authenticated({
     header,
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
-    const user = usePage().props.auth.user;
+    const { auth, canManageBilling } = usePage<PageProps>().props;
+    const user = auth.user;
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -27,6 +30,7 @@ export default function Authenticated({
 
     return (
         <div className="min-h-screen bg-gray-100">
+            <BillingBanner />
             <nav className="bg-white border-b border-gray-100">
                 <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
@@ -87,6 +91,15 @@ export default function Authenticated({
                                         >
                                             Perfil
                                         </Dropdown.Link>
+                                        {canManageBilling && (
+                                            <Dropdown.Link
+                                                href={route(
+                                                    "service-payments.index"
+                                                )}
+                                            >
+                                                Pagos del servicio
+                                            </Dropdown.Link>
+                                        )}
                                         <Dropdown.Link
                                             href={route("logout")}
                                             method="post"
@@ -177,6 +190,13 @@ export default function Authenticated({
                             <ResponsiveNavLink href={route("profile.edit")}>
                                 Perfil
                             </ResponsiveNavLink>
+                            {canManageBilling && (
+                                <ResponsiveNavLink
+                                    href={route("service-payments.index")}
+                                >
+                                    Pagos del servicio
+                                </ResponsiveNavLink>
+                            )}
                             <ResponsiveNavLink
                                 method="post"
                                 href={route("logout")}
