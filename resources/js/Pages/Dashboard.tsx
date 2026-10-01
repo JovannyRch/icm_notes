@@ -24,10 +24,16 @@ import {
     subMonths,
 } from "date-fns";
 import { ReactNode, useEffect, useState } from "react";
-import { BiCalendarWeek, BiImport } from "react-icons/bi";
-import { BsBoxSeam, BsCashCoin, BsFileExcel } from "react-icons/bs";
-import { CgAdd } from "react-icons/cg";
-import { TbCashRegister } from "react-icons/tb";
+import {
+    LuCalculator,
+    LuCalendarRange,
+    LuDownload,
+    LuFilePlus,
+    LuHistory,
+    LuPackage,
+    LuPackagePlus,
+} from "react-icons/lu";
+import PageHeader from "@/Components/ui/PageHeader";
 
 interface Totals {
     sale: number;
@@ -101,12 +107,13 @@ const COLLECTION_SERIES: ColumnSeries[] = [
 ];
 
 const QUICK_ACTIONS = [
-    { label: "Nota de venta", hint: "Crear", route: "notes.create", icon: CgAdd, tone: "bg-blue-50 text-blue-700" },
-    { label: "Nota de entrada", hint: "Registrar compra", route: "stock-entries.create", icon: BiImport, tone: "bg-green-50 text-green-700" },
-    { label: "Corte del día", hint: "Generar", route: "cortes.new", icon: TbCashRegister, tone: "bg-amber-50 text-amber-700" },
-    { label: "Cortes", hint: "Ver historial", route: "cortes", icon: BsCashCoin, tone: "bg-orange-50 text-orange-700" },
-    { label: "Corte semanal", hint: "Generar", route: "cortes_semanales.create", icon: BiCalendarWeek, tone: "bg-orange-50 text-orange-700" },
-    { label: "Productos", hint: "Catálogo y stock", route: "products", icon: BsBoxSeam, tone: "bg-gray-100 text-gray-700" },
+    // Un solo acento por tarjeta (DESIGN.md): azul ventas, verde compras, naranja cortes, violeta catálogo.
+    { label: "Nota de venta", hint: "Crear", route: "notes.create", icon: LuFilePlus, tone: "bg-sky-tint text-electric" },
+    { label: "Nota de entrada", hint: "Registrar compra", route: "stock-entries.create", icon: LuPackagePlus, tone: "bg-mint text-vivid-green" },
+    { label: "Corte del día", hint: "Generar", route: "cortes.new", icon: LuCalculator, tone: "bg-orange-50 text-tangerine" },
+    { label: "Cortes", hint: "Ver historial", route: "cortes", icon: LuHistory, tone: "bg-orange-50 text-tangerine" },
+    { label: "Corte semanal", hint: "Generar", route: "cortes_semanales.create", icon: LuCalendarRange, tone: "bg-orange-50 text-tangerine" },
+    { label: "Productos", hint: "Catálogo y stock", route: "products", icon: LuPackage, tone: "bg-violet-50 text-lavender" },
 ];
 
 const QuickActions = () => (
@@ -115,14 +122,14 @@ const QuickActions = () => (
             <Link
                 key={a.route}
                 href={route(a.route)}
-                className="flex items-center gap-2 p-3 transition bg-white sm:gap-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex items-center gap-2 p-3 transition bg-white sm:gap-3 border border-ash rounded-card hover:border-pebble hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-electric/30"
             >
-                <span className={`flex items-center justify-center rounded-md shrink-0 w-9 h-9 ${a.tone}`}>
+                <span className={`flex items-center justify-center rounded-button shrink-0 w-9 h-9 ${a.tone}`}>
                     <a.icon className="w-5 h-5" aria-hidden />
                 </span>
                 <span className="min-w-0">
-                    <span className="block text-sm font-medium leading-tight text-gray-900 sm:truncate">{a.label}</span>
-                    <span className="hidden text-xs text-gray-500 truncate sm:block">{a.hint}</span>
+                    <span className="block text-sm font-medium leading-tight text-charcoal sm:truncate">{a.label}</span>
+                    <span className="hidden text-xs text-fog truncate sm:block">{a.hint}</span>
                 </span>
             </Link>
         ))}
@@ -137,7 +144,7 @@ const AGING_LABELS: Record<string, string> = {
 };
 
 const Empty = ({ children }: { children: ReactNode }) => (
-    <p className="py-8 text-sm text-center text-gray-500">{children}</p>
+    <p className="py-8 text-sm text-center text-fog">{children}</p>
 );
 
 const money = (v: number | null) => (v === null ? "-" : formatCurrency(v));
@@ -187,36 +194,35 @@ const Dashboard = ({
 
     return (
         <Container headTitle="Dashboard">
-            <Flex justify="between" align="start" wrap="wrap" gap="3" className="mb-4">
-                <div>
-                    <Text size="6" className="block font-semibold">Dashboard</Text>
-                    <Text size="2" color="gray">
-                        {filters.from} a {filters.to} · {filters.branch_name}
-                    </Text>
-                </div>
-                <Button asChild color="green" variant="soft">
-                    <a href={exportUrl}>
-                        Exportar Excel <BsFileExcel />
-                    </a>
-                </Button>
-            </Flex>
+            <PageHeader
+                title="Dashboard"
+                description={`${filters.from} a ${filters.to} · ${filters.branch_name}`}
+                actions={
+                    <Button asChild variant="outline" color="gray">
+                        <a href={exportUrl}>
+                            <LuDownload /> Exportar Excel
+                        </a>
+                    </Button>
+                }
+            />
 
             <QuickActions />
 
             {/* Filtros: una sola fila sobre todas las gráficas */}
-            <div className="flex flex-wrap items-end gap-3 p-3 mb-6 border border-gray-200 rounded-lg bg-gray-50">
-                <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap items-end gap-3 p-3 mb-6 rounded-card-lg bg-[#fafafa]">
+                <div role="group" aria-label="Rango de fechas" className="inline-flex flex-wrap gap-0.5 p-0.5 bg-white border border-ash rounded-tag">
                     {presets(today).map((p) => (
-                        <Button
+                        <button
                             key={p.key}
-                            size="1"
-                            variant={activePreset === p.key ? "solid" : "soft"}
-                            color={activePreset === p.key ? undefined : "gray"}
-                            className="hover:cursor-pointer"
+                            type="button"
+                            aria-pressed={activePreset === p.key}
                             onClick={() => apply({ from: ymd(p.from), to: ymd(p.to) })}
+                            className={`h-7 px-3 text-[13px] font-medium rounded-tag transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-electric/30 ${
+                                activePreset === p.key ? "bg-ink text-white" : "text-steel hover:text-charcoal hover:bg-paper"
+                            }`}
                         >
                             {p.label}
-                        </Button>
+                        </button>
                     ))}
                 </div>
                 <form
@@ -226,24 +232,24 @@ const Dashboard = ({
                         apply({ from: customFrom, to: customTo });
                     }}
                 >
-                    <label className="text-xs text-gray-600">
+                    <label className="text-xs text-steel">
                         Desde
                         <input type="date" value={customFrom} max={customTo}
                             onChange={(e) => setCustomFrom(e.target.value)}
-                            className="block px-2 py-1 text-sm border-gray-300 rounded-md" />
+                            className="block h-8 px-2 text-sm bg-white" />
                     </label>
-                    <label className="text-xs text-gray-600">
+                    <label className="text-xs text-steel">
                         Hasta
                         <input type="date" value={customTo} min={customFrom}
                             onChange={(e) => setCustomTo(e.target.value)}
-                            className="block px-2 py-1 text-sm border-gray-300 rounded-md" />
+                            className="block h-8 px-2 text-sm bg-white" />
                     </label>
-                    <Button size="1" type="submit" variant={activePreset === "custom" ? "solid" : "soft"} className="hover:cursor-pointer">
+                    <Button type="submit" variant="outline" color="gray">
                         Aplicar
                     </Button>
                 </form>
                 <div className="ml-auto">
-                    <div className="text-xs text-gray-600">Sucursal</div>
+                    <div className="text-xs text-steel">Sucursal</div>
                     <Select.Root
                         value={filters.branch ? String(filters.branch) : "all"}
                         onValueChange={(v) => apply({ branch: v === "all" ? null : Number(v) })}
@@ -278,7 +284,7 @@ const Dashboard = ({
                             data={salesSeries}
                             series={[{ key: "sale", label: "Venta", color: SERIES.blue }]}
                             tooltipExtra={(row) => (
-                                <div className="pt-1 mt-1 space-y-0.5 text-gray-600 border-t border-gray-100">
+                                <div className="pt-1 mt-1 space-y-0.5 text-steel border-t border-ash">
                                     <div className="flex justify-between"><span>Costo</span><span className="tabular-nums">{formatCurrency(Number(row.purchase))}</span></div>
                                     <div className="flex justify-between"><span>Utilidad</span><span className="tabular-nums">{formatCurrency(Number(row.profit))}</span></div>
                                     <div className="flex justify-between"><span>Notas</span><span className="tabular-nums">{row.notes_count}</span></div>
@@ -313,11 +319,11 @@ const Dashboard = ({
                     {collections.totals.total > 0 ? (
                         <>
                             <ColumnChart data={collections.series} series={COLLECTION_SERIES} />
-                            <div className="grid grid-cols-3 gap-2 mt-3 text-sm">
+                            <div className="grid grid-cols-1 gap-2 mt-3 text-sm sm:grid-cols-3 sm:gap-4">
                                 {COLLECTION_SERIES.map((s) => (
                                     <div key={s.key} className="flex items-center gap-2">
                                         <span className="inline-block w-3 h-3 rounded-sm" style={{ background: s.color }} />
-                                        <span className="text-gray-600">{s.label}</span>
+                                        <span className="text-steel">{s.label}</span>
                                         <span className="ml-auto font-medium tabular-nums">
                                             {formatCurrency(collections.totals[s.key as "cash"])}
                                         </span>
@@ -332,8 +338,8 @@ const Dashboard = ({
 
                 <SectionCard title="Cuentas por cobrar" subtitle="Saldo pendiente a hoy, por antigüedad de la nota">
                     <div className="mb-4">
-                        <div className="text-2xl font-semibold text-gray-900">{formatCurrency(receivables.total)}</div>
-                        <div className="text-xs text-gray-500">{receivables.notes_count} notas con saldo</div>
+                        <div className="text-2xl font-semibold text-charcoal">{formatCurrency(receivables.total)}</div>
+                        <div className="text-xs text-fog">{receivables.notes_count} notas con saldo</div>
                     </div>
                     <BarList
                         items={receivables.aging.map((a, i) => ({
@@ -355,7 +361,7 @@ const Dashboard = ({
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
-                                <thead className="text-xs text-left text-gray-500 uppercase border-b">
+                                <thead className="text-xs text-left text-fog uppercase border-b">
                                     <tr>
                                         <th className="py-2 pr-3">Folio</th>
                                         <th className="py-2 pr-3">Sucursal</th>
@@ -367,9 +373,9 @@ const Dashboard = ({
                                 </thead>
                                 <tbody className="tabular-nums">
                                     {receivables.oldest.map((n) => (
-                                        <tr key={n.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <tr key={n.id} className="border-b border-ash hover:bg-paper">
                                             <td className="py-2 pr-3">
-                                                <a href={route("notes.show", n.id)} className="text-blue-700 hover:underline">{n.folio}</a>
+                                                <a href={route("notes.show", n.id)} className="text-electric hover:underline">{n.folio}</a>
                                             </td>
                                             <td className="py-2 pr-3">{n.branch}</td>
                                             <td className="py-2 pr-3">{n.date}</td>
@@ -426,10 +432,10 @@ const Dashboard = ({
                 </div>
                 {inventory.low_stock.length > 0 && (
                     <>
-                        <h3 className="mb-2 text-sm font-semibold text-gray-800">Productos con stock bajo</h3>
+                        <h3 className="mb-2 text-sm font-semibold text-charcoal">Productos con stock bajo</h3>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
-                                <thead className="text-xs text-left text-gray-500 uppercase border-b">
+                                <thead className="text-xs text-left text-fog uppercase border-b">
                                     <tr>
                                         <th className="py-2 pr-3">Marca</th>
                                         <th className="py-2 pr-3">Modelo</th>
@@ -440,7 +446,7 @@ const Dashboard = ({
                                 </thead>
                                 <tbody className="tabular-nums">
                                     {inventory.low_stock.map((p) => (
-                                        <tr key={p.id} className="border-b border-gray-100">
+                                        <tr key={p.id} className="border-b border-ash">
                                             <td className="py-2 pr-3">{p.brand}</td>
                                             <td className="py-2 pr-3">{p.model}</td>
                                             <td className="py-2 pr-3">{p.measure}</td>

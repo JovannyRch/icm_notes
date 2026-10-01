@@ -13,6 +13,7 @@ import NotesTable from "./components/NotesTable";
 import PendingNotesTable from "./components/PendingNotesTable";
 import CorteSummary from "./components/CorteSummary";
 import SectionCard from "@/Components/SectionCard";
+import PageHeader from "@/Components/ui/PageHeader";
 import { formatCurrency } from "@/helpers/formatters";
 import ExpensesTable from "./components/ExpensesTable";
 import { isNumber } from "@/helpers/utils";
@@ -321,60 +322,44 @@ const CorteForm = ({
 
     return (
         <Container headTitle={isDetail ? `Corte #${corte.id}` : "Nuevo corte"}>
-            <div className="max-w-[1200px] mx-auto pb-24">
-                <Button
-                    color="gray"
-                    variant="ghost"
-                    className="mb-3 hover:cursor-pointer"
-                    onClick={() => router.visit(route("cortes"))}
-                >
-                    <BiArrowBack />
-                    Lista de cortes
-                </Button>
-
-                <Flex justify="between" align="end" wrap="wrap" gap="3" className="mb-5">
-                    <div>
-                        <Text as="div" size="2" color="gray">
-                            {branch.name}
-                        </Text>
-                        <Text as="div" size="6" weight="bold">
-                            {isDetail ? `Corte #${corte.id}` : "Corte del día"}
-                        </Text>
-                        {isDetail && (
-                            <Text as="div" size="2" color="gray">
-                                {capitalize(formatDate(selectedDate, "EEEE d 'de' MMMM 'de' yyyy", { locale: es }))}
-                            </Text>
-                        )}
-                    </div>
-
-                    {isDetail ? (
+            <div className="pb-24">
+                <PageHeader
+                    back={{ label: "Lista de cortes", href: route("cortes") }}
+                    eyebrow={branch.name}
+                    title={isDetail ? `Corte #${corte.id}` : "Corte del día"}
+                    description={
+                        isDetail
+                            ? capitalize(formatDate(selectedDate, "EEEE d 'de' MMMM 'de' yyyy", { locale: es }))
+                            : undefined
+                    }
+                    actions={
+                        isDetail ? (
                         <Flex gap="2" wrap="wrap">
                             <Button
-                                color="green"
-                                variant="soft"
-                                className="hover:cursor-pointer"
+                                variant="outline"
+                                color="gray"
                                 onClick={() => Inertia.get(route("cortes.export", { corte: corte.id }))}
                             >
                                 <FaDownload />
                                 Descargar PDF
                             </Button>
-                            <Button color="red" variant="soft" className="hover:cursor-pointer" onClick={confirmDelete}>
+                            <Button color="red" variant="soft" onClick={confirmDelete}>
                                 <BiTrash />
                                 Eliminar
                             </Button>
-                            <Button className="hover:cursor-pointer" onClick={() => router.visit(route("cortes.new"))}>
+                            <Button onClick={() => router.visit(route("cortes.new"))}>
                                 Nuevo corte
                                 <CgAdd className="w-5 h-5" />
                             </Button>
                         </Flex>
-                    ) : (
+                        ) : (
                         <Flex gap="3" align="end" wrap="wrap">
-                            <label className="text-xs text-gray-600">
+                            <label className="text-xs text-steel">
                                 Fecha del corte
                                 <DatePicker
                                     locale={es}
                                     dateFormat={"dd/MM/yyyy"}
-                                    className="block h-9 px-3 text-sm border-gray-300 rounded-md shadow-sm w-[150px]"
+                                    className="block h-8 px-3 text-sm bg-white w-[150px]"
                                     selected={selectedDate}
                                     onSelect={(picked) => {
                                         if (!picked) return;
@@ -388,9 +373,8 @@ const CorteForm = ({
                                 />
                             </label>
                             <Button
-                                variant="soft"
+                                variant="outline"
                                 color="gray"
-                                className="hover:cursor-pointer"
                                 disabled={refreshing}
                                 onClick={refreshNotes}
                                 title="Vuelve a cargar las notas y los pagos de este día"
@@ -399,8 +383,9 @@ const CorteForm = ({
                                 Actualizar notas
                             </Button>
                         </Flex>
-                    )}
-                </Flex>
+                        )
+                    }
+                />
 
                 <div className="mb-5">
                     <CorteSummary
@@ -457,21 +442,21 @@ const CorteForm = ({
             </div>
 
             {!isDetail && (
-                <div className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+                <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur border-ash">
                     <div className="flex flex-wrap items-center justify-between max-w-[1200px] gap-3 px-6 py-3 mx-auto">
                         <div className="flex flex-wrap text-sm gap-x-6 gap-y-1 tabular-nums">
                             <span>
-                                <span className="text-gray-500">Venta </span>
+                                <span className="text-fog">Venta </span>
                                 <span className="font-semibold">{formatCurrency(total)}</span>
                             </span>
                             <span>
-                                <span className="text-gray-500">Efectivo </span>
+                                <span className="text-fog">Efectivo </span>
                                 <span className={`font-semibold ${cashSum < 0 ? "text-[#d03b3b]" : ""}`}>
                                     {formatCurrency(cashSum)}
                                 </span>
                             </span>
                         </div>
-                        <Button size="3" className="hover:cursor-pointer" disabled={saving} onClick={handleSubmit}>
+                        <Button size="3" disabled={saving} onClick={handleSubmit}>
                             {saving ? "Guardando..." : "Guardar corte"}
                             <BiSave />
                         </Button>

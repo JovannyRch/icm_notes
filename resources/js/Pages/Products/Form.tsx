@@ -1,6 +1,7 @@
 import Container from "@/Components/Container";
 import InputWithLabel from "@/Components/InputWithLabel";
 import SectionCard from "@/Components/SectionCard";
+import PageHeader from "@/Components/ui/PageHeader";
 import Modal from "@/Components/Modal";
 import Pagination from "@/Components/Pagination";
 import UnitInput from "@/Components/UnitInput";
@@ -169,37 +170,27 @@ const Form = ({
 
     return (
         <Container headTitle={isEdit ? "Editar producto" : "Nuevo producto"}>
-            <div className="max-w-[1100px] mx-auto">
-                <Button
-                    color="gray"
-                    variant="ghost"
-                    className="mb-3 hover:cursor-pointer"
-                    onClick={() => router.visit(route("products"))}
-                >
-                    <BiArrowBack />
-                    Lista de productos
-                </Button>
-
-                <Flex justify="between" align="end" wrap="wrap" gap="3" className="mb-4">
-                    <div>
-                        <Text as="div" size="6" weight="bold">
-                            {productName}
-                        </Text>
-                        {isEdit && (
-                            <Text as="div" size="2" color="gray">
+            <div>
+                <PageHeader
+                    back={{ label: "Lista de productos", href: route("products") }}
+                    title={productName}
+                    description={
+                        isEdit ? (
+                            <>
                                 {[product!.measure, product!.unit].filter(Boolean).join(" · ") || "Sin medida"}
-                                {" · "}Existencias en {currentBranchName}:{" "}
-                                <b>{originalStock ?? "-"}</b>
-                            </Text>
-                        )}
-                    </div>
-                    {isEdit && (
-                        <Button color="red" variant="soft" className="hover:cursor-pointer" onClick={handleOnDelete}>
-                            <BiTrash />
-                            Eliminar
-                        </Button>
-                    )}
-                </Flex>
+                                {" · "}Existencias en {currentBranchName}: <b className="text-charcoal">{originalStock ?? "-"}</b>
+                            </>
+                        ) : undefined
+                    }
+                    actions={
+                        isEdit ? (
+                            <Button color="red" variant="soft" onClick={handleOnDelete}>
+                                <BiTrash />
+                                Eliminar
+                            </Button>
+                        ) : undefined
+                    }
+                />
 
                 <Tabs.Root defaultValue={checkCurrentTab()} orientation="horizontal">
                     <Tabs.List>
@@ -255,16 +246,16 @@ const Form = ({
                                         )}
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-1 gap-3 p-3 mt-4 text-sm rounded-md sm:grid-cols-2 bg-gray-50">
+                                <div className="grid grid-cols-1 gap-3 p-3 mt-4 text-sm rounded-card sm:grid-cols-2 bg-paper">
                                     <div>
-                                        <div className="text-xs text-gray-500">
+                                        <div className="text-xs text-fog">
                                             Costo con IVA y extra ({appliedExtra}%{globalExtra !== null ? " global" : ""})
                                         </div>
                                         <div className="font-semibold tabular-nums">{formatCurrency(costWithTaxes)}</div>
                                     </div>
                                     <div>
-                                        <div className="text-xs text-gray-500">Utilidad por unidad</div>
-                                        <div className={`font-semibold tabular-nums ${unitProfit < 0 ? "text-[#d03b3b]" : "text-[#006300]"}`}>
+                                        <div className="text-xs text-fog">Utilidad por unidad</div>
+                                        <div className={`font-semibold tabular-nums ${unitProfit < 0 ? "text-[#d03b3b]" : "text-vivid-green"}`}>
                                             {formatCurrency(unitProfit)}
                                         </div>
                                     </div>
@@ -274,7 +265,7 @@ const Form = ({
                             <SectionCard title="Inventario" subtitle={`Sucursal ${currentBranchName}`}>
                                 <div className="max-w-xs">
                                     {field("stock", "Existencias")}
-                                    <p className={`mt-1 text-xs ${stockChanged ? "text-amber-700" : "text-gray-500"}`}>
+                                    <p className={`mt-1 text-xs ${stockChanged ? "text-amber-700" : "text-fog"}`}>
                                         {isEdit
                                             ? stockChanged
                                                 ? `Se registrará un ajuste de ${originalStock ?? "-"} a ${data.stock}.`
@@ -285,7 +276,7 @@ const Form = ({
                             </SectionCard>
 
                             <div className="flex justify-end">
-                                <Button type="submit" color="green" size="3" disabled={processing} className="hover:cursor-pointer">
+                                <Button type="submit" size="3" disabled={processing}>
                                     <BiSave />
                                     {processing ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar producto"}
                                 </Button>
@@ -299,21 +290,21 @@ const Form = ({
                             title={`Movimientos en ${currentBranchName}`}
                             subtitle={`Existencias actuales: ${originalStock ?? "-"}`}
                             actions={
-                                <Button color="green" className="hover:cursor-pointer" onClick={() => setShowMovementModal(true)}>
+                                <Button onClick={() => setShowMovementModal(true)}>
                                     <BiPlus className="w-5 h-5" />
                                     Nuevo movimiento
                                 </Button>
                             }
                         >
                             {stockMovements.length === 0 ? (
-                                <p className="py-8 text-sm text-center text-gray-500">
+                                <p className="py-8 text-sm text-center text-fog">
                                     No hay movimientos de inventario para este producto.
                                 </p>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
-                                            <tr className="text-xs text-left text-gray-500 uppercase border-b border-gray-200">
+                                            <tr className="text-xs text-left text-fog uppercase border-b border-ash">
                                                 <th className="py-2 pr-3 font-medium">Fecha</th>
                                                 <th className="py-2 pr-3 font-medium">Sucursal</th>
                                                 <th className="py-2 pr-3 font-medium">Tipo</th>
@@ -325,7 +316,7 @@ const Form = ({
                                             {stockMovements.map((m) => {
                                                 const type = movementLabels[m.movement_type] ?? { label: m.movement_type, color: "gray" as const };
                                                 return (
-                                                    <tr key={m.id} className="border-b border-gray-100">
+                                                    <tr key={m.id} className="border-b border-ash">
                                                         <td className="py-2 pr-3 whitespace-nowrap">{new Date(m.created_at).toLocaleString("es-MX")}</td>
                                                         <td className="py-2 pr-3">{m.branch?.name ?? "-"}</td>
                                                         <td className="py-2 pr-3 whitespace-nowrap">
@@ -343,7 +334,7 @@ const Form = ({
                                                                 <a
                                                                     href={route("notes.show", m.note_id)}
                                                                     target="_blank"
-                                                                    className="inline-flex items-center gap-1 ml-2 text-blue-600 hover:underline"
+                                                                    className="inline-flex items-center gap-1 ml-2 font-medium text-electric hover:underline"
                                                                 >
                                                                     Ver nota
                                                                     <BiArrowToRight className="w-4 h-4" />

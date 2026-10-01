@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 interface Props {
     label: string;
     value: ReactNode;
-    /** Variación % vs periodo anterior; null = sin comparación. */
+    /** Variación % vs anterior; null = sin comparación. */
     change?: number | null;
     /** true si subir es malo (p. ej. costos). */
     invert?: boolean;
@@ -28,7 +28,7 @@ const StatTile = ({ label, value, change, invert = false, hint }: Props) => {
                     }`}
                 >
                     {flat ? "▬" : change! > 0 ? "▲" : "▼"}{" "}
-                    {Math.abs(change!).toFixed(1)}% vs periodo anterior
+                    {Math.abs(change!).toFixed(1)}% vs anterior
                 </div>
             )}
             {!hasChange && change !== undefined && (

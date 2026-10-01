@@ -11,7 +11,7 @@ const UnitInput = ({ value, onChange }: Props) => {
             <InputLabel htmlFor="unit" value="Unidad" />
             <input
                 type="text"
-                className=" border border-gray-300  text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 "
+                className="block w-full h-8 mt-1 text-sm bg-white rounded-input"
                 list="unit"
                 name="unit"
                 value={value}

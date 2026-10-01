@@ -1,5 +1,7 @@
 import Container from "@/Components/Container";
 import ContainerSection from "@/Components/ContainerSection";
+import PageHeader from "@/Components/ui/PageHeader";
+import StatusPill from "@/Components/StatusPill";
 import InputWithLabel from "@/Components/InputWithLabel";
 import { formatCurrency, getToday } from "@/helpers/formatters";
 import { formatPeriod } from "@/helpers/billing";
@@ -71,26 +73,26 @@ const ServicePaymentsIndex = ({ months, config, flash }: Props) => {
     };
 
     const statusBadge = (month: Month) => {
-        if (month.payment) return <Badge color="green">Pagado</Badge>;
+        if (month.payment) return <StatusPill tone="green">Pagado</StatusPill>;
         const overdue =
             month.period < config.current_month || getToday() > month.due_date;
         return overdue ? (
-            <Badge color="red">Vencido</Badge>
+            <StatusPill tone="red">Vencido</StatusPill>
         ) : (
-            <Badge color="amber">Pendiente</Badge>
+            <StatusPill tone="amber">Pendiente</StatusPill>
         );
     };
 
     return (
         <Container headTitle="Pagos del servicio">
-            <Text size="6" className="block mb-2 font-semibold">
-                Pagos del servicio
-            </Text>
-            <Text as="p" size="2" color="gray" className="mb-4">
-                {config.start_month
-                    ? `Se cobra desde ${formatPeriod(config.start_month)}. Fecha límite: día ${config.due_day} de cada mes.`
-                    : "El recordatorio está apagado: define BILLING_START_MONTH en el .env para activarlo."}
-            </Text>
+            <PageHeader
+                title="Pagos del servicio"
+                description={
+                    config.start_month
+                        ? `Se cobra desde ${formatPeriod(config.start_month)}. Fecha límite: día ${config.due_day} de cada mes.`
+                        : "El recordatorio está apagado: define BILLING_START_MONTH en el .env para activarlo."
+                }
+            />
 
             <ContainerSection title="Registrar pago">
                 <form
@@ -100,7 +102,7 @@ const ServicePaymentsIndex = ({ months, config, flash }: Props) => {
                     <div>
                         <label
                             htmlFor="period"
-                            className="block text-sm font-medium text-gray-700"
+                            className="block text-sm font-medium text-graphite"
                         >
                             Mes que se paga
                         </label>
@@ -109,7 +111,7 @@ const ServicePaymentsIndex = ({ months, config, flash }: Props) => {
                             type="month"
                             value={data.period}
                             onChange={(e) => setData("period", e.target.value)}
-                            className="w-full mt-1 border-gray-300 rounded-md shadow-sm"
+                            className="w-full h-8 mt-1 text-sm bg-white"
                         />
                         {errors.period && (
                             <p className="mt-1 text-sm text-red-600">
@@ -142,7 +144,6 @@ const ServicePaymentsIndex = ({ months, config, flash }: Props) => {
                     />
                     <Button
                         type="submit"
-                        color="green"
                         disabled={processing}
                         className="hover:cursor-pointer"
                     >
@@ -154,11 +155,11 @@ const ServicePaymentsIndex = ({ months, config, flash }: Props) => {
 
             <ContainerSection title="Historial">
                 {months.length === 0 ? (
-                    <p className="py-8 text-center text-gray-500">
+                    <p className="py-8 text-center text-fog">
                         Aún no hay meses que mostrar.
                     </p>
                 ) : (
-                    <Table.Root variant="surface">
+                    <Table.Root>
                         <Table.Header>
                             <Table.Row>
                                 <Table.ColumnHeaderCell>Mes</Table.ColumnHeaderCell>
@@ -214,7 +215,8 @@ const ServicePaymentsIndex = ({ months, config, flash }: Props) => {
                                             ) : (
                                                 <Button
                                                     type="button"
-                                                    variant="soft"
+                                                    variant="outline"
+                                                    color="gray"
                                                     size="1"
                                                     className="hover:cursor-pointer"
                                                     onClick={() => {

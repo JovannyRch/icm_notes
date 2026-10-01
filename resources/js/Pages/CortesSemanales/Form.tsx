@@ -1,6 +1,7 @@
 import Container from "@/Components/Container";
 import MoneyInput from "@/Components/MoneyInput";
 import SectionCard from "@/Components/SectionCard";
+import PageHeader from "@/Components/ui/PageHeader";
 
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
@@ -81,24 +82,24 @@ function calculateTotal<T extends Record<string, any>>(
 }
 
 const SummaryValue = ({ label, value, hint }: { label: string; value: number; hint?: string }) => (
-    <div className="p-3 border border-gray-200 rounded-lg">
-        <div className="text-xs font-medium tracking-wide text-gray-500 uppercase">{label}</div>
-        <div className="mt-1 text-lg font-semibold text-gray-900 whitespace-nowrap tabular-nums">{formatCurrency(value)}</div>
-        {hint && <div className="text-xs text-gray-500">{hint}</div>}
+    <div className="p-3 border border-ash rounded-card">
+        <div className="text-xs font-medium tracking-wide text-fog uppercase">{label}</div>
+        <div className="mt-1 text-lg font-semibold text-charcoal whitespace-nowrap tabular-nums">{formatCurrency(value)}</div>
+        {hint && <div className="text-xs text-fog">{hint}</div>}
     </div>
 );
 
 const FieldRow = ({ label, children }: { label: string; children: ReactNode }) => (
     <label className="flex items-center justify-between gap-3 text-sm">
-        <span className="text-gray-700">{label}</span>
+        <span className="text-graphite">{label}</span>
         <span className="w-36 shrink-0">{children}</span>
     </label>
 );
 
 const FormulaRow = ({ label, value, sign, strong = false }: { label: string; value: number; sign?: string; strong?: boolean }) => (
-    <div className={`flex justify-between text-sm tabular-nums ${strong ? "font-semibold text-gray-900" : "text-gray-700"}`}>
+    <div className={`flex justify-between text-sm tabular-nums ${strong ? "font-semibold text-charcoal" : "text-graphite"}`}>
         <span>
-            {sign && <span className="inline-block w-4 text-gray-400">{sign}</span>}
+            {sign && <span className="inline-block w-4 text-silver">{sign}</span>}
             {label}
         </span>
         <span className={value < 0 ? "text-[#d03b3b]" : ""}>{formatCurrency(value)}</span>
@@ -312,43 +313,32 @@ const CorteSemanalForm = ({
 
     return (
         <Container headTitle={"Corte semanal"}>
-            <div className="max-w-[1200px] mx-auto" style={{ minHeight: "calc(100vh - 130px)" }}>
-                <Flex justify="between" align="end" wrap="wrap" gap="3" className="mb-4">
-                    <div>
-                        <Text as="div" size="2" color="gray">
-                            {branch.name}
-                        </Text>
-                        <Text as="div" size="6" weight="bold">
-                            Corte semanal
-                        </Text>
-                        <Text as="div" size="2" color="gray">
-                            {displayTitle}
-                        </Text>
-                    </div>
-                    <Flex gap="2">
-                        {isDetail && (
-                            <Button color="red" variant="soft" className="hover:cursor-pointer" onClick={confirmDelete}>
-                                <BiTrash />
-                                Eliminar
+            <div style={{ minHeight: "calc(100vh - 130px)" }}>
+                <PageHeader
+                    eyebrow={branch.name}
+                    title="Corte semanal"
+                    description={displayTitle}
+                    actions={
+                        <>
+                            {isDetail && (
+                                <Button color="red" variant="soft" onClick={confirmDelete}>
+                                    <BiTrash />
+                                    Eliminar
+                                </Button>
+                            )}
+                            <Button disabled={exporting} onClick={exportExcel}>
+                                <FaFileExcel />
+                                {exporting ? "Generando..." : "Descargar Excel"}
                             </Button>
-                        )}
-                        <Button
-                            color="green"
-                            className="hover:cursor-pointer"
-                            disabled={exporting}
-                            onClick={exportExcel}
-                        >
-                            <FaFileExcel />
-                            {exporting ? "Generando..." : "Descargar Excel"}
-                        </Button>
-                    </Flex>
-                </Flex>
+                        </>
+                    }
+                />
 
                 <div className="flex items-center gap-2 mb-5">
                     <IconButton
-                        variant="soft"
+                        variant="outline"
                         color="gray"
-                        className="hover:cursor-pointer shrink-0"
+                        className="shrink-0"
                         aria-label="Semana anterior"
                         title="Semana anterior"
                         onClick={() => shiftWeek(-7)}
@@ -366,9 +356,9 @@ const CorteSemanalForm = ({
                         />
                     </div>
                     <IconButton
-                        variant="soft"
+                        variant="outline"
                         color="gray"
-                        className="hover:cursor-pointer shrink-0"
+                        className="shrink-0"
                         aria-label="Semana siguiente"
                         title="Semana siguiente"
                         onClick={() => shiftWeek(7)}
@@ -399,7 +389,7 @@ const CorteSemanalForm = ({
                             <FieldRow label="Sueldos">
                                 <MoneyInput value={salary} onChange={setSalary} aria-label="Sueldos" />
                             </FieldRow>
-                            <p className="pt-2 text-xs font-medium tracking-wide text-gray-500 uppercase">Gastos extra</p>
+                            <p className="pt-2 text-xs font-medium tracking-wide text-fog uppercase">Gastos extra</p>
                             <FieldRow label="Gasolina chofer casetas">
                                 <MoneyInput value={expenses.gasolina} onChange={(v) => setExpenses({ ...expenses, gasolina: v })} aria-label="Gasolina chofer casetas" />
                             </FieldRow>
@@ -411,15 +401,15 @@ const CorteSemanalForm = ({
                             </FieldRow>
                         </div>
 
-                        <div className="pt-3 mt-4 space-y-1 border-t border-gray-200">
+                        <div className="pt-3 mt-4 space-y-1 border-t border-ash">
                             <FormulaRow label="Venta total" value={totals.sale_total} />
                             <FormulaRow sign="−" label="Sueldos" value={salaryValue} />
                             <FormulaRow sign="−" label="Material" value={materialValue} />
                             <FormulaRow sign="−" label="Gastos extra" value={extraValue} />
-                            <div className="pt-2 mt-2 border-t border-gray-100">
+                            <div className="pt-2 mt-2 border-t border-ash">
                                 <div className="flex items-baseline justify-between">
-                                    <span className="text-sm font-semibold text-gray-900">50%</span>
-                                    <span className={`text-2xl font-semibold tabular-nums ${fiftyPercent < 0 ? "text-[#d03b3b]" : "text-blue-900"}`}>
+                                    <span className="text-sm font-semibold text-charcoal">50%</span>
+                                    <span className={`text-2xl font-semibold tabular-nums ${fiftyPercent < 0 ? "text-[#d03b3b]" : "text-electric"}`}>
                                         {formatCurrency(fiftyPercent)}
                                     </span>
                                 </div>
@@ -433,11 +423,11 @@ const CorteSemanalForm = ({
                     subtitle="Puedes ajustar el material de cada día; el total y el 50% se recalculan"
                 >
                     {cortesWithTotals.length === 0 ? (
-                        <div className="py-8 text-sm text-center text-gray-500">
+                        <div className="py-8 text-sm text-center text-fog">
                             No hay cortes guardados en esta semana.{" "}
                             <button
                                 type="button"
-                                className="text-blue-700 hover:underline"
+                                className="font-medium text-electric hover:underline"
                                 onClick={() => router.visit(route("cortes.new"))}
                             >
                                 Generar corte del día
@@ -447,7 +437,7 @@ const CorteSemanalForm = ({
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="text-xs text-left text-gray-500 uppercase border-b border-gray-200">
+                                    <tr className="text-xs text-left text-fog uppercase border-b border-ash">
                                         <th className="py-2 pr-3 font-medium">Fecha</th>
                                         <th className="py-2 pr-3 font-medium text-right">Venta</th>
                                         <th className="py-2 pr-3 font-medium text-right">Resta</th>
@@ -461,7 +451,7 @@ const CorteSemanalForm = ({
                                 </thead>
                                 <tbody className="tabular-nums">
                                     {cortesWithTotals.map((corte) => (
-                                        <tr key={corte.id} className="border-b border-gray-100">
+                                        <tr key={corte.id} className="border-b border-ash">
                                             <td className="py-2 pr-3 font-medium whitespace-nowrap">{corte.date}</td>
                                             <td className="py-2 pr-3 text-right">{formatCurrency(corte.sale_total)}</td>
                                             <td className="py-2 pr-3 text-right">{formatCurrency(corte.balance_total)}</td>
@@ -498,7 +488,7 @@ const CorteSemanalForm = ({
                                             </td>
                                         </tr>
                                     ))}
-                                    <tr className="font-semibold text-gray-900 border-t-2 border-gray-200">
+                                    <tr className="font-semibold text-charcoal border-t-2 border-ash">
                                         <td className="py-2 pr-3">Total</td>
                                         {(["sale_total", "balance_total", "transfer_total", "previous_notes_total", "expenses_total", "cash_total", "material_total"] as const).map((key) => (
                                             <td key={key} className={`py-2 pr-3 text-right ${key === "material_total" ? "pr-5" : ""}`}>

@@ -33,17 +33,16 @@ const BranchExtraDialog = () => {
 
     return (
         <Dialog.Root open={open} onOpenChange={setOpen}>
-            <Button
-                type="button"
-                variant="soft"
-                color={globalExtra === null ? "gray" : "violet"}
-                className="hover:cursor-pointer"
-                onClick={openDialog}
-            >
-                {globalExtra === null
-                    ? "Extra global: sin definir"
-                    : `Extra global: ${globalExtra}%`}
+            <Button type="button" variant="outline" color="gray" onClick={openDialog}>
                 <MdPercent />
+                Extra global
+                <span
+                    className={`px-1.5 py-0.5 text-[11px] font-semibold leading-none rounded-tag ${
+                        globalExtra === null ? "bg-paper text-fog" : "bg-violet-50 text-lavender"
+                    }`}
+                >
+                    {globalExtra === null ? "sin definir" : `${globalExtra}%`}
+                </span>
             </Button>
 
             <Dialog.Content maxWidth="460px">
@@ -60,7 +59,7 @@ const BranchExtraDialog = () => {
                         save(data.extra_percentage);
                     }}
                 >
-                    <label htmlFor="extra_percentage" className="block mb-1 text-sm font-medium text-gray-700">
+                    <label htmlFor="extra_percentage" className="block mb-1 text-sm font-medium text-graphite">
                         Porcentaje extra
                     </label>
                     <div className="flex items-center gap-2">
@@ -74,9 +73,9 @@ const BranchExtraDialog = () => {
                             placeholder="Ej. 10"
                             value={data.extra_percentage}
                             onChange={(e) => setData("extra_percentage", e.target.value)}
-                            className="w-40 px-3 py-2 border border-gray-300 rounded-md"
+                            className="w-40 px-3 py-2 bg-white tabular-nums"
                         />
-                        <span className="text-gray-600">%</span>
+                        <span className="text-steel">%</span>
                     </div>
                     {errors.extra_percentage && (
                         <p className="mt-1 text-sm text-red-600">{errors.extra_percentage}</p>
@@ -98,11 +97,11 @@ const BranchExtraDialog = () => {
                         </Button>
                         <Flex gap="2">
                             <Dialog.Close>
-                                <Button type="button" variant="soft" color="gray" className="hover:cursor-pointer">
+                                <Button type="button" variant="outline" color="gray">
                                     Cancelar
                                 </Button>
                             </Dialog.Close>
-                            <Button type="submit" disabled={processing} className="hover:cursor-pointer">
+                            <Button type="submit" disabled={processing}>
                                 {processing ? "Guardando..." : "Guardar"}
                             </Button>
                         </Flex>

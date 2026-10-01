@@ -1,4 +1,6 @@
 import InputWithLabel from "@/Components/InputWithLabel";
+import PrimaryButton from "@/Components/PrimaryButton";
+import SecondaryButton from "@/Components/SecondaryButton";
 import { Product } from "@/types/Product";
 import { router, useForm } from "@inertiajs/react";
 import { BiSave } from "react-icons/bi";
@@ -38,22 +40,24 @@ const StockMovementForm = ({ product, onClose }: StockMovementFormProps) => {
     return (
         <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-800">
-                    Nuevo Movimiento de Inventario
+                <h2 className="text-lg font-semibold text-charcoal">
+                    Nuevo movimiento de inventario
                 </h2>
                 <button
+                    type="button"
                     onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600"
+                    aria-label="Cerrar"
+                    className="p-1 rounded-button text-fog hover:text-charcoal hover:bg-paper"
                 >
                     <MdClose className="w-6 h-6" />
                 </button>
             </div>
 
-            <div className="mb-4">
-                <p className="text-sm text-gray-600">
+            <div className="p-3 mb-4 space-y-0.5 rounded-card bg-paper">
+                <p className="text-sm text-steel">
                     <strong>Producto:</strong> {product.brand} {product.model}
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-steel">
                     <strong>Existencias actuales:</strong>{" "}
                     {product.stock?.quantity ?? 0}
                 </p>
@@ -62,7 +66,7 @@ const StockMovementForm = ({ product, onClose }: StockMovementFormProps) => {
             <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                     <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700">
+                        <label className="block mb-2 text-sm font-medium text-graphite">
                             Tipo de movimiento
                         </label>
                         <select
@@ -73,7 +77,7 @@ const StockMovementForm = ({ product, onClose }: StockMovementFormProps) => {
                                     e.target.value as MovementType
                                 )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 text-sm bg-white "
                         >
                             <option value="IN">{movementTypeLabels.IN}</option>
                             <option value="OUT">
@@ -100,7 +104,7 @@ const StockMovementForm = ({ product, onClose }: StockMovementFormProps) => {
                     />
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700">
+                        <label className="block mb-2 text-sm font-medium text-graphite">
                             Descripción
                         </label>
                         <textarea
@@ -109,7 +113,7 @@ const StockMovementForm = ({ product, onClose }: StockMovementFormProps) => {
                             onChange={(e) =>
                                 setData("description", e.target.value)
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 text-sm bg-white "
                             rows={3}
                             placeholder="Ingrese una descripción opcional del movimiento..."
                         />
@@ -120,23 +124,14 @@ const StockMovementForm = ({ product, onClose }: StockMovementFormProps) => {
                         )}
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            disabled={processing}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
+                    <div className="flex justify-end gap-2 mt-4">
+                        <SecondaryButton onClick={onClose} disabled={processing}>
                             Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {processing ? "Guardando..." : "Guardar"}
+                        </SecondaryButton>
+                        <PrimaryButton type="submit" disabled={processing}>
                             <BiSave className="w-4 h-4" />
-                        </button>
+                            {processing ? "Guardando..." : "Guardar movimiento"}
+                        </PrimaryButton>
                     </div>
                 </div>
             </form>

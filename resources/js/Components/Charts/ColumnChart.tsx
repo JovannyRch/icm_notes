@@ -161,16 +161,16 @@ const ColumnChart = ({ data, series, height = 240, tooltipExtra }: Props) => {
 
             {hovered && (
                 <div
-                    className="absolute z-10 px-3 py-2 text-xs -translate-x-1/2 bg-white border border-gray-200 rounded-md shadow-lg pointer-events-none min-w-[180px]"
+                    className="absolute z-10 px-3 py-2 text-xs -translate-x-1/2 bg-white border border-ash rounded-button shadow-popover pointer-events-none min-w-[180px]"
                     style={{ left: tooltipLeft, top: 0 }}
                 >
-                    <div className="mb-1 font-semibold text-gray-900">
+                    <div className="mb-1 font-semibold text-charcoal">
                         {formatBucketLong(hovered.key)}
                     </div>
                     {series.map((s) => (
                         <div
                             key={s.key}
-                            className="flex items-center justify-between gap-4 text-gray-700"
+                            className="flex items-center justify-between gap-4 text-graphite"
                         >
                             <span className="flex items-center gap-1.5">
                                 <span
@@ -185,7 +185,7 @@ const ColumnChart = ({ data, series, height = 240, tooltipExtra }: Props) => {
                         </div>
                     ))}
                     {series.length > 1 && (
-                        <div className="flex justify-between pt-1 mt-1 font-semibold text-gray-900 border-t border-gray-100">
+                        <div className="flex justify-between pt-1 mt-1 font-semibold text-charcoal border-t border-ash">
                             <span>Total</span>
                             <span className="tabular-nums">
                                 {formatCurrency(totals[hover!])}

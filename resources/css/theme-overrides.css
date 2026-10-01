@@ -59,3 +59,36 @@
 .radix-themes .rt-BaseButton.rt-variant-solid {
     box-shadow: var(--shadow-subtle);
 }
+
+/* Botón con contorno gris = "Outlined Action Button" de DESIGN.md: borde Ash, texto
+   Charcoal, fondo blanco y hover Paper Mist. Es el botón de casi todas las acciones. */
+.radix-themes .rt-BaseButton.rt-variant-outline[data-accent-color="gray"] {
+    box-shadow: inset 0 0 0 1px var(--color-ash);
+    color: var(--color-charcoal);
+    background-color: var(--color-canvas-white);
+}
+.radix-themes .rt-BaseButton.rt-variant-outline[data-accent-color="gray"]:where(:hover):not(:disabled) {
+    background-color: var(--color-paper-mist);
+}
+.radix-themes .rt-BaseButton.rt-variant-outline[data-accent-color="gray"]:disabled {
+    color: var(--color-silver);
+    background-color: var(--color-canvas-white);
+}
+
+/* Tabs: indicador y texto activos en Charcoal, como la navegación de DESIGN.md. */
+.radix-themes .rt-TabsTriggerInner {
+    font-weight: 500;
+}
+
+/* Tablas ("Dashboard Table Row" de DESIGN.md): filas con línea Ash inferior,
+   encabezado en Steel 500 y hover Paper Mist. */
+.radix-themes .rt-TableRoot {
+    --table-row-box-shadow: inset 0 -1px var(--color-ash);
+}
+.radix-themes .rt-TableColumnHeaderCell {
+    color: var(--color-steel);
+    font-weight: 500;
+}
+.radix-themes .rt-TableBody .rt-TableRow:hover {
+    --table-row-background-color: #fafafa;
+}

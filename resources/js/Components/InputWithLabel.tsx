@@ -44,7 +44,7 @@ const InputWithLabel = ({
                     name={name}
                     value={value}
                     className={`mt-1 block w-full  h-8 ${
-                        readonly ? "bg-gray-100 pointer-events-none" : ""
+                        readonly ? "bg-paper pointer-events-none" : ""
                     }`}
                     autoComplete={autoComplete ? name : undefined}
                     onChange={onChange}

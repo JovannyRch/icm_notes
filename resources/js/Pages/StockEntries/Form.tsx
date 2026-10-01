@@ -1,5 +1,6 @@
 import Container from "@/Components/Container";
 import ContainerSection from "@/Components/ContainerSection";
+import PageHeader from "@/Components/ui/PageHeader";
 import InputWithLabel from "@/Components/InputWithLabel";
 import ProductsModal from "@/Components/ProductsModal/ProductsModal";
 import { getToday } from "@/helpers/formatters";
@@ -73,31 +74,18 @@ const StockEntryForm = ({ flash }: PageProps) => {
     return (
         <Container headTitle="Nota de entrada">
             <form onSubmit={handleSubmit}>
-                <Flex gap="2" justify="between" className="mb-4">
-                    <Button
-                        type="button"
-                        color="gray"
-                        variant="soft"
-                        className="hover:cursor-pointer"
-                        onClick={() => router.visit(route("notas"))}
-                    >
-                        Regresar al listado
-                        <BiArrowBack />
-                    </Button>
-                    <Button
-                        type="submit"
-                        color="green"
-                        disabled={processing || rows.length === 0}
-                        className="hover:cursor-pointer"
-                    >
-                        {processing ? "Guardando..." : "Guardar entrada"}
-                        <BiSave />
-                    </Button>
-                </Flex>
-
-                <Text size="6" className="block mb-4 font-semibold">
-                    Nota de entrada - {currentBranchName}
-                </Text>
+                <PageHeader
+                    back={{ label: "Notas", href: route("notas") }}
+                    eyebrow={currentBranchName}
+                    title="Nota de entrada"
+                    description="Registra productos comprados del catálogo; se suman al stock de esta sucursal."
+                    actions={
+                        <Button type="submit" disabled={processing || rows.length === 0}>
+                            <BiSave />
+                            {processing ? "Guardando..." : "Guardar entrada"}
+                        </Button>
+                    }
+                />
 
                 <ContainerSection
                     title="Datos de la entrada"
@@ -124,8 +112,8 @@ const StockEntryForm = ({ flash }: PageProps) => {
                     <Flex justify="end" className="mb-3">
                         <Button
                             type="button"
-                            variant="soft"
-                            className="hover:cursor-pointer"
+                            variant="outline"
+                            color="gray"
                             onClick={() => setShowProductsModal(true)}
                         >
                             Agregar producto
@@ -140,11 +128,11 @@ const StockEntryForm = ({ flash }: PageProps) => {
                     )}
 
                     {rows.length === 0 ? (
-                        <p className="py-8 text-center text-gray-500">
+                        <p className="py-8 text-center text-fog">
                             Agrega los productos del catálogo que se compraron.
                         </p>
                     ) : (
-                        <Table.Root variant="surface">
+                        <Table.Root>
                             <Table.Header>
                                 <Table.Row>
                                     <Table.ColumnHeaderCell>
@@ -186,7 +174,7 @@ const StockEntryForm = ({ flash }: PageProps) => {
                                                         e.target.value
                                                     )
                                                 }
-                                                className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                                                className="w-full px-2 py-1 text-right bg-white tabular-nums"
                                             />
                                             {itemError(index) && (
                                                 <p className="mt-1 text-xs text-red-600">

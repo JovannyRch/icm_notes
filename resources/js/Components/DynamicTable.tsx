@@ -99,7 +99,7 @@ const DynamicTable = <T extends Record<string, any>>({
                                                 <button
                                                     type="button"
                                                     title="Abrir nota"
-                                                    className="flex items-center justify-center text-white bg-green-600 rounded shrink-0 w-7 h-7 hover:bg-green-500"
+                                                    className="flex items-center justify-center bg-white border shrink-0 w-7 h-7 rounded-button border-ash text-steel hover:text-electric hover:bg-paper"
                                                     onClick={() => onRowClick(row)}
                                                 >
                                                     <BsEyeFill />
@@ -114,7 +114,7 @@ const DynamicTable = <T extends Record<string, any>>({
                                                     onChange={(e) =>
                                                         handleInputChange(rowIndex, column.key, e.target.value as T[keyof T])
                                                     }
-                                                    className={`w-full px-2 py-1 rounded-input bg-white ${
+                                                    className={`w-full px-2 py-1 text-sm rounded-input bg-white ${
                                                         column.money ? "text-right tabular-nums" : ""
                                                     } ${isCaptureRow ? "bg-paper border-dashed" : ""}`}
                                                 />
