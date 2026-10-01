@@ -3,6 +3,7 @@ import { PageProps } from "@/types";
 import { usePage } from "@inertiajs/react";
 import { AlertDialog, Button, Flex } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
+import { LuTriangleAlert } from "react-icons/lu";
 
 const SEEN_KEY = "billing-overdue-seen";
 
@@ -40,13 +41,14 @@ const BillingBanner = () => {
         <>
             <div
                 role="status"
-                className={`px-4 py-2 text-sm font-medium text-center ${
-                    overdue
-                        ? "bg-red-600 text-white"
-                        : "bg-amber-100 text-amber-900 border-b border-amber-200"
+                className={`border-b text-sm ${
+                    overdue ? "bg-rose-tint border-red-200 text-red-800" : "bg-amber-tint border-amber-200 text-amber-900"
                 }`}
             >
-                {message}
+                <div className="flex items-center justify-center gap-2 px-4 py-2 mx-auto max-w-[1200px] font-medium text-center">
+                    <LuTriangleAlert className="w-4 h-4 shrink-0" aria-hidden />
+                    {message}
+                </div>
             </div>
 
             <AlertDialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>

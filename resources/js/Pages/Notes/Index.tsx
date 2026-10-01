@@ -123,9 +123,10 @@ const Home = ({ pagination, flash }: Props) => {
                         }) - ${branch?.name}`}
                     </Text>
                 </Flex>
-                <Flex justify="between" gap="4" className="my-4">
+                <Flex justify="between" gap="4" wrap="wrap" className="my-4">
                     <Flex
                         gap="2"
+                        wrap="wrap"
                         direction={{
                             md: "row",
                             xs: "column",
@@ -191,6 +192,7 @@ const Home = ({ pagination, flash }: Props) => {
                     </Flex>
                     <Flex
                         gap="2"
+                        wrap="wrap"
                         direction={{
                             md: "row",
                             xs: "column",

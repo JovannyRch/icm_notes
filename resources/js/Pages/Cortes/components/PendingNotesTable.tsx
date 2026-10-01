@@ -2,8 +2,6 @@ import DynamicTable, { Column } from "@/Components/DynamicTable";
 import { formatCurrency } from "@/helpers/formatters";
 import { isNumber } from "@/helpers/utils";
 
-import { router } from "@inertiajs/react";
-import { Flex, Text } from "@radix-ui/themes";
 import axios from "axios";
 import { useMemo } from "react";
 import { toast } from "react-toastify";
@@ -22,11 +20,11 @@ const PendingNotesTable = ({
     branch,
 }: Props) => {
     const columns: Column<PreviousNoteInput>[] = [
-        { label: "No NOTA", key: "folio" },
-        { label: "FECHA", key: "date", type: "date" },
-        { label: "EFECTIVO", key: "cash" },
-        { label: "TRANSFERENCIA", key: "transfer" },
-        { label: "TARJETA", key: "card" },
+        { label: "No. nota", key: "folio", placeholder: "Folio" },
+        { label: "Fecha", key: "date", type: "date" },
+        { label: "Efectivo", key: "cash", money: true, placeholder: "0.00" },
+        { label: "Transferencia", key: "transfer", money: true, placeholder: "0.00" },
+        { label: "Tarjeta", key: "card", money: true, placeholder: "0.00" },
     ];
 
     const cashTotal = useMemo(
@@ -62,11 +60,6 @@ const PendingNotesTable = ({
 
     return (
         <>
-            <Flex justify="center" className="mb-4">
-                <Text size="4" weight="bold">
-                    ENTRADAS ANTERIORES
-                </Text>
-            </Flex>
 
             <DynamicTable<PreviousNoteInput>
                 columns={columns}
@@ -94,25 +87,17 @@ const PendingNotesTable = ({
                         });
                 }}
             />
-            <div className="flex justify-around gap-4">
-                <div className="flex justify-end mt-6">
-                    <Text weight="bold">
-                        Total efectivo:
-                        {formatCurrency(cashTotal)}
-                    </Text>
-                </div>
-                <div className="flex justify-end mt-6">
-                    <Text weight="bold">
-                        Total transferencia:
-                        {formatCurrency(transferTotal)}
-                    </Text>
-                </div>
-                <div className="flex justify-end mt-6">
-                    <Text weight="bold">
-                        Total tarjeta:
-                        {formatCurrency(cardTotal)}
-                    </Text>
-                </div>
+            <div className="flex flex-wrap justify-end pt-3 text-sm gap-x-6 gap-y-1">
+                {[
+                    ["Efectivo", cashTotal],
+                    ["Transferencia", transferTotal],
+                    ["Tarjeta", cardTotal],
+                ].map(([label, value]) => (
+                    <span key={label as string}>
+                        <span className="mr-2 text-steel">Total {String(label).toLowerCase()}</span>
+                        <span className="font-semibold tabular-nums">{formatCurrency(value as number)}</span>
+                    </span>
+                ))}
             </div>
         </>
     );

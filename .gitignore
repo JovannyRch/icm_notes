@@ -29,3 +29,5 @@ yarn-error.log
 /playwright/.cache
 .env.pgsql
 .env.demo
+.env.e2eui
+/database/e2e-ui.sqlite

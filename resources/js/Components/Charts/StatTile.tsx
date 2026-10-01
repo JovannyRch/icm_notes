@@ -16,15 +16,15 @@ const StatTile = ({ label, value, change, invert = false, hint }: Props) => {
     const flat = hasChange && Math.abs(change!) < 0.05;
 
     return (
-        <div className="p-4 bg-white border border-gray-200 rounded-lg">
-            <div className="text-xs font-medium tracking-wide text-gray-500 uppercase">
+        <div className="p-4 bg-white border border-ash rounded-card">
+            <div className="text-xs font-medium tracking-wide text-fog uppercase">
                 {label}
             </div>
-            <div className="mt-1 text-2xl font-semibold text-gray-900 whitespace-nowrap">{value}</div>
+            <div className="mt-1 text-2xl font-semibold text-charcoal whitespace-nowrap">{value}</div>
             {hasChange && (
                 <div
                     className={`mt-1 text-xs font-medium ${
-                        flat ? "text-gray-500" : good ? "text-[#006300]" : "text-[#d03b3b]"
+                        flat ? "text-fog" : good ? "text-[#006300]" : "text-[#d03b3b]"
                     }`}
                 >
                     {flat ? "▬" : change! > 0 ? "▲" : "▼"}{" "}
@@ -32,9 +32,9 @@ const StatTile = ({ label, value, change, invert = false, hint }: Props) => {
                 </div>
             )}
             {!hasChange && change !== undefined && (
-                <div className="mt-1 text-xs text-gray-400">Sin datos del periodo anterior</div>
+                <div className="mt-1 text-xs text-silver">Sin datos del periodo anterior</div>
             )}
-            {hint && <div className="mt-1 text-xs text-gray-500">{hint}</div>}
+            {hint && <div className="mt-1 text-xs text-fog">{hint}</div>}
         </div>
     );
 };

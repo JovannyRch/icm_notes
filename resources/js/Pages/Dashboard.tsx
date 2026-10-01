@@ -3,6 +3,7 @@ import ColumnChart, { ColumnSeries } from "@/Components/Charts/ColumnChart";
 import Legend from "@/Components/Charts/Legend";
 import StatTile from "@/Components/Charts/StatTile";
 import Container from "@/Components/Container";
+import SectionCard from "@/Components/SectionCard";
 import {
     ORDINAL_BLUE,
     SERIES,
@@ -134,25 +135,6 @@ const AGING_LABELS: Record<string, string> = {
     "61-90": "61 a 90 días",
     "90+": "Más de 90 días",
 };
-
-const Card = ({ title, subtitle, actions, children, className = "" }: {
-    title: string;
-    subtitle?: ReactNode;
-    actions?: ReactNode;
-    children: ReactNode;
-    className?: string;
-}) => (
-    <section className={`p-4 bg-white border border-gray-200 rounded-lg ${className}`}>
-        <div className="flex flex-wrap items-start justify-between gap-2 mb-4">
-            <div>
-                <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-                {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
-            </div>
-            {actions}
-        </div>
-        {children}
-    </section>
-);
 
 const Empty = ({ children }: { children: ReactNode }) => (
     <p className="py-8 text-sm text-center text-gray-500">{children}</p>
@@ -290,7 +272,7 @@ const Dashboard = ({
             </div>
 
             <div className="grid grid-cols-1 gap-4 mb-4 xl:grid-cols-3">
-                <Card title={`Venta por ${unit}`} subtitle="Notas no canceladas, por fecha de la nota" className="xl:col-span-2">
+                <SectionCard title={`Venta por ${unit}`} subtitle="Notas no canceladas, por fecha de la nota" className="xl:col-span-2">
                     {hasSales ? (
                         <ColumnChart
                             data={salesSeries}
@@ -306,9 +288,9 @@ const Dashboard = ({
                     ) : (
                         <Empty>No hay ventas en este periodo.</Empty>
                     )}
-                </Card>
+                </SectionCard>
 
-                <Card title="Por sucursal" subtitle="Siempre compara todas las sucursales">
+                <SectionCard title="Por sucursal" subtitle="Siempre compara todas las sucursales">
                     <BarList
                         items={salesByBranch.map((b) => ({
                             key: b.branch_id,
@@ -318,11 +300,11 @@ const Dashboard = ({
                             detail: `Utilidad ${formatCurrency(b.profit)} · Margen ${b.margin ?? "-"}% · ${b.notes_count} notas`,
                         }))}
                     />
-                </Card>
+                </SectionCard>
             </div>
 
             <div className="grid grid-cols-1 gap-4 mb-4 xl:grid-cols-3">
-                <Card
+                <SectionCard
                     title={`Cobranza por ${unit}`}
                     subtitle="Por fecha de cada pago, incluye abonos a notas anteriores"
                     actions={<Legend series={COLLECTION_SERIES} />}
@@ -346,9 +328,9 @@ const Dashboard = ({
                     ) : (
                         <Empty>No se recibieron pagos en este periodo.</Empty>
                     )}
-                </Card>
+                </SectionCard>
 
-                <Card title="Cuentas por cobrar" subtitle="Saldo pendiente a hoy, por antigüedad de la nota">
+                <SectionCard title="Cuentas por cobrar" subtitle="Saldo pendiente a hoy, por antigüedad de la nota">
                     <div className="mb-4">
                         <div className="text-2xl font-semibold text-gray-900">{formatCurrency(receivables.total)}</div>
                         <div className="text-xs text-gray-500">{receivables.notes_count} notas con saldo</div>
@@ -363,11 +345,11 @@ const Dashboard = ({
                             color: ORDINAL_BLUE[i],
                         }))}
                     />
-                </Card>
+                </SectionCard>
             </div>
 
             <div className="grid grid-cols-1 gap-4 mb-4 xl:grid-cols-3">
-                <Card title="Notas con saldo más antiguas" subtitle="Para dar seguimiento de cobranza" className="xl:col-span-2">
+                <SectionCard title="Notas con saldo más antiguas" subtitle="Para dar seguimiento de cobranza" className="xl:col-span-2">
                     {receivables.oldest.length === 0 ? (
                         <Empty>No hay notas con saldo pendiente.</Empty>
                     ) : (
@@ -400,9 +382,9 @@ const Dashboard = ({
                             </table>
                         </div>
                     )}
-                </Card>
+                </SectionCard>
 
-                <Card
+                <SectionCard
                     title="Productos más vendidos"
                     subtitle="Partidas de notas no canceladas en el periodo"
                     actions={
@@ -429,10 +411,10 @@ const Dashboard = ({
                             })}
                         />
                     )}
-                </Card>
+                </SectionCard>
             </div>
 
-            <Card title="Inventario" subtitle={`Existencias a hoy${filters.branch ? ` en ${filters.branch_name}` : " (todas las sucursales)"}; entradas dentro del periodo`}>
+            <SectionCard title="Inventario" subtitle={`Existencias a hoy${filters.branch ? ` en ${filters.branch_name}` : " (todas las sucursales)"}; entradas dentro del periodo`}>
                 <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
                     <StatTile label="Valor a costo" value={formatCurrency(inventory.value_at_cost)} />
                     <StatTile label="Unidades" value={formatNumber(inventory.units, 2)} />
@@ -471,7 +453,7 @@ const Dashboard = ({
                         </div>
                     </>
                 )}
-            </Card>
+            </SectionCard>
         </Container>
     );
 };

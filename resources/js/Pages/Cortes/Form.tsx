@@ -3,13 +3,17 @@ import { useUpdateEffect } from "@/hooks/useUpdateEffect";
 import { PageProps } from "@/types";
 
 import { Note } from "@/types/Note";
-import { Button, Flex, IconButton, Text } from "@radix-ui/themes";
-import { format } from "date-fns";
-import { useEffect, useState } from "react";
+import { Button, Flex, Text } from "@radix-ui/themes";
+import { formatDate } from "date-fns";
+import { es } from "date-fns/locale/es";
+import { useEffect, useRef, useState } from "react";
+import DatePicker from "react-datepicker";
 import { BiArrowBack, BiRefresh, BiSave, BiTrash } from "react-icons/bi";
 import NotesTable from "./components/NotesTable";
 import PendingNotesTable from "./components/PendingNotesTable";
-import AmountDetailsTable from "./components/AmountDetailsTable";
+import CorteSummary from "./components/CorteSummary";
+import SectionCard from "@/Components/SectionCard";
+import { formatCurrency } from "@/helpers/formatters";
 import ExpensesTable from "./components/ExpensesTable";
 import { isNumber } from "@/helpers/utils";
 import { Corte } from "@/types/Corte";
@@ -19,6 +23,7 @@ import { confirmAlert } from "react-confirm-alert";
 import ReturnsTable from "./components/ReturnsTable";
 import { router } from "@inertiajs/react";
 import { FaDownload } from "react-icons/fa6";
+import { toast } from "react-toastify";
 import { CgAdd } from "react-icons/cg";
 import axios from "axios";
 
@@ -38,8 +43,6 @@ interface Props extends PageProps {
 const cleanNotes = (notes: Note[]) => {
     return notes.filter((note) => note?.delivery_status !== "cancelado" && note?.status !== "canceled");
 };
-
-const Spacer = () => <div className="h-[60px]"></div>;
 
 /**
  * Importes que una nota aportó al corte de `date`: sólo los pagos hechos ese día.
@@ -140,6 +143,8 @@ function calculateSums(
     };
 }
 
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
 const emptyPreviousNote: PreviousNoteInput = {
     folio: "",
     date: "",
@@ -219,7 +224,15 @@ const CorteForm = ({
               ]
     );
 
+    const [saving, setSaving] = useState(false);
+    // ref además del estado: dos clics en el mismo tick no alcanzan a ver el re-render.
+    const savingRef = useRef(false);
+    const [refreshing, setRefreshing] = useState(false);
+
     const handleSubmit = () => {
+        if (savingRef.current) return;
+        savingRef.current = true;
+        setSaving(true);
         Inertia.post(route("cortes.store"), {
             date: date,
             sale_total: total,
@@ -259,8 +272,40 @@ const CorteForm = ({
             ),
             returns: JSON.stringify(returns.slice(0, returns.length - 1)),
             branch_id: branch.id,
+        }, {
+            // Evita guardar el mismo corte dos veces con doble clic.
+            onFinish: () => {
+                savingRef.current = false;
+                setSaving(false);
+            },
         });
     };
+
+    const refreshNotes = () => {
+        setRefreshing(true);
+        axios(route("api.notas.corte", { branch: branch.id, date }))
+            .then((response) => {
+                setNotes(response.data.notes);
+                setPreviousNotes([...response.data.previous_payments, emptyPreviousNote]);
+                toast.success("Notas y entradas actualizadas");
+            })
+            .catch(() => toast.error("No se pudieron actualizar las notas"))
+            .finally(() => setRefreshing(false));
+    };
+
+    const confirmDelete = () => {
+        confirmAlert({
+            title: "Eliminar corte",
+            message: "¿Estás seguro de eliminar este corte?",
+            buttons: [
+                { label: "Sí", onClick: () => Inertia.delete(route("cortes.destroy", { corte: corte!.id })) },
+                { label: "No" },
+            ],
+        });
+    };
+
+    const selectedDate = new Date(date + "T00:00");
+    const activeNotes = notes.filter((n) => n.status !== "canceled" && n.delivery_status !== "cancelado").length;
 
     useEffect(() => {
         const sums = calculateSums(
@@ -275,187 +320,164 @@ const CorteForm = ({
     }, [notes, expenses, previousNotes, returns, date]);
 
     return (
-        <Container headTitle="Nuevo Corte">
-            <div className="flex justify-center">
-                <div className="max-w-[1200px] min-w-[400px] w-full border border-gray-300 p-4 py-12">
-                    <Flex gap="2" className="mb-4">
-                        <Button
-                            color="gray"
-                            variant="soft"
-                            className="hover:cursor-pointer"
-                            onClick={() => {
-                                router.visit(route("cortes"));
-                            }}
-                        >
-                            <BiArrowBack />
-                            Lista de cortes
-                        </Button>
-                    </Flex>
-                    <Flex justify="between" className="mb-4" gap="2">
-                        <div className="flex flex-col gap-1">
-                            <Text size="2" className="text-gray-500">
-                                {branch.name}
-                            </Text>
-                            <Text size="4" weight="bold">
-                                {isDetail
-                                    ? `Corte #${corte.id} / ${corte.date}`
-                                    : `Generar Corte`}
-                            </Text>
-                        </div>
+        <Container headTitle={isDetail ? `Corte #${corte.id}` : "Nuevo corte"}>
+            <div className="max-w-[1200px] mx-auto pb-24">
+                <Button
+                    color="gray"
+                    variant="ghost"
+                    className="mb-3 hover:cursor-pointer"
+                    onClick={() => router.visit(route("cortes"))}
+                >
+                    <BiArrowBack />
+                    Lista de cortes
+                </Button>
 
-                        {!isDetail ? (
-                            <Flex gap="2">
-                                <Button
-                                    onClick={() => {
-                                        router.visit(route("cortes.new"));
-                                    }}
-                                    className="hover:cursor-pointer"
-                                >
-                                    Crear un corte
-                                    <CgAdd className="w-5 h-5" />
-                                </Button>
-                            </Flex>
-                        ) : (
-                            <Flex gap="2">
-                                <IconButton
-                                    color="green"
-                                    className="hover:cursor-pointer"
-                                    size="2"
-                                    onClick={() => {
-                                        Inertia.get(
-                                            route("cortes.export", {
-                                                corte: corte.id,
+                <Flex justify="between" align="end" wrap="wrap" gap="3" className="mb-5">
+                    <div>
+                        <Text as="div" size="2" color="gray">
+                            {branch.name}
+                        </Text>
+                        <Text as="div" size="6" weight="bold">
+                            {isDetail ? `Corte #${corte.id}` : "Corte del día"}
+                        </Text>
+                        {isDetail && (
+                            <Text as="div" size="2" color="gray">
+                                {capitalize(formatDate(selectedDate, "EEEE d 'de' MMMM 'de' yyyy", { locale: es }))}
+                            </Text>
+                        )}
+                    </div>
+
+                    {isDetail ? (
+                        <Flex gap="2" wrap="wrap">
+                            <Button
+                                color="green"
+                                variant="soft"
+                                className="hover:cursor-pointer"
+                                onClick={() => Inertia.get(route("cortes.export", { corte: corte.id }))}
+                            >
+                                <FaDownload />
+                                Descargar PDF
+                            </Button>
+                            <Button color="red" variant="soft" className="hover:cursor-pointer" onClick={confirmDelete}>
+                                <BiTrash />
+                                Eliminar
+                            </Button>
+                            <Button className="hover:cursor-pointer" onClick={() => router.visit(route("cortes.new"))}>
+                                Nuevo corte
+                                <CgAdd className="w-5 h-5" />
+                            </Button>
+                        </Flex>
+                    ) : (
+                        <Flex gap="3" align="end" wrap="wrap">
+                            <label className="text-xs text-gray-600">
+                                Fecha del corte
+                                <DatePicker
+                                    locale={es}
+                                    dateFormat={"dd/MM/yyyy"}
+                                    className="block h-9 px-3 text-sm border-gray-300 rounded-md shadow-sm w-[150px]"
+                                    selected={selectedDate}
+                                    onSelect={(picked) => {
+                                        if (!picked) return;
+                                        router.visit(
+                                            route("cortes.new", {
+                                                branch: branch.id,
+                                                date: formatDate(picked, "yyyy-MM-dd"),
                                             })
                                         );
                                     }}
-                                >
-                                    <FaDownload />
-                                </IconButton>
-                                <IconButton
-                                    color="red"
-                                    className="hover:cursor-pointer"
-                                    size="2"
-                                    onClick={() => {
-                                        confirmAlert({
-                                            title: "Eliminar corte",
-                                            message:
-                                                "¿Estás seguro de eliminar este corte?",
-                                            buttons: [
-                                                {
-                                                    label: "Sí",
-                                                    onClick: () => {
-                                                        Inertia.delete(
-                                                            route(
-                                                                "cortes.destroy",
-                                                                {
-                                                                    corte: corte.id,
-                                                                }
-                                                            )
-                                                        );
-                                                    },
-                                                },
-                                                {
-                                                    label: "No",
-                                                },
-                                            ],
-                                        });
-                                    }}
-                                >
-                                    <BiTrash className="w-5 h-5" />
-                                </IconButton>
-                                <Button
-                                    onClick={() => {
-                                        router.visit(route("cortes.new"));
-                                    }}
-                                    className="hover:cursor-pointer"
-                                >
-                                    Crear un corte
-                                    <CgAdd className="w-5 h-5" />
-                                </Button>
-                            </Flex>
-                        )}
-                    </Flex>
-                    <AmountDetailsTable
+                                />
+                            </label>
+                            <Button
+                                variant="soft"
+                                color="gray"
+                                className="hover:cursor-pointer"
+                                disabled={refreshing}
+                                onClick={refreshNotes}
+                                title="Vuelve a cargar las notas y los pagos de este día"
+                            >
+                                <BiRefresh className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                                Actualizar notas
+                            </Button>
+                        </Flex>
+                    )}
+                </Flex>
+
+                <div className="mb-5">
+                    <CorteSummary
                         total={total}
                         cashSum={cashSum}
                         transferSum={transferSum}
                         cardSum={cardSum}
                         balanceSum={balanceSum}
-                        date={date}
                         expensesSum={sums.expensesSum}
                         previousNotesTotal={sums.previousNotesSum}
                         returnsSum={sums.returnsSum}
-                        isDisabled={isDetail}
-                        branch={branch}
                         purchasesSum={sums.purchasesSum}
                     />
-                    <Spacer />
-                    <Flex justify="end">
-                        {!isDetail && (
-                            <IconButton
-                                color="green"
-                                className="hover:cursor-pointer"
-                                size="2"
-                                onClick={() => {
-                                    axios(
-                                        route("api.notas.corte", {
-                                            branch: branch.id,
-                                            date,
-                                        })
-                                    ).then((response) => {
-                                        setNotes(response.data.notes);
-                                        setPreviousNotes([
-                                            ...response.data.previous_payments,
-                                            emptyPreviousNote,
-                                        ]);
-                                    });
-                                }}
-                            >
-                                <BiRefresh className="w-5 h-5" />
-                            </IconButton>
-                        )}
-                    </Flex>
-                    <NotesTable
-                        notes={notes.map((note) => ({
-                            ...note,
-                            ...paymentsOnDate(note, date),
-                        }))}
-                        setNotes={setNotes}
-                        isEditable={!isDetail}
-                    />
-                    <Spacer />
-                    <PendingNotesTable
-                        previousNotes={previousNotes}
-                        setPreviousNotes={setPreviousNotes}
-                        isDisabled={isDetail}
-                        branch={branch}
-                    />
-                    <Spacer />
-                    <ReturnsTable
-                        returns={returns}
-                        setReturns={setReturns}
-                        isDisabled={isDetail}
-                    />
-                    <Spacer />
-                    <ExpensesTable
-                        expenses={expenses}
-                        setExpenses={setExpenses}
-                        isDisabled={isDetail}
-                    />
-                    <Spacer />
-                    {!isDetail && (
-                        <Flex justify="end">
-                            <Button
-                                className="hover:cursor-pointer"
-                                onClick={handleSubmit}
-                            >
-                                Guardar
-                                <BiSave />
-                            </Button>
-                        </Flex>
-                    )}
+                </div>
+
+                <div className="space-y-4">
+                    <SectionCard
+                        title="Venta con notas de pedido"
+                        subtitle={`${activeNotes} ${activeNotes === 1 ? "nota" : "notas"} del día${
+                            notes.length > activeNotes ? ` · ${notes.length - activeNotes} cancelada(s), no suman` : ""
+                        }`}
+                    >
+                        <NotesTable
+                            notes={notes.map((note) => ({
+                                ...note,
+                                ...paymentsOnDate(note, date),
+                            }))}
+                            setNotes={setNotes}
+                            isEditable={!isDetail}
+                        />
+                    </SectionCard>
+
+                    <SectionCard
+                        title="Entradas anteriores"
+                        subtitle="Pagos recibidos este día de notas de días anteriores"
+                    >
+                        <PendingNotesTable
+                            previousNotes={previousNotes}
+                            setPreviousNotes={setPreviousNotes}
+                            isDisabled={isDetail}
+                            branch={branch}
+                        />
+                    </SectionCard>
+
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <SectionCard title="Devoluciones" subtitle="Se descuentan del efectivo">
+                            <ReturnsTable returns={returns} setReturns={setReturns} isDisabled={isDetail} />
+                        </SectionCard>
+                        <SectionCard title="Gastos" subtitle="Se descuentan del efectivo">
+                            <ExpensesTable expenses={expenses} setExpenses={setExpenses} isDisabled={isDetail} />
+                        </SectionCard>
+                    </div>
                 </div>
             </div>
+
+            {!isDetail && (
+                <div className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+                    <div className="flex flex-wrap items-center justify-between max-w-[1200px] gap-3 px-6 py-3 mx-auto">
+                        <div className="flex flex-wrap text-sm gap-x-6 gap-y-1 tabular-nums">
+                            <span>
+                                <span className="text-gray-500">Venta </span>
+                                <span className="font-semibold">{formatCurrency(total)}</span>
+                            </span>
+                            <span>
+                                <span className="text-gray-500">Efectivo </span>
+                                <span className={`font-semibold ${cashSum < 0 ? "text-[#d03b3b]" : ""}`}>
+                                    {formatCurrency(cashSum)}
+                                </span>
+                            </span>
+                        </div>
+                        <Button size="3" className="hover:cursor-pointer" disabled={saving} onClick={handleSubmit}>
+                            {saving ? "Guardando..." : "Guardar corte"}
+                            <BiSave />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </Container>
     );
 };

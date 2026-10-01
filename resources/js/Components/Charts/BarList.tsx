@@ -24,12 +24,12 @@ const BarList = ({
             {items.map((item) => (
                 <li key={item.key} title={typeof item.label === "string" ? item.label : undefined}>
                     <div className="flex items-baseline justify-between gap-3 mb-1 text-sm">
-                        <span className="text-gray-800 truncate">{item.label}</span>
-                        <span className="font-medium text-gray-900 tabular-nums whitespace-nowrap">
+                        <span className="text-graphite truncate">{item.label}</span>
+                        <span className="font-medium text-charcoal tabular-nums whitespace-nowrap">
                             {item.display}
                         </span>
                     </div>
-                    <div className="h-2 overflow-hidden bg-gray-100 rounded">
+                    <div className="h-2 overflow-hidden bg-paper rounded">
                         <div
                             className="h-full rounded"
                             style={{
@@ -40,7 +40,7 @@ const BarList = ({
                         />
                     </div>
                     {item.detail && (
-                        <div className="mt-1 text-xs text-gray-500">{item.detail}</div>
+                        <div className="mt-1 text-xs text-fog">{item.detail}</div>
                     )}
                 </li>
             ))}

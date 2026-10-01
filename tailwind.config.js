@@ -1,4 +1,10 @@
 import defaultTheme from "tailwindcss/defaultTheme";
+import { readFileSync } from "node:fs";
+
+// Colores del sistema de diseño: tokens.json (raíz) es la fuente de verdad.
+// Van como hex (no var()) para que funcionen los modificadores de opacidad (ring-electric/30).
+const tokens = JSON.parse(readFileSync(new URL("./tokens.json", import.meta.url), "utf8"));
+const token = (name) => tokens.color[name].$value;
 import forms from "@tailwindcss/forms";
 const { violet, blackA, mauve, green, gray } = require("@radix-ui/colors");
 
@@ -20,9 +26,44 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ["Figtree", ...defaultTheme.fontFamily.sans],
+                sans: ["Inter Variable", "Inter", ...defaultTheme.fontFamily.sans],
+                mono: ["Geist Mono", ...defaultTheme.fontFamily.mono],
+            },
+            // Tokens de DESIGN.md (valores en resources/css/tokens.css).
+            borderRadius: {
+                tag: "var(--radius-tags)",
+                card: "var(--radius-cards)",
+                input: "var(--radius-inputs)",
+                button: "var(--radius-buttons)",
+                "card-lg": "var(--radius-largecards)",
+            },
+            boxShadow: {
+                subtle: "var(--shadow-subtle)",
+                ring: "var(--shadow-subtle-2)",
+                popover: "var(--shadow-md)",
             },
             colors: {
+                canvas: token("canvas-white"),
+                paper: token("paper-mist"),
+                ash: token("ash"),
+                smoke: token("smoke"),
+                pebble: token("pebble"),
+                ink: token("midnight-ink"),
+                charcoal: token("charcoal"),
+                graphite: token("graphite"),
+                steel: token("steel"),
+                fog: token("fog"),
+                silver: token("silver"),
+                electric: token("electric-blue"),
+                sapphire: token("deep-sapphire"),
+                mint: token("soft-mint"),
+                "vivid-green": token("vivid-green"),
+                tangerine: token("tangerine"),
+                lavender: token("lavender"),
+                // Tintes de DESIGN.md para badges y estado activo (no están en tokens.json).
+                "sky-tint": "#dbeaff",
+                "amber-tint": "#fef3c7",
+                "rose-tint": "#fee2e2",
                 ...mauve,
                 ...violet,
                 ...green,

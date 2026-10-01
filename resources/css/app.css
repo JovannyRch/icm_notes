@@ -1,7 +1,158 @@
+@import "./tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------- Base */
+@layer base {
+    html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+        @apply bg-canvas text-charcoal font-sans;
+        font-feature-settings: "cv11", "ss01";
+    }
+
+    /* Campos de formulario (@tailwindcss/forms): línea fina, radio de 6px y foco azul.
+       DESIGN.md pide borde casi negro; en tablas densas (notas, cortes) pesa demasiado,
+       así que el borde negro aparece al pasar el mouse y al enfocar. */
+    [type="text"],
+    [type="email"],
+    [type="url"],
+    [type="password"],
+    [type="number"],
+    [type="date"],
+    [type="month"],
+    [type="search"],
+    [type="tel"],
+    [type="time"],
+    select,
+    textarea {
+        @apply rounded-input border-pebble text-charcoal placeholder:text-fog;
+        transition: border-color 120ms, box-shadow 120ms;
+    }
+
+    [type="text"]:hover:not(:disabled):not(:focus),
+    [type="email"]:hover:not(:disabled):not(:focus),
+    [type="password"]:hover:not(:disabled):not(:focus),
+    [type="number"]:hover:not(:disabled):not(:focus),
+    [type="date"]:hover:not(:disabled):not(:focus),
+    [type="search"]:hover:not(:disabled):not(:focus),
+    select:hover:not(:disabled):not(:focus),
+    textarea:hover:not(:disabled):not(:focus) {
+        @apply border-steel;
+    }
+
+    [type="text"]:focus,
+    [type="email"]:focus,
+    [type="url"]:focus,
+    [type="password"]:focus,
+    [type="number"]:focus,
+    [type="date"]:focus,
+    [type="month"]:focus,
+    [type="search"]:focus,
+    [type="tel"]:focus,
+    [type="time"]:focus,
+    select:focus,
+    textarea:focus {
+        @apply border-ink;
+        --tw-ring-color: rgba(37, 99, 235, 0.2);
+        --tw-ring-offset-width: 0px;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+
+    [type="checkbox"] {
+        @apply rounded border-pebble text-ink;
+    }
+
+    :disabled {
+        cursor: not-allowed;
+    }
+
+    ::selection {
+        background: var(--color-sky-tint);
+    }
+}
+
+/* ---------------------------------------------------------------- Radix */
 .rt-TextFieldInput {
     box-shadow: none !important;
+}
+
+/* ---------------------------------------------------------------- Toasts */
+:root {
+    --toastify-font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+    --toastify-color-light: var(--color-canvas-white);
+    --toastify-text-color-light: var(--color-charcoal);
+    --toastify-color-success: var(--color-vivid-green);
+    --toastify-color-error: #dc2626;
+    --toastify-color-warning: #d97706;
+    --toastify-color-info: var(--color-electric-blue);
+    --toastify-toast-shd: var(--shadow-md);
+    --toastify-toast-bd-radius: var(--radius-cards);
+}
+
+.Toastify__toast {
+    border: 1px solid var(--color-ash);
+    font-size: 14px;
+}
+
+/* ---------------------------------------------------------------- Datepicker */
+.react-datepicker {
+    font-family: inherit !important;
+    border-color: var(--color-ash) !important;
+    border-radius: var(--radius-cards) !important;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.react-datepicker__header {
+    background: var(--color-paper-mist) !important;
+    border-bottom-color: var(--color-ash) !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+    background: var(--color-midnight-ink) !important;
+    color: #fff !important;
+    border-radius: var(--radius-buttons) !important;
+}
+
+.react-datepicker__day:hover {
+    border-radius: var(--radius-buttons) !important;
+}
+
+/* ---------------------------------------------------------------- Confirmaciones */
+.react-confirm-alert-overlay {
+    background: rgba(10, 10, 10, 0.4) !important;
+}
+
+.react-confirm-alert-body {
+    font-family: inherit !important;
+    color: var(--color-charcoal) !important;
+    border: 1px solid var(--color-ash);
+    border-radius: var(--radius-largecards) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+.react-confirm-alert-body > h1 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.react-confirm-alert-button-group > button {
+    border-radius: var(--radius-buttons) !important;
+    background: var(--color-canvas-white) !important;
+    color: var(--color-charcoal) !important;
+    border: 1px solid var(--color-ash) !important;
+    font-weight: 500;
+}
+
+.react-confirm-alert-button-group > button:first-child {
+    background: var(--color-midnight-ink) !important;
+    color: #fff !important;
+    border-color: var(--color-midnight-ink) !important;
 }

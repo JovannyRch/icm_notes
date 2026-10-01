@@ -1,27 +1,28 @@
 import Container from "@/Components/Container";
+import MoneyInput from "@/Components/MoneyInput";
+import SectionCard from "@/Components/SectionCard";
 
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 
 import { router } from "@inertiajs/react";
-import { Flex, IconButton, Table, Text } from "@radix-ui/themes";
-import { BiTrash } from "react-icons/bi";
+import { Button, Flex, IconButton, Text } from "@radix-ui/themes";
+import { BiChevronLeft, BiChevronRight, BiTrash } from "react-icons/bi";
 
 import { Inertia } from "@inertiajs/inertia";
 import { confirmAlert } from "react-confirm-alert";
 
 import { CorteSemanal } from "@/types/CorteSemanal";
-import { FaDownload, FaFileExcel } from "react-icons/fa6";
-import { useEffect, useMemo, useState } from "react";
+import { FaFileExcel } from "react-icons/fa6";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import Datepicker, { DateValueType } from "react-tailwindcss-datepicker";
 import { Corte } from "@/types/Corte";
 import { formatCurrency } from "@/helpers/formatters";
 import dayjs from "dayjs";
 
-import { Input } from "@headlessui/react";
 import { isNumber } from "@/helpers/utils";
-import FloatingButton from "@/Components/FloatingIconButton";
 import { BsEye } from "react-icons/bs";
+import { toast } from "react-toastify";
 
 interface Props extends PageProps {
     branch: Branch;
@@ -79,41 +80,30 @@ function calculateTotal<T extends Record<string, any>>(
     return Math.round(sum * 100) / 100;
 }
 
-const ValueInTable = ({
-    label,
-    value,
-    readonly = true,
-    onChange,
-}: {
-    label: string;
-    value: number | string;
-    readonly?: boolean;
-    onChange?: (value: string) => void;
-}) => {
-    return (
-        <tr>
-            <td className="text-left">
-                <Text size="2" weight="bold">
-                    {label}:
-                </Text>
-            </td>
-            <td className="pl-2 text-center">
-                <Input
-                    readOnly={readonly}
-                    onChange={(e) => {
-                        if (onChange) {
-                            onChange(e.target.value);
-                        }
-                    }}
-                    className="w-full text-right"
-                    value={
-                        isNumber(value) ? formatCurrency(Number(value)) : value
-                    }
-                />
-            </td>
-        </tr>
-    );
-};
+const SummaryValue = ({ label, value, hint }: { label: string; value: number; hint?: string }) => (
+    <div className="p-3 border border-gray-200 rounded-lg">
+        <div className="text-xs font-medium tracking-wide text-gray-500 uppercase">{label}</div>
+        <div className="mt-1 text-lg font-semibold text-gray-900 whitespace-nowrap tabular-nums">{formatCurrency(value)}</div>
+        {hint && <div className="text-xs text-gray-500">{hint}</div>}
+    </div>
+);
+
+const FieldRow = ({ label, children }: { label: string; children: ReactNode }) => (
+    <label className="flex items-center justify-between gap-3 text-sm">
+        <span className="text-gray-700">{label}</span>
+        <span className="w-36 shrink-0">{children}</span>
+    </label>
+);
+
+const FormulaRow = ({ label, value, sign, strong = false }: { label: string; value: number; sign?: string; strong?: boolean }) => (
+    <div className={`flex justify-between text-sm tabular-nums ${strong ? "font-semibold text-gray-900" : "text-gray-700"}`}>
+        <span>
+            {sign && <span className="inline-block w-4 text-gray-400">{sign}</span>}
+            {label}
+        </span>
+        <span className={value < 0 ? "text-[#d03b3b]" : ""}>{formatCurrency(value)}</span>
+    </div>
+);
 
 const cleanNumber = (value: string | number) => {
     if (typeof value === "number") {
@@ -278,422 +268,250 @@ const CorteSemanalForm = ({
         setExtraExpenses(totalExpenses.toString());
     }, [expenses]);
 
+    const [exporting, setExporting] = useState(false);
+    const exportExcel = async () => {
+        setExporting(true);
+        try {
+            await handleSubmitData();
+        } catch {
+            toast.error("No se pudo generar el Excel");
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const shiftWeek = (days: number) => {
+        const start = dayjs(value?.startDate).add(days, "day").format("YYYY-MM-DD");
+        const end = dayjs(value?.endDate).add(days, "day").format("YYYY-MM-DD");
+        router.get(route("cortes_semanales.create"), { start_date: start, end_date: end });
+    };
+
+    // getTitle() se queda en mayúsculas para el Excel; en pantalla, tipo oración.
+    const displayTitle = (() => {
+        const t = getTitle().replace(/\s+/g, " ").toLowerCase();
+        return t.charAt(0).toUpperCase() + t.slice(1);
+    })();
+
+    const salaryValue = cleanNumber(salary) ?? 0;
+    const materialValue = cleanNumber(totals.material_total) ?? 0;
+    const extraValue = cleanNumber(extraExpenses) ?? 0;
+
+    const confirmDelete = () => {
+        confirmAlert({
+            title: "Eliminar corte",
+            message: "¿Estás seguro de eliminar este corte?",
+            buttons: [
+                {
+                    label: "Sí",
+                    onClick: () => Inertia.delete(route("cortes_semanales.destroy", { corte: corteSemanal!.id })),
+                },
+                { label: "No" },
+            ],
+        });
+    };
+
     return (
         <Container headTitle={"Corte semanal"}>
-            <FloatingButton
-                position="bottom-right"
-                icon={<FaFileExcel className="w-6 h-6" />}
-                onClick={handleSubmitData}
-            />
-            <div style={{ minHeight: "calc(100vh - 130px)" }}>
-                <div className="flex flex-col gap-1">
-                    <Text size="2" className="text-gray-500">
-                        {branch.name}
-                    </Text>
-                </div>
-                <div>
-                    <Text size="5" className="font-semibold">
-                        Generar corte semanal
-                    </Text>
-                    <br />
-                    <Flex>
-                        <div className="w-full">
-                            <Datepicker
-                                value={value}
-                                onChange={handleChange}
-                                displayFormat="DD/MM/YYYY"
-                                primaryColor="blue"
-                                showShortcuts={false}
-                                configs={{}}
-                            />
-                        </div>
-                    </Flex>
-                </div>
-                {/* <Flex gap="2" className="m-4 mx-0">
-                    <Button
-                        color="gray"
-                        variant="soft"
-                        className="hover:cursor-pointer"
-                        onClick={() => {
-                            router.visit(
-                                route("cortes_semanales.index", {
-                                    branch: branch.id,
-                                })
-                            );
-                        }}
-                    >
-                        <BiArrowBack />
-                        Lista de cortes semanales
-                    </Button>
-                </Flex> */}
-                <Flex justify="between" className="mb-4" gap="2">
-                    <div className="flex justify-center w-full py-8">
-                        <Text size="4" weight="bold" align="center">
-                            {getTitle()}
+            <div className="max-w-[1200px] mx-auto" style={{ minHeight: "calc(100vh - 130px)" }}>
+                <Flex justify="between" align="end" wrap="wrap" gap="3" className="mb-4">
+                    <div>
+                        <Text as="div" size="2" color="gray">
+                            {branch.name}
+                        </Text>
+                        <Text as="div" size="6" weight="bold">
+                            Corte semanal
+                        </Text>
+                        <Text as="div" size="2" color="gray">
+                            {displayTitle}
                         </Text>
                     </div>
-
-                    {isDetail && (
-                        <Flex gap="2">
-                            <IconButton
-                                color="green"
-                                className="hover:cursor-pointer"
-                                size="2"
-                                onClick={() => {
-                                    /*  Inertia.get(
-                                        route("cortes.export", {
-                                            corte: corte.id,
-                                        })
-                                    ); */
-                                }}
-                            >
-                                <FaDownload />
-                            </IconButton>
-                            <IconButton
-                                color="red"
-                                className="hover:cursor-pointer"
-                                size="2"
-                                onClick={() => {
-                                    confirmAlert({
-                                        title: "Eliminar corte",
-                                        message:
-                                            "¿Estás seguro de eliminar este corte?",
-                                        buttons: [
-                                            {
-                                                label: "Sí",
-                                                onClick: () => {
-                                                    Inertia.delete(
-                                                        route(
-                                                            "cortes_semanales.destroy",
-                                                            {
-                                                                corte: corteSemanal.id,
-                                                            }
-                                                        )
-                                                    );
-                                                },
-                                            },
-                                            {
-                                                label: "No",
-                                            },
-                                        ],
-                                    });
-                                }}
-                            >
-                                <BiTrash className="w-5 h-5" />
-                            </IconButton>
-                        </Flex>
-                    )}
+                    <Flex gap="2">
+                        {isDetail && (
+                            <Button color="red" variant="soft" className="hover:cursor-pointer" onClick={confirmDelete}>
+                                <BiTrash />
+                                Eliminar
+                            </Button>
+                        )}
+                        <Button
+                            color="green"
+                            className="hover:cursor-pointer"
+                            disabled={exporting}
+                            onClick={exportExcel}
+                        >
+                            <FaFileExcel />
+                            {exporting ? "Generando..." : "Descargar Excel"}
+                        </Button>
+                    </Flex>
                 </Flex>
 
-                <br />
-                <Flex
-                    className="mb-4"
-                    gap="2"
-                    direction={{
-                        md: "row",
-                        xs: "column",
-                        sm: "column",
-                        initial: "column",
-                    }}
-                >
-                    <div>
-                        <table>
-                            <tbody>
-                                <ValueInTable
-                                    label="Venta total"
-                                    value={totals.sale_total}
-                                />
-                                <ValueInTable
-                                    label="Restan notas"
-                                    value={totals.balance_total}
-                                />
-                                <ValueInTable
-                                    label="Transfenrencias"
-                                    value={totals.transfer_total}
-                                />
-                                <ValueInTable
-                                    label="Entradas"
-                                    value={totals.previous_notes_total}
-                                />
-                                <ValueInTable
-                                    label="Gastos"
-                                    value={totals.expenses_total}
-                                />
-                                <ValueInTable
-                                    label="Efectivo"
-                                    value={totals.cash_total}
-                                />
-                                <ValueInTable
-                                    label="Material"
-                                    value={totals.material_total}
-                                    readonly={false}
-                                />
-                                <ValueInTable
-                                    label="Sueldos"
-                                    value={salary}
-                                    readonly={false}
-                                    onChange={(value: string) => {
-                                        setSalary(value);
-                                    }}
-                                />
-                                <ValueInTable
-                                    label="Gastos extra"
-                                    value={extraExpenses}
-                                />
-                                <ValueInTable
-                                    label="50%"
-                                    value={fiftyPercent}
-                                />
-                            </tbody>
-                        </table>
+                <div className="flex items-center gap-2 mb-5">
+                    <IconButton
+                        variant="soft"
+                        color="gray"
+                        className="hover:cursor-pointer shrink-0"
+                        aria-label="Semana anterior"
+                        title="Semana anterior"
+                        onClick={() => shiftWeek(-7)}
+                    >
+                        <BiChevronLeft />
+                    </IconButton>
+                    <div className="flex-1 max-w-md">
+                        <Datepicker
+                            value={value}
+                            onChange={handleChange}
+                            displayFormat="DD/MM/YYYY"
+                            primaryColor="blue"
+                            showShortcuts={false}
+                            configs={{}}
+                        />
                     </div>
-                    <div className="flex justify-center w-full">
-                        <div className="mt-8">
-                            <Text size="4" weight="bold">
-                                GASTOS EXTRA
-                            </Text>
-                            <table className="mt-8">
-                                <tbody>
-                                    <ValueInTable
-                                        label="Gasolina chofer casetas"
-                                        value={expenses.gasolina}
-                                        readonly={false}
-                                        onChange={(value: string) => {
-                                            setExpenses({
-                                                ...expenses,
-                                                gasolina: value,
-                                            });
-                                        }}
-                                    />
-                                    <ValueInTable
-                                        label="Luz"
-                                        value={expenses.luz}
-                                        readonly={false}
-                                        onChange={(value: string) => {
-                                            setExpenses({
-                                                ...expenses,
-                                                luz: value,
-                                            });
-                                        }}
-                                    />
-                                    <ValueInTable
-                                        label="Renta"
-                                        value={expenses.renta}
-                                        readonly={false}
-                                        onChange={(value: string) => {
-                                            setExpenses({
-                                                ...expenses,
-                                                renta: value,
-                                            });
-                                        }}
-                                    />
-                                    <ValueInTable
-                                        label="Total"
-                                        value={extraExpenses}
-                                    />
+                    <IconButton
+                        variant="soft"
+                        color="gray"
+                        className="hover:cursor-pointer shrink-0"
+                        aria-label="Semana siguiente"
+                        title="Semana siguiente"
+                        onClick={() => shiftWeek(7)}
+                    >
+                        <BiChevronRight />
+                    </IconButton>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 mb-4 lg:grid-cols-3">
+                    <SectionCard
+                        title="Resumen de la semana"
+                        subtitle={`Suma de ${cortesWithTotals.length} ${cortesWithTotals.length === 1 ? "corte guardado" : "cortes guardados"}`}
+                        className="lg:col-span-2"
+                    >
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                            <SummaryValue label="Venta total" value={totals.sale_total} />
+                            <SummaryValue label="Restan notas" value={totals.balance_total} />
+                            <SummaryValue label="Transferencias" value={totals.transfer_total} />
+                            <SummaryValue label="Entradas" value={totals.previous_notes_total} />
+                            <SummaryValue label="Gastos" value={totals.expenses_total} />
+                            <SummaryValue label="Efectivo" value={totals.cash_total} />
+                            <SummaryValue label="Material" value={materialValue} hint="Suma de la columna Material" />
+                        </div>
+                    </SectionCard>
+
+                    <SectionCard title="Cálculo del 50%" subtitle="Captura sueldos y gastos extra">
+                        <div className="space-y-2">
+                            <FieldRow label="Sueldos">
+                                <MoneyInput value={salary} onChange={setSalary} aria-label="Sueldos" />
+                            </FieldRow>
+                            <p className="pt-2 text-xs font-medium tracking-wide text-gray-500 uppercase">Gastos extra</p>
+                            <FieldRow label="Gasolina chofer casetas">
+                                <MoneyInput value={expenses.gasolina} onChange={(v) => setExpenses({ ...expenses, gasolina: v })} aria-label="Gasolina chofer casetas" />
+                            </FieldRow>
+                            <FieldRow label="Luz">
+                                <MoneyInput value={expenses.luz} onChange={(v) => setExpenses({ ...expenses, luz: v })} aria-label="Luz" />
+                            </FieldRow>
+                            <FieldRow label="Renta">
+                                <MoneyInput value={expenses.renta} onChange={(v) => setExpenses({ ...expenses, renta: v })} aria-label="Renta" />
+                            </FieldRow>
+                        </div>
+
+                        <div className="pt-3 mt-4 space-y-1 border-t border-gray-200">
+                            <FormulaRow label="Venta total" value={totals.sale_total} />
+                            <FormulaRow sign="−" label="Sueldos" value={salaryValue} />
+                            <FormulaRow sign="−" label="Material" value={materialValue} />
+                            <FormulaRow sign="−" label="Gastos extra" value={extraValue} />
+                            <div className="pt-2 mt-2 border-t border-gray-100">
+                                <div className="flex items-baseline justify-between">
+                                    <span className="text-sm font-semibold text-gray-900">50%</span>
+                                    <span className={`text-2xl font-semibold tabular-nums ${fiftyPercent < 0 ? "text-[#d03b3b]" : "text-blue-900"}`}>
+                                        {formatCurrency(fiftyPercent)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </SectionCard>
+                </div>
+
+                <SectionCard
+                    title="Cortes de la semana"
+                    subtitle="Puedes ajustar el material de cada día; el total y el 50% se recalculan"
+                >
+                    {cortesWithTotals.length === 0 ? (
+                        <div className="py-8 text-sm text-center text-gray-500">
+                            No hay cortes guardados en esta semana.{" "}
+                            <button
+                                type="button"
+                                className="text-blue-700 hover:underline"
+                                onClick={() => router.visit(route("cortes.new"))}
+                            >
+                                Generar corte del día
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-xs text-left text-gray-500 uppercase border-b border-gray-200">
+                                        <th className="py-2 pr-3 font-medium">Fecha</th>
+                                        <th className="py-2 pr-3 font-medium text-right">Venta</th>
+                                        <th className="py-2 pr-3 font-medium text-right">Resta</th>
+                                        <th className="py-2 pr-3 font-medium text-right">Transferencias</th>
+                                        <th className="py-2 pr-3 font-medium text-right">Entradas</th>
+                                        <th className="py-2 pr-3 font-medium text-right">Gastos</th>
+                                        <th className="py-2 pr-3 font-medium text-right">Efectivo</th>
+                                        <th className="py-2 pr-3 font-medium text-right">Material</th>
+                                        <th className="w-10 py-2" aria-label="Ver corte" />
+                                    </tr>
+                                </thead>
+                                <tbody className="tabular-nums">
+                                    {cortesWithTotals.map((corte) => (
+                                        <tr key={corte.id} className="border-b border-gray-100">
+                                            <td className="py-2 pr-3 font-medium whitespace-nowrap">{corte.date}</td>
+                                            <td className="py-2 pr-3 text-right">{formatCurrency(corte.sale_total)}</td>
+                                            <td className="py-2 pr-3 text-right">{formatCurrency(corte.balance_total)}</td>
+                                            <td className="py-2 pr-3 text-right">{formatCurrency(corte.transfer_total)}</td>
+                                            <td className="py-2 pr-3 text-right">{formatCurrency(corte.previous_notes_total)}</td>
+                                            <td className="py-2 pr-3 text-right">{formatCurrency(corte.expenses_total)}</td>
+                                            <td className="py-2 pr-3 text-right">{formatCurrency(corte.cash_total)}</td>
+                                            <td className="py-1.5 pr-3 w-36">
+                                                <MoneyInput
+                                                    compact
+                                                    id={`material-${corte.id}`}
+                                                    aria-label={`Material ${corte.date}`}
+                                                    value={corte.material_total}
+                                                    onChange={(newValue) =>
+                                                        setCortesWithTotals(
+                                                            cortesWithTotals.map((c) =>
+                                                                c.id === corte.id ? { ...c, material_total: newValue } : c
+                                                            )
+                                                        )
+                                                    }
+                                                />
+                                            </td>
+                                            <td className="py-2 text-center">
+                                                <IconButton
+                                                    variant="ghost"
+                                                    className="hover:cursor-pointer"
+                                                    size="1"
+                                                    aria-label={`Ver corte del ${corte.date}`}
+                                                    title="Ver corte"
+                                                    onClick={() => window.open(route("cortes.show", corte.id), "_blank")}
+                                                >
+                                                    <BsEye />
+                                                </IconButton>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    <tr className="font-semibold text-gray-900 border-t-2 border-gray-200">
+                                        <td className="py-2 pr-3">Total</td>
+                                        {(["sale_total", "balance_total", "transfer_total", "previous_notes_total", "expenses_total", "cash_total", "material_total"] as const).map((key) => (
+                                            <td key={key} className={`py-2 pr-3 text-right ${key === "material_total" ? "pr-5" : ""}`}>
+                                                {formatCurrency(calculateTotal(cortesWithTotals, key))}
+                                            </td>
+                                        ))}
+                                        <td />
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </Flex>
-
-                <br />
-
-                <Flex justify="center" className="mb-4">
-                    <Text size="4" weight="bold">
-                        CORTES
-                    </Text>
-                </Flex>
-                <Table.Root>
-                    <Table.Header>
-                        <Table.Row>
-                            <Table.ColumnHeaderCell className="text-center">
-                                FECHA
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                VENTA
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                RESTA
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                TRANSFERENCIAS
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                ENTRADAS
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                GASTOS
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                EFECTIVO
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                MATERIAL
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center"></Table.ColumnHeaderCell>
-                        </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                        {cortesWithTotals.map((corte) => (
-                            <Table.Row
-                                className="border-b border-gray-200 hover:cursor-pointer hover:bg-gray-100 odd:bg-white even:bg-gray-50 "
-                                key={corte.id}
-                            >
-                                <Table.Cell className="text-center">
-                                    <Text size="3" weight="bold">
-                                        {corte.date}
-                                    </Text>
-                                </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    <Text size="3" weight="medium">
-                                        {formatCurrency(corte.sale_total)}
-                                    </Text>
-                                </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    <Text size="3" weight="medium">
-                                        {formatCurrency(corte.balance_total)}
-                                    </Text>
-                                </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    <Text size="3" weight="medium">
-                                        {formatCurrency(corte.transfer_total)}
-                                    </Text>
-                                </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    <Text size="3" weight="medium">
-                                        {formatCurrency(
-                                            corte.previous_notes_total
-                                        )}
-                                    </Text>
-                                </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    <Text size="3" weight="medium">
-                                        {formatCurrency(corte.expenses_total)}
-                                    </Text>
-                                </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    <Text size="3" weight="medium">
-                                        {formatCurrency(corte.cash_total)}
-                                    </Text>
-                                </Table.Cell>
-                                <Table.Cell className="text-center no-clickable">
-                                    <Input
-                                        value={corte.material_total}
-                                        onChange={(value) => {
-                                            const newValue = value.target.value;
-                                            const updatedCortes =
-                                                cortesWithTotals.map((c) =>
-                                                    c.id === corte.id
-                                                        ? {
-                                                              ...c,
-                                                              material_total:
-                                                                  newValue,
-                                                          }
-                                                        : c
-                                                );
-                                            setCortesWithTotals(updatedCortes);
-                                        }}
-                                        id={`material-${corte.id}`}
-                                    />
-                                </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    <IconButton
-                                        className="hover:cursor-pointer"
-                                        size="1"
-                                        onClick={() => {
-                                            const link = route(
-                                                "cortes.show",
-                                                corte.id
-                                            );
-
-                                            window.open(link, "_blank");
-                                        }}
-                                    >
-                                        <BsEye />
-                                    </IconButton>
-                                </Table.Cell>
-                            </Table.Row>
-                        ))}
-                        <Table.Row className="border-b border-gray-200 hover:cursor-pointer hover:bg-gray-100 odd:bg-white even:bg-gray-50 ">
-                            <Table.Cell className="text-center">
-                                <Text size="3" weight="bold">
-                                    TOTAL
-                                </Text>
-                            </Table.Cell>
-                            <Table.Cell className="text-center">
-                                <Text size="3" weight="bold">
-                                    {formatCurrency(
-                                        calculateTotal(
-                                            cortesWithTotals,
-                                            "sale_total"
-                                        )
-                                    )}
-                                </Text>
-                            </Table.Cell>
-                            <Table.Cell className="text-center">
-                                <Text size="3" weight="bold">
-                                    {formatCurrency(
-                                        calculateTotal(
-                                            cortesWithTotals,
-                                            "balance_total"
-                                        )
-                                    )}
-                                </Text>
-                            </Table.Cell>
-                            <Table.Cell className="text-center">
-                                <Text size="3" weight="bold">
-                                    {formatCurrency(
-                                        calculateTotal(
-                                            cortesWithTotals,
-                                            "transfer_total"
-                                        )
-                                    )}
-                                </Text>
-                            </Table.Cell>
-                            <Table.Cell className="text-center">
-                                <Text size="3" weight="bold">
-                                    {formatCurrency(
-                                        calculateTotal(
-                                            cortesWithTotals,
-                                            "previous_notes_total"
-                                        )
-                                    )}
-                                </Text>
-                            </Table.Cell>
-                            <Table.Cell className="text-center">
-                                <Text size="3" weight="bold">
-                                    {formatCurrency(
-                                        calculateTotal(
-                                            cortesWithTotals,
-                                            "expenses_total"
-                                        )
-                                    )}
-                                </Text>
-                            </Table.Cell>
-                            <Table.Cell className="text-center">
-                                <Text size="3" weight="bold">
-                                    {formatCurrency(
-                                        calculateTotal(
-                                            cortesWithTotals,
-                                            "cash_total"
-                                        )
-                                    )}
-                                </Text>
-                            </Table.Cell>
-                            <Table.Cell className="text-center">
-                                <Text size="3" weight="bold">
-                                    {formatCurrency(
-                                        calculateTotal(
-                                            cortesWithTotals,
-                                            "material_total"
-                                        )
-                                    )}
-                                </Text>
-                            </Table.Cell>
-                        </Table.Row>
-                    </Table.Body>
-                </Table.Root>
+                    )}
+                </SectionCard>
             </div>
         </Container>
     );

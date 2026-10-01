@@ -126,19 +126,16 @@ test.describe("N pagos por nota", () => {
         await expect(
             page.getByRole("cell", { name: "E2E-3" }).first()
         ).toBeVisible();
-        // Renglón "Efectivo:" del resumen de importes (no el de entradas anteriores).
-        await expect(
-            page.getByRole("row").filter({ hasText: /^Efectivo:/ })
-        ).toContainText("$500.00");
+        // Tarjeta "Efectivo" del resumen del corte (no el total de entradas anteriores).
+        const cash = page.getByRole("group", { name: "Efectivo", exact: true });
+        await expect(cash).toContainText("$500.00");
         // El abono del día posterior NO se cuenta aquí.
-        await expect(
-            page.getByRole("row").filter({ hasText: /^Efectivo:/ })
-        ).not.toContainText("$1,500.00");
+        await expect(cash).not.toContainText("$1,500.00");
 
         // Corte del día del segundo abono: la nota no es de ese día, así que su
         // dinero aparece en ENTRADAS ANTERIORES, ya prellenado.
         await page.goto(`/cortes/crear?date=${laterDate}`);
-        await expect(page.getByText("ENTRADAS ANTERIORES")).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Entradas anteriores" })).toBeVisible();
         await expect(
             page.locator('input[value="E2E-3"]').first()
         ).toBeVisible();

@@ -7,7 +7,8 @@ export async function login(page: Page) {
     await page.fill('input[name="email"]', E2E_USER.email);
     await page.fill('input[name="password"]', E2E_USER.password);
     await page.getByRole("button", { name: "Iniciar sesión" }).click();
-    await page.waitForURL("**/notas");
+    // Después del login la pantalla inicial es el dashboard.
+    await page.waitForURL("**/dashboard");
 }
 
 /** Agrega una partida buscando el producto en el modal del catálogo. */

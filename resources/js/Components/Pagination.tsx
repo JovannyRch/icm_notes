@@ -34,8 +34,8 @@ const Pagination: React.FC<Props> = ({ pagination }) => {
     }
 
     return (
-        <nav className="flex items-center justify-center mt-6">
-            <ul className="flex space-x-1">
+        <nav className="flex items-center justify-center mt-6" aria-label="Paginación">
+            <ul className="flex flex-wrap justify-center gap-1">
                 {links.map((link, index) => {
                     const isActive = link.active;
                     const isDisabled = link.url === null;
@@ -44,7 +44,7 @@ const Pagination: React.FC<Props> = ({ pagination }) => {
                         <li key={index}>
                             {isDisabled ? (
                                 <span
-                                    className={`px-3 py-1 border rounded text-gray-400 bg-gray-100 cursor-not-allowed select-none`}
+                                    className="inline-flex items-center h-8 px-3 text-sm rounded-button text-silver cursor-not-allowed select-none"
                                     dangerouslySetInnerHTML={{
                                         __html: link.label,
                                     }}
@@ -52,10 +52,11 @@ const Pagination: React.FC<Props> = ({ pagination }) => {
                             ) : (
                                 <Link
                                     href={link.url || "#"}
-                                    className={`px-3 py-1 border rounded hover:bg-gray-200 transition-colors duration-200 ${
+                                    aria-current={isActive ? "page" : undefined}
+                                    className={`inline-flex items-center h-8 min-w-8 justify-center px-3 text-sm font-medium rounded-button border transition-colors ${
                                         isActive
-                                            ? "bg-[#3358D4] text-white border-[#3358D4]"
-                                            : "bg-white text-gray-700 border-gray-300"
+                                            ? "bg-ink text-white border-ink"
+                                            : "bg-white text-charcoal border-ash hover:bg-paper"
                                     }`}
                                     dangerouslySetInnerHTML={{
                                         __html: link.label,

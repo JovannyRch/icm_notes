@@ -1,6 +1,8 @@
+import "@fontsource-variable/inter";
 import "../css/app.css";
 import "./bootstrap";
 import "@radix-ui/themes/styles.css";
+import "../css/theme-overrides.css";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -29,7 +31,7 @@ createInertiaApp({
         const { currentBranch, branches } = props.initialPage.props as any;
 
         root.render(
-            <Theme>
+            <Theme accentColor="blue" grayColor="gray" radius="medium" panelBackground="solid">
                 <QueryClientProvider client={queryClient}>
                     <BranchContext.Provider value={{ currentBranch, branches }}>
                         <App {...props} />
@@ -40,6 +42,6 @@ createInertiaApp({
         );
     },
     progress: {
-        color: "#4B5563",
+        color: "#2563eb",
     },
 });

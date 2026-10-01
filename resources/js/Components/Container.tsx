@@ -13,7 +13,7 @@ const Container = ({ title, children, headTitle }: ContainerProps) => {
         <AuthenticatedLayout
             header={
                 title ? (
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                    <h2 className="text-xl font-semibold leading-tight text-charcoal">
                         {title}
                     </h2>
                 ) : null
@@ -21,13 +21,8 @@ const Container = ({ title, children, headTitle }: ContainerProps) => {
         >
             <Head title={headTitle ?? title} />
 
-            <div className="p-2">
-                <div className="mx-auto">
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-gray-900">{children}</div>
-                    </div>
-                </div>
-            </div>
+            {/* Lienzo blanco de 1200px (DESIGN.md): los bloques se separan con bordes, no con sombras. */}
+            <div className="px-4 py-6 mx-auto max-w-[1200px] sm:px-6 text-charcoal">{children}</div>
         </AuthenticatedLayout>
     );
 };

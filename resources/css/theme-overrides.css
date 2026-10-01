@@ -1,0 +1,61 @@
+/*
+ * Ajustes de Radix Themes al sistema de DESIGN.md. Se importa DESPUÉS de
+ * @radix-ui/themes/styles.css (app.tsx) para que estas variables ganen.
+ */
+
+/* Azul de Radix = paleta del sistema: 9/10 (botón sólido) en Deep Sapphire, 11 (texto,
+   links, estados activos) en Electric Blue, 3/4 (fondos soft) en el tinte cielo. */
+:root,
+.radix-themes {
+    --blue-1: #fbfdff;
+    --blue-2: #f5f8ff;
+    --blue-3: #dbeaff;
+    --blue-4: #cfe0fd;
+    --blue-5: #bfd5fc;
+    --blue-6: #a9c5f8;
+    --blue-7: #8db0f3;
+    --blue-8: #6b93ec;
+    --blue-9: #1e40af;
+    --blue-10: #1e3a8a;
+    --blue-11: #2563eb;
+    --blue-12: #172554;
+    --blue-a1: rgba(37, 99, 235, 0.02);
+    --blue-a2: rgba(37, 99, 235, 0.05);
+    --blue-a3: rgba(37, 99, 235, 0.1);
+    --blue-a4: rgba(37, 99, 235, 0.14);
+    --blue-a5: rgba(37, 99, 235, 0.19);
+    --blue-a6: rgba(37, 99, 235, 0.26);
+    --blue-a7: rgba(37, 99, 235, 0.36);
+    --blue-a8: rgba(37, 99, 235, 0.5);
+    --blue-a9: #1e40af;
+    --blue-a10: #1e3a8a;
+    --blue-a11: #2563eb;
+    --blue-a12: #172554;
+    --blue-contrast: #ffffff;
+    --blue-surface: rgba(219, 234, 255, 0.5);
+    --blue-indicator: #2563eb;
+    --blue-track: #2563eb;
+}
+
+.radix-themes {
+    --default-font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --heading-font-family: var(--default-font-family);
+    --code-font-family: var(--font-geist-mono);
+    --color-background: var(--color-canvas-white);
+    --cursor-button: pointer;
+    --cursor-checkbox: pointer;
+    --cursor-menu-item: pointer;
+    --cursor-radio: pointer;
+    --cursor-switch: pointer;
+    /* radius-1 = 6px (inputs, botones chicos), radius-2 = 8px (botones), radius-3 = 12px
+       (cards), y techo de 16px para diálogos: el vocabulario de DESIGN.md. */
+    --radius-factor: 2;
+    --radius-5: 16px;
+    --radius-6: 16px;
+    color: var(--color-charcoal);
+}
+
+/* Botón sólido: la sombra sutil de DESIGN.md en lugar del relieve de Radix. */
+.radix-themes .rt-BaseButton.rt-variant-solid {
+    box-shadow: var(--shadow-subtle);
+}

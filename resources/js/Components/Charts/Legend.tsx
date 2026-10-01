@@ -1,7 +1,7 @@
 import { ColumnSeries } from "./ColumnChart";
 
 const Legend = ({ series }: { series: ColumnSeries[] }) => (
-    <div className="flex flex-wrap gap-4 text-xs text-gray-600">
+    <div className="flex flex-wrap gap-4 text-xs text-steel">
         {series.map((s) => (
             <span key={s.key} className="flex items-center gap-1.5">
                 <span

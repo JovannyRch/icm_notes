@@ -13,13 +13,13 @@ const SearchInput = ({
 }: SearchInputProps) => {
     return (
         <div className={className}>
-            <label className="mb-2 text-sm font-medium text-gray-900 sr-only ">
+            <label className="mb-2 text-sm font-medium text-charcoal sr-only ">
                 Search
             </label>
             <div className="relative">
                 <div className="absolute inset-y-0 flex items-center pointer-events-none start-0 ps-3">
                     <svg
-                        className="w-4 h-4 text-gray-500 "
+                        className="w-4 h-4 text-fog"
                         aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
@@ -37,7 +37,7 @@ const SearchInput = ({
                 <input
                     type="search"
                     id="default-search"
-                    className="block w-full p-2 text-sm text-gray-900 border border-gray-300 rounded-lg ps-10 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 "
+                    className="block w-full h-9 text-sm bg-white ps-9"
                     placeholder={placeholder ?? "Buscar ..."}
                     onChange={(e) => onChange(e.target.value)}
                     value={value}

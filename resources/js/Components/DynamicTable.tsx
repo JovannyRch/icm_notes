@@ -1,11 +1,16 @@
+import { formatCurrency } from "@/helpers/formatters";
+import { isNumber } from "@/helpers/utils";
 import { IconButton } from "@radix-ui/themes";
-import { BsEye, BsEyeFill } from "react-icons/bs";
-import { CgRemove } from "react-icons/cg";
+import { BsEyeFill } from "react-icons/bs";
+import { TbTrash } from "react-icons/tb";
 
 export type Column<T> = {
     label: string;
     key: keyof T;
     type?: "text" | "number" | "date";
+    /** Importe: alineado a la derecha, teclado decimal, "$" en solo lectura. */
+    money?: boolean;
+    placeholder?: string;
 };
 
 type DynamicTableProps<T> = {
@@ -58,87 +63,95 @@ const DynamicTable = <T extends Record<string, any>>({
 
     const hasSingleRow = totalRows === 1;
 
+    const displayValue = (column: Column<T>, value: unknown) => {
+        if (value === "" || value === null || value === undefined) return "-";
+        if (column.money) return isNumber(value) ? formatCurrency(Number(value)) : String(value);
+        return String(value);
+    };
+
     return (
         <div className="overflow-x-auto">
-            <table className="w-full border border-collapse border-gray-300">
+            <table className="w-full text-sm">
                 <thead>
-                    <tr className="bg-gray-200">
+                    <tr className="text-xs text-left text-fog uppercase border-b border-ash">
                         {columns.map((column, index) => (
                             <th
                                 key={index}
-                                className="p-2 border border-gray-300"
+                                className={`py-2 pr-3 font-medium ${column.money ? "text-right" : ""}`}
                             >
                                 {column.label}
                             </th>
                         ))}
 
-                        {isEditable && (
-                            <th className="p-2 border border-gray-300"></th>
-                        )}
+                        {isEditable && <th className="w-10 py-2" aria-label="Acciones"></th>}
                     </tr>
                 </thead>
                 <tbody>
-                    {rows.map((row, rowIndex) => (
-                        <tr key={rowIndex}>
-                            {columns.map((column, colIndex) => (
-                                <td
-                                    key={colIndex}
-                                    className="p-2 border border-gray-300"
-                                >
-                                    <div className="flex items-center">
-                                        {onRowClick &&
-                                            colIndex === 0 &&
-                                            row[column.key] && (
-                                                <div>
-                                                    <div
-                                                        className="flex justify-center w-8 bg-green-600 rounded-l-lg cursor-pointer hover:bg-green-400"
-                                                        onClick={() =>
-                                                            onRowClick(row)
-                                                        }
-                                                    >
-                                                        <span className="text-xl text-white">
-                                                            <BsEyeFill />
-                                                        </span>
-                                                    </div>
-                                                </div>
+                    {rows.map((row, rowIndex) => {
+                        // La última fila editable es la de captura: se ve como "nueva fila".
+                        const isCaptureRow = isEditable && rowIndex === totalRows - 1;
+                        return (
+                            <tr key={rowIndex} className="border-b border-ash/70">
+                                {columns.map((column, colIndex) => (
+                                    <td key={colIndex} className="py-1.5 pr-3">
+                                        <div className="flex items-center gap-1.5">
+                                            {onRowClick && colIndex === 0 && row[column.key] && (
+                                                <button
+                                                    type="button"
+                                                    title="Abrir nota"
+                                                    className="flex items-center justify-center text-white bg-green-600 rounded shrink-0 w-7 h-7 hover:bg-green-500"
+                                                    onClick={() => onRowClick(row)}
+                                                >
+                                                    <BsEyeFill />
+                                                </button>
                                             )}
-                                        <input
-                                            type={column.type || "text"}
-                                            disabled={!isEditable}
-                                            value={row[column.key] as string}
-                                            onChange={(e) =>
-                                                handleInputChange(
-                                                    rowIndex,
-                                                    column.key,
-                                                    e.target.value as T[keyof T]
-                                                )
-                                            }
-                                            className="w-full p-1 text-center border border-gray-300 rounded"
-                                        />
-                                    </div>
-                                </td>
-                            ))}
-                            {isEditable && (
-                                <td className="flex items-center justify-center p-2 border border-gray-300">
-                                    <IconButton
-                                        className="hover:cursor-pointer clickable"
-                                        color="red"
-                                        size="1"
-                                        disabled={hasSingleRow}
-                                        onClick={() =>
-                                            setRows(
-                                                rows.filter(
-                                                    (r, i) => i !== rowIndex
-                                                )
-                                            )
-                                        }
-                                    >
-                                        <CgRemove className="clickable" />
-                                    </IconButton>
-                                </td>
-                            )}
+                                            {isEditable ? (
+                                                <input
+                                                    type={column.type || "text"}
+                                                    inputMode={column.money ? "decimal" : undefined}
+                                                    value={row[column.key] as string}
+                                                    placeholder={isCaptureRow ? column.placeholder : undefined}
+                                                    onChange={(e) =>
+                                                        handleInputChange(rowIndex, column.key, e.target.value as T[keyof T])
+                                                    }
+                                                    className={`w-full px-2 py-1 rounded-input bg-white ${
+                                                        column.money ? "text-right tabular-nums" : ""
+                                                    } ${isCaptureRow ? "bg-paper border-dashed" : ""}`}
+                                                />
+                                            ) : (
+                                                <span className={`w-full py-1 ${column.money ? "text-right tabular-nums" : ""}`}>
+                                                    {displayValue(column, row[column.key])}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+                                ))}
+                                {isEditable && (
+                                    <td className="py-1.5 text-center">
+                                        <IconButton
+                                            type="button"
+                                            className="hover:cursor-pointer"
+                                            color="red"
+                                            variant="ghost"
+                                            size="1"
+                                            aria-label="Quitar fila"
+                                            disabled={hasSingleRow || isCaptureRow}
+                                            onClick={() => setRows(rows.filter((r, i) => i !== rowIndex))}
+                                        >
+                                            <TbTrash />
+                                        </IconButton>
+                                    </td>
+                                )}
+                            </tr>
+                        );
+                    })}
+                    {!isEditable && rows.length === 0 && (
+                        <tr>
+                            <td colSpan={columns.length} className="py-4 text-center text-silver">
+                                Sin registros
+                            </td>
                         </tr>
-                    ))}
+                    )}
                 </tbody>
             </table>
         </div>

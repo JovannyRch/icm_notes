@@ -1,16 +1,18 @@
 import Container from "@/Components/Container";
 import InputWithLabel from "@/Components/InputWithLabel";
+import SectionCard from "@/Components/SectionCard";
 import Modal from "@/Components/Modal";
 import Pagination from "@/Components/Pagination";
 import UnitInput from "@/Components/UnitInput";
-import { isNumber } from "@/helpers/utils";
+import { effectiveExtra, isNumber } from "@/helpers/utils";
+import { formatCurrency } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
 import { useBranch } from "@/hooks/useBranch";
 import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
 import { Inertia } from "@inertiajs/inertia";
 import { Link, router, useForm } from "@inertiajs/react";
-import { Button, Grid, Table, Tabs } from "@radix-ui/themes";
+import { Badge, Button, Flex, Tabs, Text } from "@radix-ui/themes";
 import { useState } from "react";
 import { confirmAlert } from "react-confirm-alert";
 import { BiArrowBack, BiArrowToRight, BiSave, BiTrash } from "react-icons/bi";
@@ -40,13 +42,21 @@ const movementIcons = {
     ),
 };
 
+const movementLabels: Record<string, { label: string; color: "green" | "red" | "blue" | "orange" | "purple" }> = {
+    IN: { label: "Entrada", color: "green" },
+    OUT: { label: "Salida", color: "red" },
+    TRANSFER_IN: { label: "Traspaso entrada", color: "blue" },
+    TRANSFER_OUT: { label: "Traspaso salida", color: "orange" },
+    ADJUSTMENT: { label: "Ajuste", color: "purple" },
+};
+
 const Form = ({
     product,
     stockMovements: stockMovementsWithPagination = [],
     flash,
 }: FormProps) => {
     const isEdit = !!product;
-    const { data: stockMovements } = stockMovementsWithPagination;
+    const stockMovements: StockMovement[] = stockMovementsWithPagination?.data ?? [];
     const [showMovementModal, setShowMovementModal] = useState(false);
 
     useAlerts(flash);
@@ -54,7 +64,7 @@ const Form = ({
     const { currentBranchName } = useBranch();
     const { globalExtra } = useBranchExtra();
 
-    const { data, setData, errors, put, post } = useForm({
+    const { data, setData, errors, put, post, processing, transform } = useForm({
         brand: product ? product.brand : "",
         model: product ? product.model : "",
         measure: product ? product.measure : "",
@@ -67,12 +77,23 @@ const Form = ({
         stock: String(
             isNumber(product?.stock?.quantity)
                 ? Number(product?.stock?.quantity)
-                : "-"
+                : ""
         ),
     });
 
+    const originalStock = isNumber(product?.stock?.quantity) ? Number(product?.stock?.quantity) : null;
+    // isNumber("") es true (Number("") === 0): un campo vacío no es un número capturado.
+    const isFilledNumber = (value: string) => value.trim() !== "" && isNumber(value);
+
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        // Existencias sólo se envía si es un número y cambió: el backend registra un
+        // ajuste de inventario cada vez que llega, y "-" (sin existencias) no valida.
+        transform((form) => {
+            const { stock, ...rest } = form;
+            const stockChanged = isFilledNumber(stock) && Number(stock) !== originalStock;
+            return stockChanged ? { ...rest, stock } : rest;
+        });
         if (isEdit) {
             put(route("products.update", product!.id), {
                 onSuccess: () => {
@@ -87,6 +108,12 @@ const Form = ({
             });
         }
     };
+
+    // Vista previa del costo real, igual que calculatePurchaseSubtotal() con cantidad 1.
+    const appliedExtra = effectiveExtra(Number(data.extra) || 0, globalExtra);
+    const costWithTaxes = (Number(data.cost) || 0) * (1 + (Number(data.iva) || 0) / 100) * (1 + appliedExtra / 100);
+    const unitProfit = (Number(data.price) || 0) - costWithTaxes;
+    const stockChanged = isEdit && isFilledNumber(data.stock) && Number(data.stock) !== originalStock;
 
     const handleOnDelete = () => {
         confirmAlert({
@@ -120,392 +147,223 @@ const Form = ({
                 String(
                     isNumber(product?.stock?.quantity)
                         ? Number(product?.stock?.quantity)
-                        : "-"
+                        : ""
                 )
             );
         }
     }, [product?.stock?.quantity]);
 
+    const field = (name: keyof typeof data, label: string, opts: { required?: boolean; type?: "text" | "number"; className?: string } = {}) => (
+        <InputWithLabel
+            label={opts.required ? `${label} *` : label}
+            name={name}
+            type={opts.type ?? "text"}
+            value={data[name]}
+            onChange={(e) => setData(name, e.target.value)}
+            error={errors[name]}
+            className={opts.className}
+        />
+    );
+
+    const productName = isEdit ? `${product!.brand} ${product!.model}`.trim() : "Nuevo producto";
+
     return (
-        <Container headTitle={isEdit ? "Editar Producto" : "Nuevo Producto"}>
-            <div className="px-12 mb-8">
-                <Tabs.Root
-                    defaultValue={checkCurrentTab()}
-                    orientation="horizontal"
+        <Container headTitle={isEdit ? "Editar producto" : "Nuevo producto"}>
+            <div className="max-w-[1100px] mx-auto">
+                <Button
+                    color="gray"
+                    variant="ghost"
+                    className="mb-3 hover:cursor-pointer"
+                    onClick={() => router.visit(route("products"))}
                 >
+                    <BiArrowBack />
+                    Lista de productos
+                </Button>
+
+                <Flex justify="between" align="end" wrap="wrap" gap="3" className="mb-4">
+                    <div>
+                        <Text as="div" size="6" weight="bold">
+                            {productName}
+                        </Text>
+                        {isEdit && (
+                            <Text as="div" size="2" color="gray">
+                                {[product!.measure, product!.unit].filter(Boolean).join(" · ") || "Sin medida"}
+                                {" · "}Existencias en {currentBranchName}:{" "}
+                                <b>{originalStock ?? "-"}</b>
+                            </Text>
+                        )}
+                    </div>
+                    {isEdit && (
+                        <Button color="red" variant="soft" className="hover:cursor-pointer" onClick={handleOnDelete}>
+                            <BiTrash />
+                            Eliminar
+                        </Button>
+                    )}
+                </Flex>
+
+                <Tabs.Root defaultValue={checkCurrentTab()} orientation="horizontal">
                     <Tabs.List>
                         <Tabs.Trigger
                             value="data"
                             onClick={() => {
-                                //remove tab param from url
                                 const url = new URL(window.location.href);
                                 url.searchParams.delete("tab");
                                 window.history.pushState({}, "", url);
                             }}
                         >
-                            <b>Datos del producto</b>
+                            Datos del producto
                         </Tabs.Trigger>
                         {isEdit && (
                             <Tabs.Trigger
                                 value="movements"
                                 onClick={() => {
-                                    //add param to url
                                     const url = new URL(window.location.href);
                                     url.searchParams.set("tab", "movements");
                                     window.history.pushState({}, "", url);
                                 }}
                             >
-                                <b>Movimientos de inventario</b>
+                                Movimientos de inventario
                             </Tabs.Trigger>
                         )}
                     </Tabs.List>
+
                     <Tabs.Content value="data">
-                        <div className="flex flex-col justify-center mt-10 ">
-                            <div className="flex gap-4 mb-8">
-                                <Button
-                                    type="button"
-                                    color="gray"
-                                    onClick={() => {
-                                        router.visit(route("products"));
-                                    }}
-                                >
-                                    Regresar a la lista
-                                    <BiArrowBack className="w-4 h-4 " />
+                        <form onSubmit={submit} className="mt-5 space-y-4">
+                            <SectionCard title="Identificación" subtitle="* Campos obligatorios">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
+                                    {field("brand", "Marca", { required: true, className: "md:col-span-2" })}
+                                    {field("model", "Modelo", { required: true, className: "md:col-span-4" })}
+                                    {field("measure", "Medida", { className: "md:col-span-2" })}
+                                    {field("mc", "MC", { className: "md:col-span-2" })}
+                                    <div className="md:col-span-2">
+                                        <UnitInput value={data.unit} onChange={(value) => setData("unit", value)} />
+                                    </div>
+                                </div>
+                            </SectionCard>
+
+                            <SectionCard title="Precio y costo">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                                    {field("price", "Precio público ($)")}
+                                    {field("cost", "Costo ($)")}
+                                    {field("iva", "IVA (%)")}
+                                    <div>
+                                        {field("extra", "Extra (%)")}
+                                        {globalExtra !== null && (
+                                            <p className="mt-1 text-xs text-violet-700">
+                                                {currentBranchName} usa un extra global de {globalExtra}%; este valor no se aplica ahí.
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 gap-3 p-3 mt-4 text-sm rounded-md sm:grid-cols-2 bg-gray-50">
+                                    <div>
+                                        <div className="text-xs text-gray-500">
+                                            Costo con IVA y extra ({appliedExtra}%{globalExtra !== null ? " global" : ""})
+                                        </div>
+                                        <div className="font-semibold tabular-nums">{formatCurrency(costWithTaxes)}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500">Utilidad por unidad</div>
+                                        <div className={`font-semibold tabular-nums ${unitProfit < 0 ? "text-[#d03b3b]" : "text-[#006300]"}`}>
+                                            {formatCurrency(unitProfit)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </SectionCard>
+
+                            <SectionCard title="Inventario" subtitle={`Sucursal ${currentBranchName}`}>
+                                <div className="max-w-xs">
+                                    {field("stock", "Existencias")}
+                                    <p className={`mt-1 text-xs ${stockChanged ? "text-amber-700" : "text-gray-500"}`}>
+                                        {isEdit
+                                            ? stockChanged
+                                                ? `Se registrará un ajuste de ${originalStock ?? "-"} a ${data.stock}.`
+                                                : "Si lo cambias se registra un ajuste de inventario."
+                                            : "Opcional. Déjalo vacío si aún no hay existencias."}
+                                    </p>
+                                </div>
+                            </SectionCard>
+
+                            <div className="flex justify-end">
+                                <Button type="submit" color="green" size="3" disabled={processing} className="hover:cursor-pointer">
+                                    <BiSave />
+                                    {processing ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar producto"}
                                 </Button>
-                                {isEdit && (
-                                    <Button
-                                        color="red"
-                                        onClick={handleOnDelete}
-                                    >
-                                        Eliminar
-                                        <BiTrash className="w-4 h-4 " />
-                                    </Button>
-                                )}
                             </div>
-                            <div className="flex justify-between ">
-                                <h2 className="text-xl font-semibold text-gray-800">
-                                    {isEdit
-                                        ? product!.brand + " " + product!.model
-                                        : "Nuevo Producto"}
-                                </h2>
-                            </div>
-                            <div className="flex ">
-                                <form onSubmit={submit} className="mt-4 ">
-                                    <Grid
-                                        gap="4"
-                                        columns="4"
-                                        className="w-full"
-                                        gapY="4"
-                                    >
-                                        <Grid gridColumn="span 1">
-                                            <InputWithLabel
-                                                label="Marca"
-                                                name="brand"
-                                                value={data.brand}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "brand",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                error={errors.brand}
-                                            />
-                                        </Grid>
-
-                                        <Grid gridColumn="span 4">
-                                            <InputWithLabel
-                                                label="Modelo"
-                                                name="model"
-                                                value={data.model}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "model",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                error={errors.model}
-                                            />
-                                        </Grid>
-                                        <Grid gridColumn="span 1">
-                                            <InputWithLabel
-                                                label="Medida"
-                                                name="measure"
-                                                value={data.measure}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "measure",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                error={errors.measure}
-                                            />
-                                        </Grid>
-                                        <Grid gridColumn="span 1">
-                                            <InputWithLabel
-                                                label="MC"
-                                                name="mc"
-                                                value={data.mc}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "mc",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                error={errors.mc}
-                                            />
-                                        </Grid>
-                                        <Grid gridColumn="span 1">
-                                            <UnitInput
-                                                value={data.unit}
-                                                onChange={(value) =>
-                                                    setData("unit", value)
-                                                }
-                                            />
-                                        </Grid>
-                                        <Grid gridColumn="span 1">
-                                            <InputWithLabel
-                                                label="Precio público ($)"
-                                                name="price"
-                                                type="text"
-                                                value={data.price}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "price",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                error={errors.price}
-                                            />
-                                        </Grid>
-                                        <Grid gridColumn="span 1">
-                                            <InputWithLabel
-                                                label="Costo ($)"
-                                                name="cost"
-                                                type="text"
-                                                value={data.cost}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "cost",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                error={errors.cost}
-                                            />
-                                        </Grid>
-                                        <Grid gridColumn="span 1">
-                                            <InputWithLabel
-                                                label="IVA (%)"
-                                                name="iva"
-                                                type="text"
-                                                value={data.iva}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "iva",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                error={errors.iva}
-                                            />
-                                        </Grid>
-
-                                        <Grid gridColumn="span 1">
-                                            <InputWithLabel
-                                                label="Extra (%)"
-                                                name="extra"
-                                                type="text"
-                                                value={data.extra}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "extra",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                error={errors.extra}
-                                            />
-                                            {globalExtra !== null && (
-                                                <p className="mt-1 text-xs text-violet-700">
-                                                    {currentBranchName} usa un extra global de {globalExtra}%; este valor no se aplica ahí.
-                                                </p>
-                                            )}
-                                        </Grid>
-                                        <Grid gridColumn="span 1">
-                                            <InputWithLabel
-                                                label={`Existencias / Sucursal ${currentBranchName}`}
-                                                name="stock"
-                                                type="text"
-                                                value={data.stock}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "stock",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                error={errors.stock}
-                                            />
-                                        </Grid>
-                                        <Grid
-                                            gridColumn="span 4"
-                                            className="pt-4"
-                                        >
-                                            <div className="flex justify-end">
-                                                <Button
-                                                    type="submit"
-                                                    color="green"
-                                                >
-                                                    {isEdit
-                                                        ? "Actualizar"
-                                                        : "Guardar"}
-                                                    <BiSave className="w-4 h-4 " />
-                                                </Button>
-                                            </div>
-                                        </Grid>
-                                    </Grid>
-                                </form>
-                            </div>
-                        </div>
+                        </form>
                     </Tabs.Content>
 
                     <Tabs.Content value="movements">
-                        <div className="flex items-center justify-between mt-10 mb-4">
-                            {/* Product name */}
-                            <div>
-                                <h1 className="text-xl font-semibold text-gray-800">
-                                    {product?.brand + " " + product?.model}
-                                </h1>
-
-                                <h2 className="text-xl font-semibold text-gray-600">
-                                    Movimientos de inventario -{" "}
-                                    {currentBranchName}
-                                </h2>
-                            </div>
-                            <Button
-                                color="green"
-                                onClick={() => setShowMovementModal(true)}
-                            >
-                                Nuevo Movimiento
-                                <BiPlus className="w-5 h-5" />
-                            </Button>
-                        </div>
-
-                        <h3 className="mb-6 font-medium text-gray-600 text-md">
-                            Existencias actual:{" "}
-                            {isNumber(product?.stock?.quantity)
-                                ? Number(product?.stock?.quantity)
-                                : "-"}
-                        </h3>
-
-                        <Table.Root>
-                            <Table.Header>
-                                <Table.Row>
-                                    <Table.ColumnHeaderCell>
-                                        Fecha
-                                    </Table.ColumnHeaderCell>
-                                    <Table.ColumnHeaderCell>
-                                        Sucursal
-                                    </Table.ColumnHeaderCell>
-                                    <Table.ColumnHeaderCell>
-                                        Tipo
-                                    </Table.ColumnHeaderCell>
-
-                                    <Table.ColumnHeaderCell>
-                                        Cantidad
-                                    </Table.ColumnHeaderCell>
-
-                                    <Table.ColumnHeaderCell>
-                                        Descripción
-                                    </Table.ColumnHeaderCell>
-                                </Table.Row>
-                            </Table.Header>
-                            <Table.Body>
-                                {(stockMovements as [])?.length === 0 && (
-                                    <Table.Row>
-                                        <Table.Cell
-                                            className="h-20 py-4 text-center"
-                                            colSpan={6}
-                                        >
-                                            <span className="text-gray-500 h-100">
-                                                No hay movimientos de inventario
-                                                para este producto.
-                                            </span>
-                                        </Table.Cell>
-                                    </Table.Row>
-                                )}
-
-                                {(stockMovements as StockMovement[])?.map(
-                                    (m) => (
-                                        <Table.Row key={m.id}>
-                                            <Table.Cell>
-                                                {new Date(
-                                                    m.created_at
-                                                ).toLocaleString()}
-                                            </Table.Cell>
-                                            <Table.Cell>
-                                                {m.branch?.name ?? "-"}
-                                            </Table.Cell>
-                                            <Table.Cell>
-                                                {m.movement_type === "IN" &&
-                                                    "Entrada"}
-                                                {m.movement_type === "OUT" &&
-                                                    "Salida"}
-                                                {m.movement_type ===
-                                                    "TRANSFER_IN" &&
-                                                    "Traspaso Entrada"}
-                                                {m.movement_type ===
-                                                    "TRANSFER_OUT" &&
-                                                    "Traspaso Salida"}
-                                                {m.movement_type ===
-                                                    "ADJUSTMENT" && "Ajuste"}
-
-                                                {
-                                                    movementIcons[
-                                                        m.movement_type as keyof typeof movementIcons
-                                                    ]
-                                                }
-                                            </Table.Cell>
-
-                                            <Table.Cell>
-                                                {isNumber(m.quantity)
-                                                    ? Number(m.quantity)
-                                                    : "-"}
-                                            </Table.Cell>
-
-                                            <Table.Cell>
-                                                {m.description ?? "-"}
-                                                {m.note_id && (
-                                                    <a
-                                                        href={route(
-                                                            "notes.show",
-                                                            m.note_id
-                                                        )}
-                                                        target="_blank"
-                                                        className="flex items-center gap-2 text-blue-500 hover:underline"
-                                                    >
-                                                        Ver nota
-                                                        <BiArrowToRight className="inline-block w-4 h-4 ml-1" />
-                                                    </a>
-                                                )}
-                                            </Table.Cell>
-                                        </Table.Row>
-                                    )
-                                )}
-                            </Table.Body>
-                        </Table.Root>
-                        <Pagination pagination={stockMovementsWithPagination} />
+                        <SectionCard
+                            className="mt-5"
+                            title={`Movimientos en ${currentBranchName}`}
+                            subtitle={`Existencias actuales: ${originalStock ?? "-"}`}
+                            actions={
+                                <Button color="green" className="hover:cursor-pointer" onClick={() => setShowMovementModal(true)}>
+                                    <BiPlus className="w-5 h-5" />
+                                    Nuevo movimiento
+                                </Button>
+                            }
+                        >
+                            {stockMovements.length === 0 ? (
+                                <p className="py-8 text-sm text-center text-gray-500">
+                                    No hay movimientos de inventario para este producto.
+                                </p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="text-xs text-left text-gray-500 uppercase border-b border-gray-200">
+                                                <th className="py-2 pr-3 font-medium">Fecha</th>
+                                                <th className="py-2 pr-3 font-medium">Sucursal</th>
+                                                <th className="py-2 pr-3 font-medium">Tipo</th>
+                                                <th className="py-2 pr-3 font-medium text-right">Cantidad</th>
+                                                <th className="py-2 font-medium">Descripción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {stockMovements.map((m) => {
+                                                const type = movementLabels[m.movement_type] ?? { label: m.movement_type, color: "gray" as const };
+                                                return (
+                                                    <tr key={m.id} className="border-b border-gray-100">
+                                                        <td className="py-2 pr-3 whitespace-nowrap">{new Date(m.created_at).toLocaleString("es-MX")}</td>
+                                                        <td className="py-2 pr-3">{m.branch?.name ?? "-"}</td>
+                                                        <td className="py-2 pr-3 whitespace-nowrap">
+                                                            <Badge color={type.color} variant="soft">
+                                                                {type.label}
+                                                                {movementIcons[m.movement_type as keyof typeof movementIcons]}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="py-2 pr-3 font-medium text-right tabular-nums">
+                                                            {isNumber(m.quantity) ? Number(m.quantity) : "-"}
+                                                        </td>
+                                                        <td className="py-2">
+                                                            {m.description ?? "-"}
+                                                            {m.note_id && (
+                                                                <a
+                                                                    href={route("notes.show", m.note_id)}
+                                                                    target="_blank"
+                                                                    className="inline-flex items-center gap-1 ml-2 text-blue-600 hover:underline"
+                                                                >
+                                                                    Ver nota
+                                                                    <BiArrowToRight className="w-4 h-4" />
+                                                                </a>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                            <Pagination pagination={stockMovementsWithPagination} />
+                        </SectionCard>
                     </Tabs.Content>
                 </Tabs.Root>
 
-                {/* Modal para nuevo movimiento */}
-                <Modal
-                    show={showMovementModal}
-                    onClose={() => setShowMovementModal(false)}
-                    maxWidth="lg"
-                >
-                    {product && (
-                        <StockMovementForm
-                            product={product}
-                            onClose={() => setShowMovementModal(false)}
-                        />
-                    )}
+                <Modal show={showMovementModal} onClose={() => setShowMovementModal(false)} maxWidth="lg">
+                    {product && <StockMovementForm product={product} onClose={() => setShowMovementModal(false)} />}
                 </Modal>
             </div>
         </Container>

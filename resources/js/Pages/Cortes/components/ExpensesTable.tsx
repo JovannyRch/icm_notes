@@ -1,55 +1,36 @@
 import DynamicTable, { Column } from "@/Components/DynamicTable";
 import { formatCurrency } from "@/helpers/formatters";
 import { isNumber } from "@/helpers/utils";
-import { Flex, Text } from "@radix-ui/themes";
 import { useMemo } from "react";
 
 interface Props {
     expenses: ExpenseInput[];
-    setExpenses: (notes: ExpenseInput[]) => void;
+    setExpenses: (rows: ExpenseInput[]) => void;
     isDisabled?: boolean;
 }
 
 const ExpensesTable = ({ expenses, setExpenses, isDisabled }: Props) => {
     const columns: Column<ExpenseInput>[] = [
-        { label: "CONCEPTO", key: "concept" },
-        { label: "CANTIDAD", key: "amount" },
+        { label: "Concepto", key: "concept", placeholder: "Agregar concepto..." },
+        { label: "Cantidad", key: "amount", money: true, placeholder: "0.00" },
     ];
 
-    const expensesSum = useMemo(
-        () =>
-            expenses.reduce(
-                (currentValue, currentItem) =>
-                    currentValue +
-                    (isNumber(currentItem.amount)
-                        ? Number(currentItem.amount)
-                        : 0),
-                0
-            ),
+    const sum = useMemo(
+        () => expenses.reduce((acc, item) => acc + (isNumber(item.amount) ? Number(item.amount) : 0), 0),
         [expenses]
     );
 
     return (
         <div>
-            <Flex justify="center" className="mb-4">
-                <Text size="4" weight="bold">
-                    GASTOS
-                </Text>
-            </Flex>
-
             <DynamicTable<ExpenseInput>
                 columns={columns}
                 rows={expenses}
                 setRows={setExpenses}
                 isEditable={!isDisabled}
             />
-            <div className="flex justify-end gap-4">
-                <div className="flex justify-end mt-6">
-                    <Text weight="bold">
-                        Total devoluciones:
-                        {formatCurrency(expensesSum)}
-                    </Text>
-                </div>
+            <div className="flex justify-end pt-3 text-sm">
+                <span className="mr-2 text-steel">Total gastos</span>
+                <span className="font-semibold tabular-nums">{formatCurrency(sum)}</span>
             </div>
         </div>
     );

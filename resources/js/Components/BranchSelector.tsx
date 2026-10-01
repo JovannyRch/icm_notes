@@ -1,72 +1,54 @@
-import React from "react";
-import { router } from "@inertiajs/react";
-import { textWithEllipsis } from "@/helpers/utils";
 import { useBranch } from "@/hooks/useBranch";
+import { DropdownMenu } from "@radix-ui/themes";
 import axios from "axios";
-import { useLocalStorage } from "usehooks-ts";
+import { useState } from "react";
+import { LuCheck, LuChevronsUpDown, LuStore } from "react-icons/lu";
 
-interface Branch {
-    id: number | string;
-    name: string;
-}
-
-export const BranchSelector: React.FC = () => {
-    const [open, setOpen] = React.useState(false);
+/**
+ * Cambia la sucursal activa (sesión). Tras el POST se recarga la página completa:
+ * BranchContext se carga una sola vez al arrancar (ver app.tsx).
+ */
+export const BranchSelector = ({ fullWidth = false }: { fullWidth?: boolean }) => {
     const { branches, currentBranch } = useBranch();
+    const [switching, setSwitching] = useState(false);
 
-    const handleSelect = (branch: Branch) => {
-        axios.post(route("set-branch"), { branch_id: branch.id }).then(() => {
-            window.location.reload();
-        });
+    const handleSelect = (branchId: number) => {
+        if (branchId === currentBranch?.id) return;
+        setSwitching(true);
+        axios
+            .post(route("set-branch"), { branch_id: branchId })
+            .then(() => window.location.reload())
+            .catch(() => setSwitching(false));
     };
 
     return (
-        <div className="flex items-center h-full">
-            <div className="relative">
+        <DropdownMenu.Root>
+            <DropdownMenu.Trigger disabled={switching}>
                 <button
-                    onClick={() => setOpen((prev) => !prev)}
-                    className="flex items-center justify-between w-48 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none"
+                    type="button"
+                    className={`inline-flex items-center gap-2 h-8 px-3 text-sm font-medium bg-white border rounded-button border-ash text-charcoal hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-electric/30 ${
+                        fullWidth ? "w-full justify-between" : "max-w-[240px]"
+                    }`}
+                    aria-label="Cambiar sucursal"
                 >
-                    <span>
-                        {textWithEllipsis(currentBranch?.name ?? "") ??
-                            "Seleccionar sucursal"}
+                    <LuStore className="w-4 h-4 text-fog shrink-0" />
+                    <span className="truncate">
+                        {switching ? "Cambiando..." : currentBranch?.name ?? "Seleccionar sucursal"}
                     </span>
-                    <svg
-                        className={`w-4 h-4 ml-2 transition-transform ${
-                            open ? "rotate-180" : "rotate-0"
-                        }`}
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                        />
-                    </svg>
+                    <LuChevronsUpDown className="w-3.5 h-3.5 text-fog shrink-0" />
                 </button>
-
-                {open && (
-                    <div className="absolute left-0 z-20 w-48 mt-2 bg-white border border-gray-200 rounded-md shadow-lg">
-                        {branches.map((branch) => (
-                            <button
-                                key={branch.id}
-                                onClick={() => handleSelect(branch)}
-                                className={`block w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 ${
-                                    branch.id === currentBranch?.id
-                                        ? "bg-indigo-100 font-medium"
-                                        : "text-gray-700"
-                                }`}
-                            >
-                                {branch.name}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="end" variant="soft" color="gray" sideOffset={6}>
+                <DropdownMenu.Label>Sucursal</DropdownMenu.Label>
+                {branches.map((branch) => (
+                    <DropdownMenu.Item key={branch.id} onSelect={() => handleSelect(branch.id)}>
+                        <span className="flex items-center justify-between w-full gap-6">
+                            {branch.name}
+                            {branch.id === currentBranch?.id && <LuCheck className="w-4 h-4 text-electric" />}
+                        </span>
+                    </DropdownMenu.Item>
+                ))}
+            </DropdownMenu.Content>
+        </DropdownMenu.Root>
     );
 };
