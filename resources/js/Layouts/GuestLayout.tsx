@@ -1,19 +1,35 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import { Link } from '@inertiajs/react';
-import { PropsWithChildren } from 'react';
+import ApplicationLogo from "@/Components/ApplicationLogo";
+import { Link } from "@inertiajs/react";
+import { PropsWithChildren, ReactNode } from "react";
 
-export default function Guest({ children }: PropsWithChildren) {
+/**
+ * Pantallas de acceso: lienzo blanco con la retícula de puntos de DESIGN.md y una
+ * tarjeta elevada con anillo sutil (Elevated Feature Card).
+ */
+export default function Guest({ children, title, description }: PropsWithChildren<{ title?: ReactNode; description?: ReactNode }>) {
     return (
-        <div className="flex min-h-screen flex-col items-center bg-gray-100 pt-6 sm:justify-center sm:pt-0">
-            <div>
-                <Link href="/">
-                    <ApplicationLogo className="h-20 w-20 fill-current text-gray-500" />
-                </Link>
-            </div>
+        <div
+            className="flex flex-col items-center justify-center min-h-screen px-4 py-10 bg-canvas"
+            style={{
+                backgroundImage: "radial-gradient(rgba(10,10,10,0.07) 1px, transparent 1px)",
+                backgroundSize: "18px 18px",
+            }}
+        >
+            <Link href="/" aria-label="Inicio" className="mb-6">
+                <ApplicationLogo className="w-auto h-14 fill-current text-charcoal" />
+            </Link>
 
-            <div className="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg">
+            <div className="w-full max-w-sm p-8 bg-white border border-ash rounded-card-lg shadow-ring">
+                {(title || description) && (
+                    <div className="mb-6">
+                        {title && <h1 className="text-xl font-semibold tracking-tight text-charcoal">{title}</h1>}
+                        {description && <p className="mt-1 text-sm text-steel">{description}</p>}
+                    </div>
+                )}
                 {children}
             </div>
+
+            <p className="mt-6 text-xs text-fog">ICM Notes · Ideas Modernas de Construcción</p>
         </div>
     );
 }

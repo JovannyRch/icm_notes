@@ -29,11 +29,11 @@ export default function Login({
     };
 
     return (
-        <GuestLayout>
-            <Head title="Log in" />
+        <GuestLayout title="Iniciar sesión" description="Accede con tu correo y contraseña.">
+            <Head title="Iniciar sesión" />
 
             {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
+                <div className="p-3 mb-4 text-sm font-medium rounded-button bg-mint text-green-900">
                     {status}
                 </div>
             )}
@@ -47,7 +47,7 @@ export default function Login({
                         type="email"
                         name="email"
                         value={data.email}
-                        className="block w-full mt-1"
+                        className="block w-full h-10"
                         autoComplete="username"
                         isFocused={true}
                         onChange={(e) => setData("email", e.target.value)}
@@ -64,7 +64,7 @@ export default function Login({
                         type="password"
                         name="password"
                         value={data.password}
-                        className="block w-full mt-1"
+                        className="block w-full h-10"
                         autoComplete="current-password"
                         onChange={(e) => setData("password", e.target.value)}
                     />
@@ -72,11 +72,9 @@ export default function Login({
                     <InputError message={errors.password} className="mt-2" />
                 </div>
 
-                <div className="flex items-center justify-end mt-4">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Iniciar sesión
-                    </PrimaryButton>
-                </div>
+                <PrimaryButton className="w-full mt-6" disabled={processing}>
+                    {processing ? "Entrando..." : "Iniciar sesión"}
+                </PrimaryButton>
             </form>
         </GuestLayout>
     );

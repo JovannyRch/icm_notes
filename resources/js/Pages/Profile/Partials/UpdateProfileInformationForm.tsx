@@ -32,7 +32,7 @@ export default function UpdateProfileInformation({
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-[15px] font-semibold text-charcoal">
                     Información del perfil
                 </h2>
 
@@ -59,12 +59,12 @@ export default function UpdateProfileInformation({
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="email" value="Email" />
+                    <InputLabel htmlFor="email" value="Correo electrónico" />
 
                     <TextInput
                         id="email"
                         type="email"
-                        className="block w-full mt-1"
+                        className="block w-full h-9 bg-paper text-steel"
                         readOnly
                         value={data.email}
                         onChange={(e) => setData("email", e.target.value)}
@@ -73,12 +73,10 @@ export default function UpdateProfileInformation({
                         autoComplete="username"
                     />
 
-                    <InputError
-                        className="mt-2"
-                        message={
-                            "No puedes cambiar tu correo electrónico. Si necesitas hacerlo, por favor contacta a soporte."
-                        }
-                    />
+                    {/* Nota informativa, no un error: el correo no es editable desde aquí. */}
+                    <p className="mt-1.5 text-xs text-fog">
+                        No puedes cambiar tu correo electrónico. Si necesitas hacerlo, contacta a soporte.
+                    </p>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -91,7 +89,7 @@ export default function UpdateProfileInformation({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-vivid-green">
                             Cambios guardados.
                         </p>
                     </Transition>

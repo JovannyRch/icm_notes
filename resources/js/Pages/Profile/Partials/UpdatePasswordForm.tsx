@@ -51,7 +51,7 @@ export default function UpdatePasswordForm({
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-[15px] font-semibold text-charcoal">
                     Actualizar contraseña
                 </h2>
 
@@ -135,7 +135,7 @@ export default function UpdatePasswordForm({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-vivid-green">
                             Contraseña actualizada.
                         </p>
                     </Transition>
