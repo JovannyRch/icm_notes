@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CorteController;
 use App\Http\Controllers\CorteSemanalController;
@@ -98,8 +99,10 @@ Route::resource('stock', StockController::class)->only(['index', 'store'])->midd
 Route::get('/nota-entrada/crear', [StockEntryController::class, 'create'])->middleware(['auth', 'verified'])->name('stock-entries.create');
 Route::post('/nota-entrada', [StockEntryController::class, 'store'])->middleware(['auth', 'verified'])->name('stock-entries.store');
 
-//Pagos del servicio (pantalla oculta, ver config/billing.php)
+//Admin: dashboard y pagos del servicio (ocultas, ver config/billing.php)
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+    Route::get('/admin/dashboard/exportar', [AdminDashboardController::class, 'export'])->name('admin.dashboard.export');
     Route::get('/admin/pagos-servicio', [ServicePaymentController::class, 'index'])->name('service-payments.index');
     Route::post('/admin/pagos-servicio', [ServicePaymentController::class, 'store'])->name('service-payments.store');
     Route::delete('/admin/pagos-servicio/{servicePayment}', [ServicePaymentController::class, 'destroy'])->name('service-payments.destroy');

@@ -24,10 +24,12 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
 
-        Gate::define('manage-billing', fn (User $user) => in_array(
+        // Admin = el desarrollador (BILLING_ADMIN_EMAILS); no hay roles en users.
+        Gate::define('admin', fn (User $user) => in_array(
             strtolower($user->email),
             config('billing.admin_emails'),
             true
         ));
+        Gate::define('manage-billing', fn (User $user) => Gate::forUser($user)->allows('admin'));
     }
 }

@@ -24,6 +24,7 @@ export type PageProps<
     };
     billing: BillingStatus | null;
     canManageBilling: boolean;
+    isAdmin: boolean;
 };
 
 export type payment_status = "pending" | "paid" | "canceled";

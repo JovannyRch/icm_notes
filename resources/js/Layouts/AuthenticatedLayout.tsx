@@ -16,7 +16,7 @@ export default function Authenticated({
     header,
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
-    const { auth, canManageBilling } = usePage<PageProps>().props;
+    const { auth, canManageBilling, isAdmin } = usePage<PageProps>().props;
     const user = auth.user;
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
@@ -54,6 +54,14 @@ export default function Authenticated({
                                 >
                                     Productos
                                 </NavLink>
+                                {isAdmin && (
+                                    <NavLink
+                                        href={route("admin.dashboard")}
+                                        active={route().current("admin.dashboard")}
+                                    >
+                                        Dashboard
+                                    </NavLink>
+                                )}
                             </div>
                         </div>
 
@@ -174,6 +182,14 @@ export default function Authenticated({
                         >
                             Productos
                         </ResponsiveNavLink>
+                        {isAdmin && (
+                            <ResponsiveNavLink
+                                href={route("admin.dashboard")}
+                                active={route().current("admin.dashboard")}
+                            >
+                                Dashboard
+                            </ResponsiveNavLink>
+                        )}
                     </div>
 
                     <div className="pt-4 pb-1 border-t border-gray-200">

@@ -49,6 +49,7 @@ class HandleInertiaRequests extends Middleware
             'branches' => fn() => Branch::all(['id', 'name']),
             'billing' => fn() => $request->user() ? app(BillingStatusService::class)->status() : null,
             'canManageBilling' => fn() => $request->user() && Gate::allows('manage-billing'),
+            'isAdmin' => fn() => $request->user() && Gate::allows('admin'),
         ];
     }
 }
