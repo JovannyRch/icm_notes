@@ -54,3 +54,48 @@ test("crear nota envía exactamente el mismo payload", async ({ page }) => {
     const body = JSON.stringify(sortKeys(JSON.parse(payload!)), null, 2);
     expect(body).toMatchSnapshot("crear-nota-payload.json");
 });
+
+test("guardar cambios de una nota envía exactamente el mismo payload", async ({ page }) => {
+    await login(page);
+    await page.goto("/nota/crear");
+    await page.fill('input[name="date"]', "2026-07-21");
+    await page.fill('input[name="note_number"]', "E2E-PAYLOAD-EDIT");
+    await page.fill('input[name="customer"]', "Edición");
+    await addProduct(page, "GOODYEAR");
+    await fillPayment(page, 0, { cash: "300" });
+    await page.getByRole("button", { name: "Crear nota" }).first().click();
+    await page.waitForURL(/\/nota\/\d+$/);
+
+    let payload: string | null = null;
+    await page.route(/\/nota\/\d+$/, async (route) => {
+        if (route.request().method() === "PUT") {
+            payload = route.request().postData();
+            await route.abort();
+        } else {
+            await route.continue();
+        }
+    });
+
+    await addProduct(page, "MICHELIN");
+    await page.locator('input[name="quantity"]').first().fill("4");
+    await page.fill('input[name="flete"]', "80");
+    await page.getByRole("button", { name: "Agregar pago" }).click();
+    await fillPayment(page, 1, { transfer: "500", date: toDisplayDate("2026-07-25") });
+    await page.getByRole("button", { name: "Guardar cambios" }).first().click();
+    await expect.poll(() => payload, { timeout: 10_000 }).not.toBeNull();
+
+    // Los ids dependen del orden en que corren las pruebas: fuera del snapshot.
+    const strip = (value: unknown): unknown =>
+        Array.isArray(value)
+            ? value.map(strip)
+            : value && typeof value === "object"
+              ? Object.fromEntries(
+                    Object.keys(value as object)
+                        .filter((k) => !["id", "note_id", "created_at", "updated_at"].includes(k))
+                        .sort()
+                        .map((k) => [k, strip((value as Record<string, unknown>)[k])])
+                )
+              : value;
+
+    expect(JSON.stringify(strip(JSON.parse(payload!)), null, 2)).toMatchSnapshot("editar-nota-payload.json");
+});

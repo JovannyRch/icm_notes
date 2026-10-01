@@ -22,7 +22,7 @@ interface EntryRow {
 
 const StockEntryForm = ({ flash }: PageProps) => {
     useAlerts(flash);
-    const { currentBranchName } = useBranch();
+    const { currentBranchName, currentBranchId } = useBranch();
 
     const [rows, setRows] = useState<EntryRow[]>([]);
     const [showProductsModal, setShowProductsModal] = useState(false);
@@ -202,6 +202,7 @@ const StockEntryForm = ({ flash }: PageProps) => {
             </form>
 
             <ProductsModal
+                branchId={currentBranchId}
                 open={showProductsModal}
                 onClose={() => setShowProductsModal(false)}
                 onAddProduct={addProduct}

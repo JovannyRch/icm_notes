@@ -57,8 +57,9 @@ Route::middleware('auth')->group(function () {
 
 
 //Files
-Route::post('/import-products', [ProductImportController::class, 'store'])->name('import.products');
-Route::get('/export-products', [ProductImportController::class, 'export'])->name('export.products');
+// Con sesión: la importación modifica el catálogo y las existencias de la sucursal activa.
+Route::post('/import-products', [ProductImportController::class, 'store'])->middleware(['auth', 'verified'])->name('import.products');
+Route::get('/export-products', [ProductImportController::class, 'export'])->middleware(['auth', 'verified'])->name('export.products');
 
 
 

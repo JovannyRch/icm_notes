@@ -26,6 +26,7 @@ import {
     Badge,
     Box,
     Button,
+    DropdownMenu,
     Flex,
     Grid,
     IconButton,
@@ -34,7 +35,8 @@ import {
     Text,
     TextArea,
 } from "@radix-ui/themes";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import { BiArchive, BiArrowBack, BiDollar, BiPlus } from "react-icons/bi";
 import {
     MdCancel,
@@ -44,7 +46,8 @@ import {
 } from "react-icons/md";
 import { TbCashRegister, TbTrash } from "react-icons/tb";
 import { toast } from "react-toastify";
-import { Inertia } from "@inertiajs/inertia";
+import PageHeader from "@/Components/ui/PageHeader";
+import { LuArchive, LuArchiveRestore, LuCalculator, LuChevronDown, LuFilePlus, LuTrash2 } from "react-icons/lu";
 import { SuppliedStatusSelect } from "@/Components/SuppliedStatusSelect";
 import { DeliveryStatusSelect } from "@/Components/DeliveryStatusSelect";
 import StatusPaidBadge from "@/Components/StatusPaidBadge";
@@ -130,7 +133,7 @@ const NoteForm = ({
     });
     const [selectedProductIndex, setSelectedProductIndex] = useState(0);
 
-    const { data, setData, errors, post, put, transform } = useForm<NoteFormData>({
+    const { data, setData, errors, post, put, transform, processing } = useForm<NoteFormData>({
         folio: isEdit ? note?.folio : "",
         customer: isEdit ? note?.customer : "",
         sale_total: String(isEdit ? note?.sale_total : 0),
@@ -241,8 +244,13 @@ const NoteForm = ({
         isEdit ? note?.purchase_status === "paid" : false
     );
 
+    // Bloquea doble envío: `processing` no alcanza a re-renderizar entre dos clics seguidos.
+    const submittingRef = useRef(false);
+
     const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (submittingRef.current) return;
+        submittingRef.current = true;
 
         // El primer pago siempre lleva la fecha de la nota; los demás la suya.
         // Las filas sin importe no se envían.
@@ -268,12 +276,18 @@ const NoteForm = ({
         if (isEdit) {
             put(route("notes.update", note?.id), {
                 onFinish: () => {
+                    submittingRef.current = false;
                     router.visit(route("notes.show", note?.id));
                 },
                 preserveScroll: true,
             });
         } else {
-            post(route("notes.store"), { preserveScroll: true });
+            post(route("notes.store"), {
+                preserveScroll: true,
+                onFinish: () => {
+                    submittingRef.current = false;
+                },
+            });
         }
     };
 
@@ -285,7 +299,7 @@ const NoteForm = ({
                 {
                     label: "Sí",
                     onClick: () => {
-                        Inertia.post(route("notes.destroy", note?.id));
+                        router.post(route("notes.destroy", note?.id));
                     },
                 },
                 {
@@ -296,8 +310,9 @@ const NoteForm = ({
         });
     };
 
+    // router (Inertia 2): con el cliente legado se recargaba la página y se perdía el mensaje.
     const handleArchive = () => {
-        Inertia.patch(route("notes.archive", note?.id));
+        router.patch(route("notes.archive", note?.id), {}, { preserveScroll: true });
     };
 
     const createNoteItemFromProduct = (product: Product) => {
@@ -345,139 +360,132 @@ const NoteForm = ({
         "THIS_WEEK"
     );
 
+    // --- Aviso de existencias (informativo; no altera partidas ni el envío) ---
+    // Existencias actuales en la sucursal de la nota, por producto.
+    const [stockByProduct, setStockByProduct] = useState<Record<number, number | null>>({});
+    // Piezas que esta nota ya tiene guardadas: ya se descontaron del stock, así que
+    // al editar también cuentan como disponibles para ella.
+    const savedQuantities = useMemo(() => {
+        const totals: Record<number, number> = {};
+        initialItems.forEach((item) => {
+            if (item.product_id) totals[item.product_id] = (totals[item.product_id] ?? 0) + Number(item.quantity || 0);
+        });
+        return totals;
+    }, []);
+    const missingStockIds = useMemo(
+        () =>
+            Array.from(new Set(items.map((item) => item.product_id).filter((id): id is number => !!id))).filter(
+                (id) => !(id in stockByProduct)
+            ),
+        [items, stockByProduct]
+    );
+    useEffect(() => {
+        if (missingStockIds.length === 0) return;
+        axios
+            .get("/api/products/stock", { params: { branch_id: branch.id, ids: missingStockIds } })
+            .then(({ data: stocks }) => setStockByProduct((current) => ({ ...current, ...stocks })))
+            .catch(() => {
+                // Sin aviso si falla: nunca debe estorbar la captura de la nota.
+            });
+    }, [missingStockIds.join(","), branch.id]);
+    const requestedByProduct = useMemo(() => {
+        const totals: Record<number, number> = {};
+        items.forEach((item) => {
+            if (item.product_id) totals[item.product_id] = (totals[item.product_id] ?? 0) + Number(item.quantity || 0);
+        });
+        return totals;
+    }, [items]);
+    const stockFor = (item: NoteItemInterface) => {
+        if (!item.product_id || !(item.product_id in stockByProduct)) return undefined;
+        return {
+            available: Number(stockByProduct[item.product_id] ?? 0) + (savedQuantities[item.product_id] ?? 0),
+            requested: requestedByProduct[item.product_id] ?? 0,
+            branchName: branch.name,
+        };
+    };
+
     return (
         <Container headTitle={isEdit ? "Editar nota" : "Crear nota"}>
             <form onSubmit={handleOnSubmit}>
-                <Box className="mb-4">
-                    <Flex gap="2" justify="between">
-                        <Flex
-                            gap="2"
-                            direction={{ initial: "column", md: "row" }}
-                        >
-                            <Button
-                                type="button"
-                                color="gray"
-                                variant="soft"
-                                className="btn btn-secondary hover:cursor-pointer"
-                                onClick={() => {
-                                    router.visit(
-                                        route("notas", {
-                                            date: filterDate,
-                                        })
-                                    );
-                                }}
-                            >
-                                Regresar al listado
-                                <BiArrowBack />
-                            </Button>
+                <PageHeader
+                    back={{ label: "Notas", href: route("notas", { date: filterDate }) }}
+                    eyebrow={branch.name}
+                    title={
+                        isEdit ? (
+                            <span className="inline-flex items-center gap-2">
+                                Nota {note.folio}
+                                {Boolean(note.archived) && (
+                                    <span className="px-2 py-0.5 text-xs font-medium align-middle rounded-tag bg-paper text-steel">
+                                        Archivada
+                                    </span>
+                                )}
+                            </span>
+                        ) : (
+                            "Nueva nota de venta"
+                        )
+                    }
+                    actions={
+                        <>
                             {isEdit && (
-                                <>
-                                    <Button
-                                        type="button"
-                                        color="red"
-                                        variant="soft"
-                                        className="btn btn-secondary hover:cursor-pointer"
-                                        onClick={handleDelete}
-                                    >
-                                        Eliminar
-                                        <TbTrash />
-                                    </Button>
-                                    {Boolean(note.archived) ? (
-                                        <Button
-                                            type="button"
-                                            color="orange"
-                                            variant="soft"
-                                            className="btn btn-secondary hover:cursor-pointer"
-                                            onClick={handleArchive}
-                                        >
-                                            Desarchivar
-                                            <MdUnarchive />
+                                <DropdownMenu.Root>
+                                    <DropdownMenu.Trigger>
+                                        <Button type="button" variant="outline" color="gray">
+                                            Acciones
+                                            <LuChevronDown />
                                         </Button>
-                                    ) : (
-                                        <Button
-                                            type="button"
-                                            color="amber"
-                                            variant="soft"
-                                            className="btn btn-secondary hover:cursor-pointer"
-                                            onClick={handleArchive}
+                                    </DropdownMenu.Trigger>
+                                    <DropdownMenu.Content align="end" variant="soft" color="gray">
+                                        <DropdownMenu.Item
+                                            onSelect={() => router.visit(route("notes.create", { branch: branch.id }))}
                                         >
-                                            Archivar
-                                            <BiArchive />
-                                        </Button>
-                                    )}
-                                    <Button
-                                        color="green"
-                                        type="button"
-                                        variant="soft"
-                                        className="hover:cursor-pointer"
-                                        onClick={() => {
-                                            router.visit(
-                                                route("notes.create", {
-                                                    branch: branch.id,
-                                                })
-                                            );
-                                        }}
-                                    >
-                                        Nueva nota
-                                        <BiPlus />
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        color="gold"
-                                        variant="soft"
-                                        onClick={() => {
-                                            router.visit(
-                                                route("cortes.new", {
-                                                    branch: branch.id,
-                                                })
-                                            );
-                                        }}
-                                        className="hover:cursor-pointer"
-                                    >
-                                        Generar Corte
-                                        <TbCashRegister className="w-5 h-5" />
-                                    </Button>
-                                </>
+                                            <LuFilePlus /> Nueva nota
+                                        </DropdownMenu.Item>
+                                        <DropdownMenu.Item
+                                            onSelect={() => router.visit(route("cortes.new", { branch: branch.id }))}
+                                        >
+                                            <LuCalculator /> Generar corte
+                                        </DropdownMenu.Item>
+                                        <DropdownMenu.Separator />
+                                        <DropdownMenu.Item onSelect={handleArchive}>
+                                            {Boolean(note.archived) ? (
+                                                <>
+                                                    <LuArchiveRestore /> Desarchivar
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <LuArchive /> Archivar
+                                                </>
+                                            )}
+                                        </DropdownMenu.Item>
+                                        <DropdownMenu.Item color="red" onSelect={handleDelete}>
+                                            <LuTrash2 /> Eliminar
+                                        </DropdownMenu.Item>
+                                    </DropdownMenu.Content>
+                                </DropdownMenu.Root>
                             )}
-                        </Flex>
-                        <Flex
-                            gap="4"
-                            direction={{ initial: "column", md: "row" }}
-                        >
                             {isEdit && (
                                 <Button
                                     type="button"
+                                    variant="outline"
                                     color="gray"
-                                    className="btn btn-secondary hover:cursor-pointer"
-                                    variant="soft"
-                                    onClick={() => {
-                                        router.visit(
-                                            route("notes.show", {
-                                                note: note.id,
-                                            })
-                                        );
-                                    }}
+                                    onClick={() => router.visit(route("notes.show", { note: note.id }))}
                                 >
-                                    Cancelar cambios <MdCancel />
+                                    Cancelar cambios
                                 </Button>
                             )}
-
-                            <Button
-                                type="submit"
-                                className="btn btn-primary hover:cursor-pointer"
-                            >
-                                {isEdit ? "Guardar cambios" : "Crear nota"}
+                            <Button type="submit" disabled={processing}>
                                 <MdSave />
+                                {isEdit ? "Guardar cambios" : "Crear nota"}
                             </Button>
-                        </Flex>
-                    </Flex>
-                </Box>
+                        </>
+                    }
+                />
 
-                <Grid columns="9" gap="2">
-                    <Grid gridColumn="span 7">
-                        <Flex direction="column" gap="2">
-                            <Grid columns="9" gap="2">
-                                <Grid gridColumn="span 6">
+                <Grid columns={{ initial: "1", lg: "12" }} gap="4">
+                    <Grid gridColumn={{ initial: "span 1", lg: "span 8" }}>
+                        <Flex direction="column" gap="4">
+                            <Grid columns={{ initial: "1", md: "9" }} gap="4">
+                                <Grid gridColumn={{ initial: "span 1", md: "span 6" }}>
                                     <ContainerSection title="Detalles de la nota">
                                         <Grid columns="3" gap="3">
                                             <Grid gridColumn="span 2">
@@ -572,7 +580,7 @@ const NoteForm = ({
                                         </Grid>
                                     </ContainerSection>
                                 </Grid>
-                                <Grid gridColumn="span 3">
+                                <Grid gridColumn={{ initial: "span 1", md: "span 3" }}>
                                     <ContainerSection title="Comentarios">
                                         <TextArea
                                             value={data.notes}
@@ -596,6 +604,7 @@ const NoteForm = ({
                                             <NoteItem
                                                 item={item}
                                                 index={index}
+                                                stock={stockFor(item)}
                                                 onDelete={(index: number) => {
                                                     setItems(
                                                         items.filter(
@@ -634,8 +643,8 @@ const NoteForm = ({
                                                 <div className="flex justify-end w-full">
                                                     <Button
                                                         type="button"
-                                                        className="hover:cursor-pointer"
-                                                        color="green"
+                                                        variant="outline"
+                                                        color="gray"
                                                         onClick={() => {
                                                             setModalValues({
                                                                 mode: "append",
@@ -659,8 +668,8 @@ const NoteForm = ({
                                             {isEdit && (
                                                 <Button
                                                     type="button"
+                                                    variant="outline"
                                                     color="gray"
-                                                    className="btn btn-secondary hover:cursor-pointer"
                                                     onClick={() => {
                                                         router.visit(
                                                             route(
@@ -677,10 +686,7 @@ const NoteForm = ({
                                                 </Button>
                                             )}
 
-                                            <Button
-                                                type="submit"
-                                                className="btn btn-primary hover:cursor-pointer"
-                                            >
+                                            <Button type="submit" disabled={processing}>
                                                 {isEdit
                                                     ? "Guardar cambios"
                                                     : "Crear nota"}
@@ -692,7 +698,7 @@ const NoteForm = ({
                             </ContainerSection>
                         </Flex>
                     </Grid>
-                    <Grid gridColumn="span 2">
+                    <Grid gridColumn={{ initial: "span 1", lg: "span 4" }}>
                         {data.delivery_status !==
                             STATUS_DELIVERY_ENUM.CANCELED && (
                             <div className="flex flex-col justify-start">
@@ -733,7 +739,7 @@ const NoteForm = ({
                                         <Text size="5">
                                             <Strong>Total venta: </Strong>
                                         </Text>
-                                        <Text size="5" weight="bold">
+                                        <Text size="5" weight="bold" className="tabular-nums text-electric">
                                             {formatCurrency(
                                                 Number(data.sale_total)
                                             )}
@@ -851,10 +857,10 @@ const NoteForm = ({
                                             justify="between"
                                             className={
                                                 Number(data.balance) < 0
-                                                    ? "text-red-500"
+                                                    ? "text-red-600"
                                                     : Number(data.balance) === 0
-                                                    ? "text-green-700"
-                                                    : "text-orange-500"
+                                                    ? "text-vivid-green"
+                                                    : "text-tangerine"
                                             }
                                             align="center"
                                         >
@@ -992,7 +998,7 @@ const NoteForm = ({
                                                             <DatePicker
                                                                 locale={es}
                                                                 dateFormat="dd/MM/yyyy"
-                                                                className="min-w-[200px] rounded-md h-8 px-2"
+                                                                className="w-[150px] h-8 px-2 text-sm bg-white rounded-input"
                                                                 name={`payments.${index}.date`}
                                                                 selected={
                                                                     payment.date
@@ -1027,9 +1033,8 @@ const NoteForm = ({
                                         <Flex justify="end">
                                             <Button
                                                 type="button"
-                                                color="green"
-                                                variant="soft"
-                                                className="hover:cursor-pointer"
+                                                variant="outline"
+                                                color="gray"
                                                 onClick={addPayment}
                                             >
                                                 <BiPlus />
@@ -1096,6 +1101,7 @@ const NoteForm = ({
                 </Grid>
             </form>
             <ProductsModal
+                branchId={branch.id}
                 onClose={() => setModalValues({ ...modalValues, open: false })}
                 open={modalValues.open}
                 mode={modalValues.mode}

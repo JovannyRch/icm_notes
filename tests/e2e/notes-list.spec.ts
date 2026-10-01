@@ -81,6 +81,8 @@ test("listado: buscar, filtrar, abrir, archivar, desarchivar y eliminar", async 
     // De vuelta en activas, eliminar las dos.
     await page.getByRole("tab", { name: "Activas" }).click();
     await expect(page).not.toHaveURL(/archived=/);
+    // Las pestañas conservan la fecha pero no la búsqueda (igual que antes): se vuelve a buscar.
+    await page.goto("/notas?date=ALL_TIME&query=E2E-LIST");
     await expect(row(page, "E2E-LIST-1")).toBeVisible();
     await select(page, "E2E-LIST-1");
     await select(page, "E2E-LIST-2");

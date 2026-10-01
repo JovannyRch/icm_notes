@@ -47,4 +47,23 @@ class ProductSearchTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page->where('pagination.total', 1));
     }
+
+    public function test_api_search_returns_stock_of_the_requested_branch(): void
+    {
+        $a = Branch::create(['name' => 'Sucursal A']);
+        $b = Branch::create(['name' => 'Sucursal B']);
+        $p = $this->product(['brand' => 'PIRELLI', 'model' => 'P7']);
+        $this->product(['brand' => 'PIRELLI', 'model' => 'SIN-STOCK']);
+        \App\Models\Stock::create(['branch_id' => $a->id, 'product_id' => $p->id, 'quantity' => 1]);
+        \App\Models\Stock::create(['branch_id' => $b->id, 'product_id' => $p->id, 'quantity' => 13.5]);
+
+        // La ruta de api.php no tiene sesión: sin branch_id no hay branch_stock.
+        $this->getJson('/api/products/search?query=PIRELLI')->assertOk()->assertJsonMissingPath('0.branch_stock');
+
+        $stock = fn ($branch) => collect($this->getJson("/api/products/search?query=PIRELLI&branch_id={$branch}")->json())
+            ->mapWithKeys(fn ($row) => [$row['model'] => $row['branch_stock'] === null ? null : (float) $row['branch_stock']]);
+
+        $this->assertSame(['P7' => 1.0, 'SIN-STOCK' => null], $stock($a->id)->sortKeys()->all());
+        $this->assertSame(['P7' => 13.5, 'SIN-STOCK' => null], $stock($b->id)->sortKeys()->all());
+    }
 }

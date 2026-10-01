@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Note;
 use App\Models\NoteProduct;
 use App\Services\CortePaymentsService;
+use App\Services\NoteStockService;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -97,7 +98,12 @@ class NoteController extends Controller
         }
     }
 
-    private function createItems($note, $items)
+    /**
+     * Crea las partidas. Con $moveStock registra la salida de inventario de cada una
+     * (alta de nota); al editar se pasa false y el stock se ajusta por diferencia
+     * en NoteStockService::sync(), para no volver a descontar lo ya descontado.
+     */
+    private function createItems($note, $items, bool $moveStock = true)
     {
         $stockService = new StockService;
         foreach ($items as $item) {
@@ -120,10 +126,10 @@ class NoteController extends Controller
                 'delivery_status' => $item['delivery_status'],
             ]);
 
-            if ($item['product_id']) {
-                $currentBranchId = currentBranchId();
+            if ($moveStock && $item['product_id']) {
+                // Sucursal de la nota, no la de la sesión: se puede editar una nota de otra sucursal.
                 $stockService->adjustStock(
-                    $currentBranchId,
+                    $note->branch_id,
                     $item['product_id'],
                     $item['quantity'],
                     'OUT',
@@ -148,7 +154,7 @@ class NoteController extends Controller
 
         $note = DB::transaction(function () use ($request, $items, $payments, $isCancelled) {
             $note = Note::create($request->all());
-            $this->createItems($note, $items);
+            $this->createItems($note, $items, moveStock: ! NoteStockService::isCancelled($note));
             $this->syncPayments($note, $payments, $isCancelled);
             $note->recalculateTotalsFromPayments();
 
@@ -201,10 +207,22 @@ class NoteController extends Controller
         $isCancelled = $request->delivery_status == 'cancelado';
 
         DB::transaction(function () use ($request, $note, $items, $payments, $isCancelled) {
+            $noteStock = new NoteStockService;
+            $wasCancelled = NoteStockService::isCancelled($note);
+            $before = $noteStock->expectedQuantities($note);
+
             $note->update($request->all());
 
             NoteProduct::where('note_id', $note->id)->delete();
-            $this->createItems($note, $items);
+            $this->createItems($note, $items, moveStock: false);
+
+            $isNowCancelled = NoteStockService::isCancelled($note);
+            $reason = match (true) {
+                ! $wasCancelled && $isNowCancelled => 'Devolución por cancelación de nota #'.$note->folio,
+                $wasCancelled && ! $isNowCancelled => 'Salida por reactivación de nota #'.$note->folio,
+                default => null,
+            };
+            $noteStock->sync($note, $before, $noteStock->expectedQuantities($note), $reason);
             $this->syncPayments($note, $payments, $isCancelled);
             $note->recalculateTotalsFromPayments();
         });
@@ -254,7 +272,12 @@ class NoteController extends Controller
     public function deleteNotes(Request $request)
     {
         $ids = $request->ids;
-        Note::whereIn('id', $ids)->delete();
+        DB::transaction(function () use ($ids) {
+            foreach (Note::whereIn('id', $ids)->get() as $note) {
+                (new NoteStockService)->restore($note);
+                $note->delete();
+            }
+        });
         $total = count($ids);
 
         return redirect()->back()->with('success', $total.' notas eliminados');
@@ -267,7 +290,10 @@ class NoteController extends Controller
     {
 
         $branch_id = $note->branch_id;
-        $note->delete();
+        DB::transaction(function () use ($note) {
+            (new NoteStockService)->restore($note);
+            $note->delete();
+        });
 
         return redirect()->route('notas', ['branch' => $branch_id])->with('success', 'Nota eliminada');
     }

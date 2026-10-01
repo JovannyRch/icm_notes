@@ -1,0 +1,65 @@
+{
+  "advance": "800",
+  "balance": "7780",
+  "branch_id": 1,
+  "customer": "Edición",
+  "date": "2026-07-21",
+  "delivery_status": "pendiente",
+  "flete": "80",
+  "folio": "E2E-PAYLOAD-EDIT",
+  "items": [
+    {
+      "brand": "GOODYEAR",
+      "cost": 1100,
+      "delivery_status": "pendiente",
+      "extra": 0,
+      "iva": 0,
+      "mc": "1",
+      "measure": "185/65R14",
+      "model": "ASSURANCE",
+      "price": 1500,
+      "product_id": 3,
+      "purchase_subtotal": 4400,
+      "quantity": "4",
+      "sale_subtotal": 6000,
+      "supplied_status": "no_enviado",
+      "unit": "PZA"
+    },
+    {
+      "brand": "MICHELIN",
+      "cost": 1800,
+      "delivery_status": "pendiente",
+      "extra": 0,
+      "iva": 0,
+      "mc": "1",
+      "measure": "205/55R16",
+      "model": "PRIMACY 4",
+      "price": 2500,
+      "product_id": 1,
+      "purchase_subtotal": 1800,
+      "quantity": 1,
+      "sale_subtotal": 2500,
+      "supplied_status": "no_enviado",
+      "unit": "PZA"
+    }
+  ],
+  "notes": "",
+  "payments": [
+    {
+      "card": "0",
+      "cash": "300",
+      "date": "2026-07-21",
+      "transfer": "0"
+    },
+    {
+      "card": "0",
+      "cash": "0",
+      "date": "2026-07-25",
+      "transfer": "500"
+    }
+  ],
+  "purchase_status": "pending",
+  "purchase_total": "6200",
+  "sale_total": "8580",
+  "status": "pending"
+}

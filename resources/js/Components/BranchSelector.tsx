@@ -27,7 +27,7 @@ export const BranchSelector = ({ fullWidth = false }: { fullWidth?: boolean }) =
                 <button
                     type="button"
                     className={`inline-flex items-center gap-2 h-8 px-3 text-sm font-medium bg-white border rounded-button border-ash text-charcoal hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-electric/30 ${
-                        fullWidth ? "w-full justify-between" : "max-w-[240px]"
+                        fullWidth ? "w-full justify-between" : "max-w-[180px] lg:max-w-[240px]"
                     }`}
                     aria-label="Cambiar sucursal"
                 >

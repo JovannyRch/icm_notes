@@ -8,9 +8,11 @@ import { useFilePicker } from "use-file-picker";
 import { Button } from "@radix-ui/themes";
 import { MdUploadFile } from "react-icons/md";
 import { BiDownload } from "react-icons/bi";
+import { useBranch } from "@/hooks/useBranch";
 
 const ImportProducts = () => {
     const [open, setOpen] = useState(false);
+    const { currentBranchName } = useBranch();
 
     const { setData, post, processing, errors } = useForm({
         file: null,
@@ -76,6 +78,18 @@ const ImportProducts = () => {
                             </button>
                         </div>
                     </Dialog.Title>
+
+                    <ul className="mt-3 space-y-1 text-sm list-disc pl-5 text-steel">
+                        <li>
+                            Si un producto ya existe (misma marca, modelo, medida y MC) se <b>actualiza</b>; no se duplica.
+                            Las celdas vacías no borran datos.
+                        </li>
+                        <li>
+                            La columna <b>EXISTENCIAS</b> fija las existencias de <b>{currentBranchName}</b> (conteo físico).
+                            Déjala vacía para no tocarlas.
+                        </li>
+                        <li>Tip: exporta el catálogo, captura tu conteo en EXISTENCIAS y vuelve a importarlo.</li>
+                    </ul>
 
                     <div className="min-h-[140px] mt-4 border border-dashed rounded-card border-pebble bg-[#fafafa]">
                         {filesContent.length === 0 ? (

@@ -21,10 +21,10 @@ export const DeliveryStatusSelect = ({
                     htmlFor="delivery_status"
                     value="Estatus de entrega"
                 />
-                <FiPackage className="w-5 h-5 text-orange-600" />
+                <FiPackage className="w-4 h-4 text-fog" />
             </Flex>
             <select
-                className="w-full h-10 mt-1 border border-gray-300 rounded-lg"
+                className="block w-full h-9 mt-1 text-sm bg-white"
                 value={value}
                 onChange={(e) => {
                     onChange(e.target.value);

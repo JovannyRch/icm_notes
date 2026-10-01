@@ -19,10 +19,10 @@ export const SuppliedStatusSelect = ({
                     htmlFor="supplied_status"
                     value="Estatus por surtir"
                 />
-                <FaTruckPickup className="w-5 h-5 text-orange-500" />
+                <FaTruckPickup className="w-4 h-4 text-fog" />
             </Flex>
             <select
-                className="w-full h-10 mt-1 border border-gray-300 rounded-lg"
+                className="block w-full h-9 mt-1 text-sm bg-white"
                 value={value}
                 onChange={(e) => {
                     onChange(e.target.value);

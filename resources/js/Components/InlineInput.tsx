@@ -36,7 +36,7 @@ const InlineInput = ({
             <div
                 className={`flex justify-center items-center gap-3 ${className}`}
             >
-                <Text size="3" className="flex-1" weight="medium">
+                <Text size="2" className="flex-1 text-graphite" weight="medium">
                     {label}
                 </Text>
 
@@ -49,8 +49,8 @@ const InlineInput = ({
                         type={type}
                         name={name}
                         value={value}
-                        className={`mt-1 block w-full flex-1 text-right h-8 ${
-                            readonly ? "bg-gray-100 pointer-events-none" : ""
+                        className={`mt-1 block w-full flex-1 text-right text-sm tabular-nums bg-white h-8 ${
+                            readonly ? "bg-paper pointer-events-none" : ""
                         }`}
                         disabled={disabled}
                         autoComplete={autoComplete ? name : undefined}

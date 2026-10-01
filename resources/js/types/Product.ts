@@ -13,5 +13,7 @@ export interface Product {
     updated_at: string;
     subtotal: number;
     stock?: Stock;
+    /** Existencias en la sucursal pedida a /api/products/search (null = sin registro). */
+    branch_stock?: number | string | null;
     stock_movements?: StockMovement[];
 }

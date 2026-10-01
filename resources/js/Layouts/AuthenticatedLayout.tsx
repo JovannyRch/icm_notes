@@ -53,7 +53,7 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                         <ApplicationLogo className="block w-auto h-8 fill-current text-charcoal" />
                     </Link>
 
-                    <div className="items-center hidden gap-1 sm:flex">
+                    <div className="items-center hidden gap-1 md:flex">
                         {links.map((link) => (
                             <NavLink key={link.label} href={link.href} active={link.active}>
                                 <link.icon className="w-4 h-4" aria-hidden />
@@ -62,7 +62,7 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                         ))}
                     </div>
 
-                    <div className="items-center hidden gap-2 ml-auto sm:flex">
+                    <div className="items-center hidden gap-2 ml-auto md:flex">
                         <BranchSelector />
                         <DropdownMenu.Root>
                             <DropdownMenu.Trigger>
@@ -73,7 +73,7 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                                     <span className="flex items-center justify-center w-6 h-6 text-[11px] font-semibold text-white rounded-tag bg-ink">
                                         {initials}
                                     </span>
-                                    <span className="max-w-[140px] truncate">{user.name}</span>
+                                    <span className="hidden lg:inline max-w-[140px] truncate">{user.name}</span>
                                     <LuChevronDown className="w-3.5 h-3.5 text-fog" />
                                 </button>
                             </DropdownMenu.Trigger>
@@ -98,7 +98,7 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                     <button
                         type="button"
                         onClick={() => setMobileOpen((open) => !open)}
-                        className="inline-flex items-center justify-center w-9 h-9 ml-auto rounded-button text-graphite hover:bg-paper sm:hidden"
+                        className="inline-flex items-center justify-center w-9 h-9 ml-auto rounded-button text-graphite hover:bg-paper md:hidden"
                         aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
                         aria-expanded={mobileOpen}
                     >
@@ -107,7 +107,7 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                 </div>
 
                 {mobileOpen && (
-                    <div className="px-4 pb-4 border-t sm:hidden border-ash">
+                    <div className="px-4 pb-4 border-t md:hidden border-ash">
                         <div className="pt-3 space-y-1">
                             {links.map((link) => (
                                 <ResponsiveNavLink key={link.label} href={link.href} active={link.active}>

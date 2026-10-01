@@ -15,12 +15,30 @@ interface ProductsModalProps {
     onAddProduct: (product: Product) => void;
     onReplaceProduct?: (products: Product) => void;
     mode?: "append" | "replace";
+    /** Sucursal cuyas existencias se muestran (la de la nota). */
+    branchId?: number;
 }
 
-const fetchProducts = async (query: string) => {
+const fetchProducts = async (query: string, branchId?: number) => {
     if (!query || query.length < MIN_SEARCH_LENGTH) return [];
-    const { data } = await axios.get(`/api/products/search?query=${query}`);
+    // La API no tiene sesión: la sucursal se manda explícita para que las
+    // existencias (branch_stock) sean las de la nota y no las de la primera sucursal.
+    const { data } = await axios.get("/api/products/search", {
+        params: { query, ...(branchId ? { branch_id: branchId } : {}) },
+    });
     return data;
+};
+
+/** Existencias para vender: rojo sin existencias, ámbar pocas (≤ 3). */
+const StockCell = ({ value }: { value: Product["branch_stock"] }) => {
+    const qty = value === null || value === undefined ? 0 : Number(value);
+    const tone = qty <= 0 ? "text-red-600" : qty <= 3 ? "text-amber-700" : "text-charcoal";
+    return (
+        <span className={`font-semibold tabular-nums ${tone}`} title={qty <= 0 ? "Sin existencias en esta sucursal" : undefined}>
+            {Number.isInteger(qty) ? qty : qty.toFixed(2)}
+            {qty <= 0 && <span className="ml-1 text-xs font-normal">sin existencias</span>}
+        </span>
+    );
 };
 
 const ProductsModal = ({
@@ -29,13 +47,14 @@ const ProductsModal = ({
     onAddProduct,
     onReplaceProduct,
     mode = "append",
+    branchId,
 }: ProductsModalProps) => {
     const [searchInput, setSearchInput] = useState("");
     const [debouncedSearch] = useDebounce(searchInput, 300);
 
     const { data: filteredProducts = [], isLoading } = useQuery({
-        queryKey: ["products", debouncedSearch],
-        queryFn: () => fetchProducts(debouncedSearch),
+        queryKey: ["products", debouncedSearch, branchId],
+        queryFn: () => fetchProducts(debouncedSearch, branchId),
         enabled: debouncedSearch.length >= MIN_SEARCH_LENGTH,
     });
 
@@ -48,8 +67,8 @@ const ProductsModal = ({
     return (
         <Dialog.Root open={open} onOpenChange={onClose}>
             <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
-                <Dialog.Content className="fixed w-full max-w-[1000px] p-6 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-lg top-1/2 left-1/2">
+                <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/40" />
+                <Dialog.Content className="fixed z-50 w-[min(94vw,1000px)] p-6 -translate-x-1/2 -translate-y-1/2 bg-white border top-1/2 left-1/2 rounded-card-lg border-ash shadow-popover">
                     <Dialog.Title className="mb-4 text-lg font-bold">
                         Buscar producto
                     </Dialog.Title>
@@ -62,7 +81,7 @@ const ProductsModal = ({
                     />
 
                     <div className="min-h-[300px] max-h-[500px] overflow-y-auto">
-                        <p className="text-center text-gray-500">
+                        <p className="py-6 text-sm text-center text-fog">
                             {isLoading
                                 ? "Buscando productos..."
                                 : debouncedSearch.length < MIN_SEARCH_LENGTH
@@ -72,9 +91,9 @@ const ProductsModal = ({
                                 : ""}
                         </p>
                         {filteredProducts.length > 0 && (
-                            <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
-                                <table className="w-full text-sm text-left text-gray-500 rtl:text-right ">
-                                    <thead className="text-xs text-black uppercase bg-gray-50 ">
+                            <div className="relative overflow-x-auto border rounded-card border-ash">
+                                <table className="w-full text-sm text-left text-steel">
+                                    <thead className="text-xs font-medium uppercase border-b text-fog border-ash">
                                         <tr>
                                             <th scope="col" className="p-3">
                                                 Modelo
@@ -92,9 +111,14 @@ const ProductsModal = ({
                                             <th scope="col" className="p-3">
                                                 Unidad
                                             </th>
-                                            <th scope="col" className="p-3">
+                                            <th scope="col" className="p-3 text-right">
                                                 Precio
                                             </th>
+                                            {branchId && (
+                                                <th scope="col" className="p-3 text-right">
+                                                    Existencias
+                                                </th>
+                                            )}
                                             {/*      <th scope="col" className="p-3">
                                                 Costo
                                             </th>
@@ -120,7 +144,7 @@ const ProductsModal = ({
                                                         }
                                                         onClose();
                                                     }}
-                                                    className="text-gray-900 border-b border-gray-200 hover:cursor-pointer odd:bg-white even:bg-gray-50 hover:bg-gray-100 "
+                                                    className="border-b cursor-pointer text-charcoal border-ash hover:bg-sky-tint/50"
                                                 >
                                                     <td className="p-3">
                                                         {product.model}
@@ -138,11 +162,16 @@ const ProductsModal = ({
                                                     <td className="p-3">
                                                         {product.unit}
                                                     </td>
-                                                    <td className="p-3 font-semibold">
+                                                    <td className="p-3 font-semibold text-right tabular-nums">
                                                         {formatCurrency(
                                                             product.price
                                                         )}
                                                     </td>
+                                                    {branchId && (
+                                                        <td className="p-3 text-right">
+                                                            <StockCell value={product.branch_stock} />
+                                                        </td>
+                                                    )}
                                                     {/*    <td className="p-3">
                                                         {formatCurrency(
                                                             product.cost
@@ -163,7 +192,7 @@ const ProductsModal = ({
 
                     <div className="flex justify-end mt-4">
                         <Dialog.Close asChild>
-                            <button className="px-4 py-2 text-white bg-gray-500 rounded-md hover:bg-gray-600">
+                            <button className="inline-flex items-center h-9 px-4 text-sm font-medium bg-white border rounded-button border-ash text-charcoal hover:bg-paper">
                                 Cerrar
                             </button>
                         </Dialog.Close>

@@ -12,6 +12,7 @@ import InlineInput from "./InlineInput";
 import { SuppliedStatusSelect } from "./SuppliedStatusSelect";
 import { DeliveryStatusSelect } from "./DeliveryStatusSelect";
 import UnitInput from "./UnitInput";
+import { LuTriangleAlert } from "react-icons/lu";
 
 interface NoteItemProps {
     item: NoteItemInterface;
@@ -21,6 +22,12 @@ interface NoteItemProps {
     onUpdate: (index: number, item: NoteItemInterface) => void;
     isEdit: boolean;
     updateCalculatedValues?: (item: NoteItemInterface) => void;
+    /**
+     * Existencias para el aviso (sólo informativo, no impide guardar):
+     * available = piezas que se pueden vender en la sucursal de la nota,
+     * requested = piezas de este producto en toda la nota.
+     */
+    stock?: { available: number; requested: number; branchName: string };
 }
 
 const CenteredCell = ({ children }: { children: React.ReactNode }) => (
@@ -37,7 +44,9 @@ const NoteItem = ({
     onDelete,
     onOpenSearchModal,
     onUpdate,
+    stock,
 }: NoteItemProps) => {
+    const exceeds = !!stock && stock.requested > stock.available;
     const calculateSubtotals = (
         product: NoteItemInterface
     ): {
@@ -55,19 +64,19 @@ const NoteItem = ({
     return (
         <Grid
             columns="9"
-            className={`rounded-md px-1 border border-gray-800  mb-6 ${
-                isOdd ? "bg-gray-100" : " "
+            className={`px-1 mb-3 bg-white border rounded-card border-ash ${
+                isOdd ? "" : "bg-[#fafafa]"
             }`}
         >
             <Grid gridColumn="span 9">
                 <div className="flex ">
                     <div className="flex-1">
                         <Grid
-                            columns="8"
+                            columns={{ initial: "2", sm: "4", md: "8" }}
                             gap="2"
-                            className="px-2 py-4 border-b border-gray-200 "
+                            className="px-2 py-4 border-b border-ash"
                         >
-                            <Grid gridColumn="span 2">
+                            <Grid gridColumn={{ initial: "span 1", md: "span 2" }}>
                                 <InputWithLabel
                                     label="Marca"
                                     value={item.brand}
@@ -81,7 +90,7 @@ const NoteItem = ({
                                 />
                             </Grid>
 
-                            <Grid gridColumn="span 4">
+                            <Grid gridColumn={{ initial: "span 2", md: "span 4" }}>
                                 <InputWithLabel
                                     label="Modelo"
                                     value={item.model}
@@ -95,7 +104,7 @@ const NoteItem = ({
                                 />
                             </Grid>
 
-                            <Grid gridColumn="span 2">
+                            <Grid gridColumn={{ initial: "span 1", md: "span 2" }}>
                                 <InputWithLabel
                                     label="Cantidad"
                                     value={item.quantity}
@@ -112,8 +121,13 @@ const NoteItem = ({
                                         });
                                     }}
                                 />
+                                {stock && (
+                                    <p className={`mt-1 text-xs tabular-nums ${exceeds ? "font-medium text-amber-700" : "text-fog"}`}>
+                                        Disponibles: {Number.isInteger(stock.available) ? stock.available : stock.available.toFixed(2)}
+                                    </p>
+                                )}
                             </Grid>
-                            <Grid gridColumn="span 2">
+                            <Grid gridColumn={{ initial: "span 1", md: "span 2" }}>
                                 <InputWithLabel
                                     label="Medida"
                                     value={item.measure}
@@ -126,7 +140,7 @@ const NoteItem = ({
                                     }}
                                 />
                             </Grid>
-                            <Grid gridColumn="span 2">
+                            <Grid gridColumn={{ initial: "span 1", md: "span 2" }}>
                                 <InputWithLabel
                                     label="MC"
                                     value={item.mc}
@@ -139,7 +153,7 @@ const NoteItem = ({
                                     }}
                                 />
                             </Grid>
-                            <Grid gridColumn="span 2">
+                            <Grid gridColumn={{ initial: "span 1", md: "span 2" }}>
                                 <UnitInput
                                     value={item.unit}
                                     onChange={(value: string) =>
@@ -150,7 +164,7 @@ const NoteItem = ({
                                     }
                                 />
                             </Grid>
-                            <Grid gridColumn="span 2">
+                            <Grid gridColumn={{ initial: "span 1", md: "span 2" }}>
                                 <InputWithLabel
                                     label="Precio público"
                                     leading="$"
@@ -168,7 +182,7 @@ const NoteItem = ({
                                     }}
                                 />
                             </Grid>
-                            <Grid gridColumn="span 2">
+                            <Grid gridColumn={{ initial: "span 1", md: "span 2" }}>
                                 <InputWithLabel
                                     label="Costo"
                                     value={item.cost}
@@ -187,7 +201,7 @@ const NoteItem = ({
                                 />
                             </Grid>
 
-                            <Grid gridColumn="span 2">
+                            <Grid gridColumn={{ initial: "span 1", md: "span 2" }}>
                                 <InputWithLabel
                                     label="IVA (%)"
                                     name="iva"
@@ -204,7 +218,7 @@ const NoteItem = ({
                                     }}
                                 />
                             </Grid>
-                            <Grid gridColumn="span 2">
+                            <Grid gridColumn={{ initial: "span 1", md: "span 2" }}>
                                 <InputWithLabel
                                     label="Extra (%)"
                                     value={item.extra}
@@ -222,7 +236,7 @@ const NoteItem = ({
                                 />
                             </Grid>
 
-                            <Grid gridColumn="span 5" className="pt-2">
+                            <Grid gridColumn={{ initial: "span 2", sm: "span 4", md: "span 5" }} className="pt-2">
                                 <Grid columns="2" justify="between" gap="2">
                                     <Grid>
                                         <SuppliedStatusSelect
@@ -248,7 +262,7 @@ const NoteItem = ({
                                     </Grid>
                                 </Grid>
                             </Grid>
-                            <Grid gridColumn="span 3" className="pt-2">
+                            <Grid gridColumn={{ initial: "span 2", sm: "span 4", md: "span 3" }} className="pt-2">
                                 <div className="flex justify-end ">
                                     <div className="flex flex-col gap-4">
                                         <div className="flex items-center justify-between">
@@ -277,26 +291,37 @@ const NoteItem = ({
                                             />
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <Strong>Subtotal compra:</Strong>
-                                            <Strong>
+                                            <span className="text-sm text-steel">Subtotal compra:</span>
+                                            <span className="text-sm font-semibold tabular-nums text-charcoal">
                                                 {formatCurrency(
                                                     item.purchase_subtotal
                                                 )}
-                                            </Strong>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             </Grid>
                         </Grid>
+                        {exceeds && (
+                            <div role="status" className="flex items-start gap-2 px-3 py-2 mx-2 mb-3 text-sm border rounded-button bg-amber-tint border-amber-200 text-amber-900">
+                                <LuTriangleAlert className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
+                                <span>
+                                    Solo hay <b>{stock!.available}</b> disponibles en {stock!.branchName} y la nota pide{" "}
+                                    <b>{stock!.requested}</b>. Puedes guardarla de todos modos.
+                                </span>
+                            </div>
+                        )}
                     </div>
                     <div className="flex flex-col items-center justify-center gap-2 min-w-[56px]">
                         <IconButton
                             type="button"
-                            color="bronze"
+                            variant="outline"
+                            color="gray"
+                            aria-label="Cambiar producto"
+                            title="Cambiar producto"
                             onClick={() => onOpenSearchModal(index)}
-                            className="hover:cursor-pointer"
                         >
-                            <FaMagnifyingGlass color="white" />
+                            <FaMagnifyingGlass />
                         </IconButton>
                         {/*  <IconButton
                             color="green"
@@ -308,9 +333,11 @@ const NoteItem = ({
                         </IconButton> */}
                         <IconButton
                             color="red"
+                            variant="soft"
+                            aria-label="Quitar producto"
+                            title="Quitar producto"
                             onClick={() => onDelete(index)}
                             type="button"
-                            className="hover:cursor-pointer"
                         >
                             <BiTrash />
                         </IconButton>

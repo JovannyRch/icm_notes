@@ -7,7 +7,6 @@ use App\Models\Stock;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -15,7 +14,6 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-
     private function validateRequest($request)
     {
         return $request->validate([
@@ -32,10 +30,8 @@ class ProductController extends Controller
     public function index(Request $request)
     {
 
-
         $query = $request->input('query');
         $brand = $request->input('brand');
-
 
         $brands = Product::select('brand')->distinct()->get();
 
@@ -43,6 +39,7 @@ class ProductController extends Controller
             // appends() es del paginador, no del query builder: primero paginar.
             $pagination = $this->getSearchQuery($query, $brand)->paginate(50);
             $pagination->appends(request()->query());
+
             return Inertia::render(
                 'Products/Index',
                 [
@@ -52,7 +49,7 @@ class ProductController extends Controller
             );
         }
 
-        $pagination  = null;
+        $pagination = null;
 
         if ($brand) {
             $products = Product::where('brand', $brand)->with('stock');
@@ -62,7 +59,6 @@ class ProductController extends Controller
             $pagination = Product::with('stock')->paginate(50);
             $pagination->appends(request()->query());
         }
-
 
         return Inertia::render(
             'Products/Index',
@@ -96,10 +92,9 @@ class ProductController extends Controller
         $this->validateRequest($request);
         $product = Product::create($request->all());
 
-
         if ($request->has('stock')) {
             $currentBranchId = currentBranchId();
-            $stockService = new StockService();
+            $stockService = new StockService;
             $stockService->adjustStock($currentBranchId, $product->id, $request->input('stock'), 'ADJUSTMENT', null, 'Ajuste inicial al crear producto');
         }
 
@@ -120,7 +115,7 @@ class ProductController extends Controller
 
         return Inertia::render('Products/Form', [
             'product' => $product,
-            'stockMovements' => $stockMovements
+            'stockMovements' => $stockMovements,
         ]);
     }
 
@@ -144,7 +139,7 @@ class ProductController extends Controller
         if ($request->has('stock')) {
 
             $currentBranchId = currentBranchId();
-            $stockService = new StockService();
+            $stockService = new StockService;
 
             $existingStock = Stock::where('branch_id', $currentBranchId)
                 ->where('product_id', $product->id)
@@ -163,6 +158,7 @@ class ProductController extends Controller
     {
         try {
             $product->delete();
+
             return redirect()->route('products')->with('success', 'Producto eliminado correctamente.');
         } catch (\Throwable $th) {
             return redirect()->back()->with('error', 'Error al eliminar el producto.');
@@ -238,6 +234,42 @@ class ProductController extends Controller
 
         $products = $this->getSearchQuery($query);
 
+        // Esta ruta es de api.php (sin sesión): currentBranchId() cae a la primera
+        // sucursal y la relación `stock` no sirve aquí. Quien busca indica la sucursal
+        // y se devuelve `branch_stock` = existencias de esa sucursal (null si nunca
+        // ha tenido registro en `stocks`).
+        $branchId = $request->integer('branch_id') ?: null;
+        if ($branchId) {
+            $products->select('products.*')->addSelect([
+                'branch_stock' => Stock::select('quantity')
+                    ->whereColumn('stocks.product_id', 'products.id')
+                    ->where('stocks.branch_id', $branchId)
+                    ->limit(1),
+            ]);
+        }
+
         return response()->json($products->get());
+    }
+
+    /**
+     * Existencias de varios productos en una sucursal: { product_id: cantidad|null }.
+     * La usa la nota al abrirse en edición para avisar si una partida pide más
+     * piezas de las disponibles (api.php, sin sesión: la sucursal va explícita).
+     */
+    public function stockByIds(Request $request)
+    {
+        $validated = $request->validate([
+            'branch_id' => 'required|integer',
+            'ids' => 'required|array|max:200',
+            'ids.*' => 'integer',
+        ]);
+
+        $stocks = Stock::where('branch_id', $validated['branch_id'])
+            ->whereIn('product_id', $validated['ids'])
+            ->pluck('quantity', 'product_id');
+
+        return response()->json(
+            collect($validated['ids'])->mapWithKeys(fn ($id) => [$id => isset($stocks[$id]) ? (float) $stocks[$id] : null])
+        );
     }
 }
