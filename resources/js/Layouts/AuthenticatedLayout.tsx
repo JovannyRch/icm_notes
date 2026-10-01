@@ -16,7 +16,7 @@ export default function Authenticated({
     header,
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
-    const { auth, canManageBilling, isAdmin } = usePage<PageProps>().props;
+    const { auth, canManageBilling } = usePage<PageProps>().props;
     const user = auth.user;
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
@@ -43,6 +43,12 @@ export default function Authenticated({
 
                             <div className="flex space-x-8 sm:-my-px sm:ms-10">
                                 <NavLink
+                                    href={route("dashboard")}
+                                    active={route().current("dashboard")}
+                                >
+                                    Dashboard
+                                </NavLink>
+                                <NavLink
                                     href={route("notas", { date: filterDate })}
                                     active={route().current("notas")}
                                 >
@@ -54,14 +60,6 @@ export default function Authenticated({
                                 >
                                     Productos
                                 </NavLink>
-                                {isAdmin && (
-                                    <NavLink
-                                        href={route("admin.dashboard")}
-                                        active={route().current("admin.dashboard")}
-                                    >
-                                        Dashboard
-                                    </NavLink>
-                                )}
                             </div>
                         </div>
 
@@ -171,6 +169,12 @@ export default function Authenticated({
                 >
                     <div className="pt-2 pb-3 space-y-1">
                         <ResponsiveNavLink
+                            href={route("dashboard")}
+                            active={route().current("dashboard")}
+                        >
+                            Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
                             href={route("notas")}
                             active={route().current("notas")}
                         >
@@ -182,14 +186,6 @@ export default function Authenticated({
                         >
                             Productos
                         </ResponsiveNavLink>
-                        {isAdmin && (
-                            <ResponsiveNavLink
-                                href={route("admin.dashboard")}
-                                active={route().current("admin.dashboard")}
-                            >
-                                Dashboard
-                            </ResponsiveNavLink>
-                        )}
                     </div>
 
                     <div className="pt-4 pb-1 border-t border-gray-200">

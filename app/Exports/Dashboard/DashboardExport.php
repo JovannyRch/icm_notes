@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Exports\AdminReport;
+namespace App\Exports\Dashboard;
 
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
-/** Reporte del dashboard de administración: una hoja por módulo. */
-class AdminReportExport implements WithMultipleSheets
+/** Reporte del dashboard: una hoja por módulo. */
+class DashboardExport implements WithMultipleSheets
 {
-    /** @param array $data el mismo arreglo que recibe la página Admin/Dashboard */
+    /** @param array $data el mismo arreglo que recibe la página Dashboard */
     public function __construct(private array $data) {}
 
     public function sheets(): array
@@ -48,17 +48,13 @@ class AdminReportExport implements WithMultipleSheets
                 fn ($b) => [$b['key'], $b['cash'], $b['card'], $b['transfer'], round($b['cash'] + $b['card'] + $b['transfer'], 2)],
                 $d['collections']['series']
             )),
-            new ArraySheet('Por cobrar', ['Folio', 'Cliente', 'Sucursal', 'Fecha', 'Días', 'Venta', 'Saldo'], array_map(
-                fn ($n) => [$n->folio, $n->customer, $n->branch, $n->date, $n->age_days, $n->sale_total, $n->balance],
+            new ArraySheet('Por cobrar', ['Folio', 'Sucursal', 'Fecha', 'Días', 'Venta', 'Saldo'], array_map(
+                fn ($n) => [$n->folio, $n->branch, $n->date, $n->age_days, $n->sale_total, $n->balance],
                 $d['receivablesAll']
             )),
             new ArraySheet('Productos', ['Marca', 'Modelo', 'Medida', 'Unidades', 'Venta', 'Utilidad', 'Notas'], array_map(
                 fn ($row) => [$row['brand'], $row['model'], $row['measure'], $row['units'], $row['sale'], $row['profit'], $row['notes_count']],
                 $d['products']['by_sale']
-            )),
-            new ArraySheet('Clientes', ['Cliente', 'Notas', 'Venta', 'Saldo'], array_map(
-                fn ($row) => [$row['customer'], $row['notes_count'], $row['sale'], $row['balance']],
-                $d['customers']
             )),
             new ArraySheet('Stock bajo', ['Marca', 'Modelo', 'Medida', 'Existencia', 'Costo'], array_map(
                 fn ($row) => [$row->brand, $row->model, $row->measure, $row->quantity, $row->cost],

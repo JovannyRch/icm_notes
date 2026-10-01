@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CorteController;
 use App\Http\Controllers\CorteSemanalController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProductController;
@@ -20,12 +20,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/notas', [NoteController::class, 'index'])->middleware(['auth', 'verified'])->name('notas');
 
 Route::get('/', function () {
-    return redirect()->route('notas');
+    return redirect()->route('dashboard');
 });
 
-Route::get('/dashboard', function () {
-    return redirect()->route('notas');
-});
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard/exportar', [DashboardController::class, 'export'])->middleware(['auth', 'verified'])->name('dashboard.export');
 
 
 Route::get('/productos', [ProductController::class, 'index'])->middleware(['auth', 'verified'])->name('products');
@@ -99,10 +98,8 @@ Route::resource('stock', StockController::class)->only(['index', 'store'])->midd
 Route::get('/nota-entrada/crear', [StockEntryController::class, 'create'])->middleware(['auth', 'verified'])->name('stock-entries.create');
 Route::post('/nota-entrada', [StockEntryController::class, 'store'])->middleware(['auth', 'verified'])->name('stock-entries.store');
 
-//Admin: dashboard y pagos del servicio (ocultas, ver config/billing.php)
+//Pagos del servicio (pantalla oculta, ver config/billing.php)
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
-    Route::get('/admin/dashboard/exportar', [AdminDashboardController::class, 'export'])->name('admin.dashboard.export');
     Route::get('/admin/pagos-servicio', [ServicePaymentController::class, 'index'])->name('service-payments.index');
     Route::post('/admin/pagos-servicio', [ServicePaymentController::class, 'store'])->name('service-payments.store');
     Route::delete('/admin/pagos-servicio/{servicePayment}', [ServicePaymentController::class, 'destroy'])->name('service-payments.destroy');

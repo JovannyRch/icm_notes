@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Exports\AdminReport;
+namespace App\Exports\Dashboard;
 
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;

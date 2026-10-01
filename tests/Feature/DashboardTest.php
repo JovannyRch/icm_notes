@@ -12,7 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-class AdminDashboardTest extends TestCase
+class DashboardTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -26,13 +26,12 @@ class AdminDashboardTest extends TestCase
 
         $this->a = Branch::create(['name' => 'Sucursal A']);
         $this->b = Branch::create(['name' => 'Sucursal B']);
-        config(['billing.admin_emails' => ['dev@example.com']]);
     }
 
     private function note(array $attrs, array $items = [], array $payments = []): int
     {
         $id = DB::table('notes')->insertGetId(array_merge([
-            'folio' => '1', 'customer' => 'Cliente', 'date' => '2026-09-10',
+            'folio' => '1', 'date' => '2026-09-10',
             'purchase_total' => 0, 'sale_total' => 0, 'balance' => 0,
             'status' => 'pending', 'purchase_status' => 'pending', 'delivery_status' => 'pendiente',
             'branch_id' => $this->a->id, 'created_at' => now(), 'updated_at' => now(),
@@ -69,13 +68,13 @@ class AdminDashboardTest extends TestCase
     private function seedSales(): void
     {
         // Septiembre, sucursal A: 1000 venta / 600 costo, y 500 / 400
-        $this->note(['date' => '2026-09-05', 'sale_total' => 1000, 'purchase_total' => 600, 'customer' => 'Juan Pérez'],
+        $this->note(['date' => '2026-09-05', 'sale_total' => 1000, 'purchase_total' => 600],
             [['quantity' => 2, 'sale_subtotal' => 1000, 'purchase_subtotal' => 600]],
             [['date' => '2026-09-05', 'cash' => 700, 'card' => 300]]);
-        $this->note(['date' => '2026-09-20', 'sale_total' => 500, 'purchase_total' => 400, 'balance' => 500, 'customer' => '  juan   pérez '],
+        $this->note(['date' => '2026-09-20', 'sale_total' => 500, 'purchase_total' => 400, 'balance' => 500],
             [['brand' => 'PIRELLI', 'model' => 'P7', 'quantity' => 5, 'sale_subtotal' => 500, 'purchase_subtotal' => 400]]);
         // Sucursal B
-        $this->note(['date' => '2026-09-10', 'sale_total' => 2000, 'purchase_total' => 1500, 'branch_id' => $this->b->id, 'customer' => 'Ana'],
+        $this->note(['date' => '2026-09-10', 'sale_total' => 2000, 'purchase_total' => 1500, 'branch_id' => $this->b->id],
             [], [['date' => '2026-09-10', 'transfer' => 2000, 'branch_id' => $this->b->id]]);
         // Cancelada (ambas formas): no cuenta en nada
         $this->note(['date' => '2026-09-11', 'sale_total' => 9999, 'purchase_total' => 1, 'status' => 'canceled', 'balance' => 9999]);
@@ -153,7 +152,7 @@ class AdminDashboardTest extends TestCase
         $this->assertSame(152, $r['oldest'][0]->age_days);
     }
 
-    public function test_top_products_and_customers(): void
+    public function test_top_products(): void
     {
         $this->seedSales();
 
@@ -161,12 +160,6 @@ class AdminDashboardTest extends TestCase
         $this->assertSame('MICHELIN', $products['by_sale'][0]['brand']);
         $this->assertSame('PIRELLI', $products['by_units'][0]['brand']);
         $this->assertSame(5.0, $products['by_units'][0]['units']);
-
-        $customers = $this->analytics()->topCustomers();
-        $this->assertSame('Ana', $customers[0]['customer']);
-        $this->assertSame(2, $customers[1]['notes_count']); // "Juan Pérez" y "  juan   pérez " se agrupan
-        $this->assertSame(1500.0, $customers[1]['sale']);
-        $this->assertSame(500.0, $customers[1]['balance']);
     }
 
     public function test_inventory_snapshot(): void
@@ -190,26 +183,48 @@ class AdminDashboardTest extends TestCase
         $this->assertSame(2, $b['products_out_of_stock']);
     }
 
-    public function test_dashboard_is_hidden_from_non_admins_and_exports_for_admin(): void
+    public function test_any_user_sees_the_dashboard_and_can_export(): void
     {
         $this->seedSales();
-        $user = User::factory()->create(['email' => 'cajero@example.com']);
-        $admin = User::factory()->create(['email' => 'dev@example.com']);
+        $user = User::factory()->create();
 
-        $this->actingAs($user)->get(route('admin.dashboard'))->assertNotFound();
-        $this->actingAs($user)->get(route('admin.dashboard.export'))->assertNotFound();
-
-        $this->actingAs($admin)
-            ->get(route('admin.dashboard', ['from' => '2026-09-01', 'to' => '2026-09-30', 'branch' => $this->a->id]))
+        $this->actingAs($user)
+            ->get(route('dashboard', ['from' => '2026-09-01', 'to' => '2026-09-30', 'branch' => $this->a->id]))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('Admin/Dashboard')
+                ->component('Dashboard')
                 ->where('sales.current.sale', 1500)
                 ->where('filters.branch_name', 'Sucursal A'));
 
-        $this->actingAs($admin)
-            ->get(route('admin.dashboard.export', ['from' => '2026-09-01', 'to' => '2026-09-30']))
+        $this->actingAs($user)
+            ->get(route('dashboard.export', ['from' => '2026-09-01', 'to' => '2026-09-30']))
             ->assertOk()
             ->assertDownload('REPORTE_2026-09-01_2026-09-30.xlsx');
+    }
+
+    public function test_login_and_home_land_on_the_dashboard(): void
+    {
+        $user = User::factory()->create();
+
+        $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        $this->actingAs($user)->get('/')->assertRedirect(route('dashboard'));
+    }
+
+    public function test_default_range_is_last_30_days(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-01 10:00', 'America/Mexico_City'));
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('dashboard'))
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.from', '2026-09-02')
+                ->where('filters.to', '2026-10-01'));
+    }
+
+    public function test_guests_are_sent_to_login(): void
+    {
+        $this->get(route('dashboard'))->assertRedirect(route('login'));
     }
 }

@@ -155,7 +155,7 @@ class AnalyticsService
             ->where('balance', '>', 0.009)
             ->join('branches', 'branches.id', '=', 'notes.branch_id')
             ->orderBy('notes.date')
-            ->get(['notes.id', 'notes.folio', 'notes.customer', 'notes.date', 'notes.sale_total', 'notes.balance', 'branches.name as branch']);
+            ->get(['notes.id', 'notes.folio', 'notes.date', 'notes.sale_total', 'notes.balance', 'branches.name as branch']);
 
         $buckets = ['0-30' => 0.0, '31-60' => 0.0, '61-90' => 0.0, '90+' => 0.0];
         $counts = array_fill_keys(array_keys($buckets), 0);
@@ -185,7 +185,7 @@ class AnalyticsService
         ];
     }
 
-    // ------------------------------------------------- Productos y clientes
+    // ------------------------------------------------------------- Productos
 
     /**
      * Partidas vendidas en el periodo, agrupadas por la descripción guardada
@@ -214,28 +214,6 @@ class AnalyticsService
             'by_units' => $rows->sortByDesc('units')->take($limit)->values()->all(),
             'by_profit' => $rows->sortByDesc('profit')->take($limit)->values()->all(),
         ];
-    }
-
-    /** Clientes del periodo; el nombre es texto libre, se agrupa sin mayúsculas ni espacios extra. */
-    public function topCustomers(int $limit = 10): array
-    {
-        return $this->notes($this->from, $this->to)
-            ->select('customer')
-            ->selectRaw('COUNT(*) as notes_count, SUM(sale_total) as sale, SUM(balance) as balance')
-            ->groupBy('customer')
-            ->get()
-            ->groupBy(fn ($row) => mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $row->customer))))
-            ->reject(fn ($group, $key) => $key === '')
-            ->map(fn (Collection $group) => [
-                'customer' => trim($group->sortByDesc('notes_count')->first()->customer),
-                'notes_count' => (int) $group->sum('notes_count'),
-                'sale' => round((float) $group->sum('sale'), 2),
-                'balance' => round((float) $group->sum('balance'), 2),
-            ])
-            ->sortByDesc('sale')
-            ->take($limit)
-            ->values()
-            ->all();
     }
 
     // ------------------------------------------------------------ Inventario

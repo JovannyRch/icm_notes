@@ -2,35 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\AdminReport\AdminReportExport;
+use App\Exports\Dashboard\DashboardExport;
 use App\Models\Branch;
 use App\Services\AnalyticsService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 
 /**
- * Dashboard de analíticas, sólo para BILLING_ADMIN_EMAILS (404 para los demás).
+ * Dashboard de analíticas: pantalla inicial después del login, para todos los usuarios.
  */
-class AdminDashboardController extends Controller
+class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $this->authorizeAdmin();
-
-        return Inertia::render('Admin/Dashboard', $this->buildData($request, limit: 10));
+        return Inertia::render('Dashboard', $this->buildData($request, limit: 10));
     }
 
     public function export(Request $request)
     {
-        $this->authorizeAdmin();
-
         $data = $this->buildData($request, limit: 200);
         $f = $data['filters'];
 
-        return Excel::download(new AdminReportExport($data), "REPORTE_{$f['from']}_{$f['to']}.xlsx");
+        return Excel::download(new DashboardExport($data), "REPORTE_{$f['from']}_{$f['to']}.xlsx");
     }
 
     private function buildData(Request $request, int $limit): array
@@ -43,7 +38,8 @@ class AdminDashboardController extends Controller
 
         $tz = config('billing.timezone');
         $today = CarbonImmutable::now($tz)->startOfDay();
-        $from = isset($validated['from']) ? CarbonImmutable::parse($validated['from'], $tz) : $today->startOfMonth();
+        // Por defecto los últimos 30 días: "este mes" sale vacío los primeros días de cada mes.
+        $from = isset($validated['from']) ? CarbonImmutable::parse($validated['from'], $tz) : $today->subDays(29);
         $to = isset($validated['to']) ? CarbonImmutable::parse($validated['to'], $tz) : $today;
 
         if ($from->diffInDays($to) > 366 * 3) {
@@ -70,13 +66,7 @@ class AdminDashboardController extends Controller
             'receivables' => [...$receivables, 'oldest' => array_slice($receivables['oldest'], 0, 10)],
             'receivablesAll' => $receivables['oldest'],
             'products' => $analytics->topProducts($limit),
-            'customers' => $analytics->topCustomers($limit),
             'inventory' => $analytics->inventory($limit),
         ];
-    }
-
-    private function authorizeAdmin(): void
-    {
-        abort_unless(Gate::allows('admin'), 404);
     }
 }
