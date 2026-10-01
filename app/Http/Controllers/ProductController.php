@@ -40,12 +40,13 @@ class ProductController extends Controller
         $brands = Product::select('brand')->distinct()->get();
 
         if ($query) {
-            $products = $this->getSearchQuery($query, $brand);
-            $products->appends(request()->query());
+            // appends() es del paginador, no del query builder: primero paginar.
+            $pagination = $this->getSearchQuery($query, $brand)->paginate(50);
+            $pagination->appends(request()->query());
             return Inertia::render(
                 'Products/Index',
                 [
-                    'pagination' => $products->paginate(50),
+                    'pagination' => $pagination,
                     'brands' => $brands,
                 ]
             );
