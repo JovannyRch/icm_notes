@@ -53,27 +53,23 @@ const ImportProducts = () => {
     return (
         <Dialog.Root open={open} onOpenChange={setOpen}>
             <Dialog.Trigger asChild>
-                <Button
-                    color="teal"
-                    className="hover:cursor-pointer"
-                    onClick={() => setOpen(true)}
-                >
-                    Importar
+                <Button variant="outline" color="gray" onClick={() => setOpen(true)}>
                     <FaFileExcel />
+                    Importar
                 </Button>
             </Dialog.Trigger>
 
             <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
-                <Dialog.Content className="fixed p-6 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-md top-1/2 left-1/2 min-w-[30vw]">
-                    <Dialog.Title className="flex items-center justify-between gap-1 text-lg font-bold">
+                <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/40" />
+                <Dialog.Content className="fixed z-50 w-[min(92vw,520px)] p-6 -translate-x-1/2 -translate-y-1/2 bg-white border top-1/2 left-1/2 rounded-card-lg border-ash shadow-popover">
+                    <Dialog.Title className="flex items-center justify-between gap-3 text-lg font-semibold text-charcoal">
                         <div className="flex items-center gap-1">
                             Importar Productos
                         </div>
                         <div>
                             <button
                                 onClick={handleDownloadTemplate}
-                                className="flex items-center gap-1 px-2 py-1 text-sm text-white bg-orange-600 rounded-md"
+                                className="inline-flex items-center gap-1.5 h-8 px-3 text-sm font-medium bg-white border rounded-button border-ash text-charcoal hover:bg-paper"
                             >
                                 <div>Descargar template</div>
                                 <BiDownload />
@@ -81,13 +77,13 @@ const ImportProducts = () => {
                         </div>
                     </Dialog.Title>
 
-                    <div className="min-h-[120px]">
+                    <div className="min-h-[140px] mt-4 border border-dashed rounded-card border-pebble bg-[#fafafa]">
                         {filesContent.length === 0 ? (
-                            <div className="flex items-center justify-center h-full  min-h-[120px]">
+                            <div className="flex flex-col items-center justify-center gap-2 h-full min-h-[140px]">
                                 <button
                                     onClick={openFilePicker}
                                     disabled={loading}
-                                    className="flex items-center gap-1 px-2 py-1 text-white bg-[#309B8A] rounded-md text-md"
+                                    className="inline-flex items-center gap-1.5 h-9 px-4 text-sm font-medium bg-white border rounded-button border-ash text-charcoal hover:bg-paper disabled:opacity-50"
                                 >
                                     {loading
                                         ? "Cargando..."
@@ -96,23 +92,23 @@ const ImportProducts = () => {
                                 </button>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-center min-h-[120px] flex-col">
-                                <h2 className="text-lg font-semibold">
+                            <div className="flex items-center justify-center min-h-[140px] flex-col">
+                                <h2 className="text-sm font-semibold text-charcoal">
                                     Archivo Seleccionado
                                 </h2>
-                                <p className="text-gray-500 text-md">
+                                <p className="text-sm text-fog">
                                     {filesContent[0].name}
                                 </p>
                             </div>
                         )}
                     </div>
 
-                    <div className="flex justify-center gap-2 mt-4">
+                    <div className="flex justify-end gap-2 mt-5">
                         {filesContent.length > 0 && (
                             <button
                                 disabled={processing}
                                 onClick={handleProcess}
-                                className="px-2 py-1 text-white bg-[#309B8A] rounded-md text-md"
+                                className="inline-flex items-center h-9 px-4 text-sm font-medium text-white rounded-button bg-sapphire hover:bg-blue-900 disabled:opacity-50"
                             >
                                 {processing ? (
                                     <div className="flex items-center gap-1">
@@ -139,7 +135,7 @@ const ImportProducts = () => {
                             </button>
                         )}
                         <Dialog.Close asChild>
-                            <button className="px-2 py-1 text-white bg-[#8B8D98] rounded-md text-md">
+                            <button className="inline-flex items-center h-9 px-4 text-sm font-medium bg-white border rounded-button border-ash text-charcoal hover:bg-paper">
                                 Cancelar
                             </button>
                         </Dialog.Close>

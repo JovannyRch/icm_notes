@@ -1,9 +1,7 @@
 import SearchInput from "@/Components/SearchInput";
-import { Inertia } from "@inertiajs/inertia";
+import { router } from "@inertiajs/react";
 import { Button } from "@radix-ui/themes";
 import React, { useMemo, useState } from "react";
-import { FaMagnifyingGlass } from "react-icons/fa6";
-import { MdClear } from "react-icons/md";
 
 const NoteSearchInput = () => {
     const queryParam = route().params.query;
@@ -20,9 +18,9 @@ const NoteSearchInput = () => {
 
     const fetchNotes = async (query: string) => {
         if (query) {
-            Inertia.get(route("notas"), { ...additionalParams, query });
+            router.get(route("notas"), { ...additionalParams, query });
         } else {
-            Inertia.get(route("notas"), { ...additionalParams });
+            router.get(route("notas"), { ...additionalParams });
         }
     };
 
@@ -40,9 +38,8 @@ const NoteSearchInput = () => {
                 placeholder="Buscar nota..."
                 className="flex-1"
             />
-            <Button type="submit" variant="soft">
+            <Button type="submit" variant="outline" color="gray">
                 Buscar
-                <FaMagnifyingGlass />
             </Button>
         </form>
     );

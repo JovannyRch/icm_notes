@@ -11,7 +11,6 @@ import useAlerts from "@/hooks/useAlerts";
 import { useBranch } from "@/hooks/useBranch";
 import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
-import { Inertia } from "@inertiajs/inertia";
 import { Link, router, useForm } from "@inertiajs/react";
 import { Badge, Button, Flex, Tabs, Text } from "@radix-ui/themes";
 import { useState } from "react";
@@ -124,7 +123,7 @@ const Form = ({
                 {
                     label: "Sí",
                     onClick: () => {
-                        Inertia.delete(route("products.destroy", product!.id));
+                        router.delete(route("products.destroy", product!.id));
                     },
                 },
                 {

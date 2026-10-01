@@ -10,7 +10,6 @@ import { router } from "@inertiajs/react";
 import { Button, Flex, IconButton, Text } from "@radix-ui/themes";
 import { BiChevronLeft, BiChevronRight, BiTrash } from "react-icons/bi";
 
-import { Inertia } from "@inertiajs/inertia";
 import { confirmAlert } from "react-confirm-alert";
 
 import { CorteSemanal } from "@/types/CorteSemanal";
@@ -304,7 +303,7 @@ const CorteSemanalForm = ({
             buttons: [
                 {
                     label: "Sí",
-                    onClick: () => Inertia.delete(route("cortes_semanales.destroy", { corte: corteSemanal!.id })),
+                    onClick: () => router.delete(route("cortes_semanales.destroy", { corte: corteSemanal!.id })),
                 },
                 { label: "No" },
             ],

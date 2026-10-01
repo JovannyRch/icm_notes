@@ -1,7 +1,8 @@
 import { textWithEllipsis } from "@/helpers/utils";
-import { Inertia } from "@inertiajs/inertia";
-import { Button, DropdownMenu } from "@radix-ui/themes";
+import { router } from "@inertiajs/react";
+import { DropdownMenu } from "@radix-ui/themes";
 import { ReactNode, useMemo } from "react";
+import { LuCheck, LuChevronDown } from "react-icons/lu";
 
 interface DropdownFilterProps<T extends string> {
     icon?: ReactNode;
@@ -15,6 +16,10 @@ interface DropdownFilterProps<T extends string> {
     resetPage?: boolean;
 }
 
+/**
+ * Filtro en píldora: "Etiqueta: valor". Al elegir, navega a `routeName` con el
+ * parámetro `paramKey` y conserva los demás parámetros de la URL.
+ */
 export const DropdownFilter = <T extends string>({
     icon,
     values,
@@ -37,38 +42,31 @@ export const DropdownFilter = <T extends string>({
         return params;
     }, [paramKey, resetPage]);
 
-    const value = currentValue
-        ? values[currentValue]
-        : values[defaultValue as T];
-
+    const selectedKey = (currentValue ?? defaultValue) as T | undefined;
+    const value = selectedKey ? values[selectedKey] : undefined;
     const hasValue = Boolean(value);
 
     return (
-        <div className={`flex items-center gap-2 justify-center ${className}`}>
+        <div className={className}>
             <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
-                    <Button
-                        variant="ghost"
-                        size="3"
-                        color="gray"
-                        className="text-black"
+                    <button
+                        type="button"
+                        className={`inline-flex items-center gap-1.5 h-8 px-3 text-[13px] rounded-tag border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-electric/30 ${
+                            hasValue
+                                ? "bg-sky-tint border-sky-tint text-charcoal"
+                                : "bg-white border-ash text-steel hover:bg-paper hover:text-charcoal"
+                        }`}
                     >
-                        {icon}
-                        <div className="text-sm font-bold text-black">
-                            {defaultLabel}
-                            {value && (
-                                <>
-                                    <span className="font-normal">
-                                        <br />
-                                        {textWithEllipsis(value as string, 30)}
-                                    </span>
-                                </>
-                            )}
-                        </div>
-                        <DropdownMenu.TriggerIcon />
-                    </Button>
+                        {icon && <span className="text-fog [&>svg]:w-3.5 [&>svg]:h-3.5">{icon}</span>}
+                        <span className="font-medium">{defaultLabel}</span>
+                        {value && (
+                            <span className="text-electric">: {textWithEllipsis(value as string, 30)}</span>
+                        )}
+                        <LuChevronDown className="w-3.5 h-3.5 text-fog" aria-hidden />
+                    </button>
                 </DropdownMenu.Trigger>
-                <DropdownMenu.Content>
+                <DropdownMenu.Content variant="soft" color="gray">
                     {Object.entries(values).map(([key, label]) => {
                         const k = key as T;
                         return (
@@ -76,35 +74,29 @@ export const DropdownFilter = <T extends string>({
                                 key={k}
                                 onSelect={() => {
                                     onSelect?.(k === "NONE" ? undefined : k);
-                                    const url = route(routeName);
-                                    const params = {
+                                    router.get(route(routeName), {
                                         ...additionalParams,
-                                        ...(k === "NONE"
-                                            ? {}
-                                            : { [paramKey]: k }),
-                                    };
-
-                                    Inertia.get(url, params);
+                                        ...(k === "NONE" ? {} : { [paramKey]: k }),
+                                    });
                                 }}
-                                color={
-                                    values[k] === value ? "indigo" : undefined
-                                }
                             >
-                                {label as ReactNode}
+                                <span className="flex items-center justify-between w-full gap-6">
+                                    {label as ReactNode}
+                                    {values[k] === value && <LuCheck className="w-4 h-4 text-electric" />}
+                                </span>
                             </DropdownMenu.Item>
                         );
                     })}
                     {hasValue && (
-                        <DropdownMenu.Item
-                            onSelect={() => {
-                                const url = route(routeName);
-                                const params = { ...additionalParams };
-                                Inertia.get(url, params);
-                            }}
-                            color="red"
-                        >
-                            <div>Quitar filtro</div>
-                        </DropdownMenu.Item>
+                        <>
+                            <DropdownMenu.Separator />
+                            <DropdownMenu.Item
+                                color="red"
+                                onSelect={() => router.get(route(routeName), { ...additionalParams })}
+                            >
+                                Quitar filtro
+                            </DropdownMenu.Item>
+                        </>
                     )}
                 </DropdownMenu.Content>
             </DropdownMenu.Root>

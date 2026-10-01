@@ -1,6 +1,6 @@
 import SearchInput from "@/Components/SearchInput";
 import { useUpdateEffect } from "@/hooks/useUpdateEffect";
-import { Inertia } from "@inertiajs/inertia";
+import { router } from "@inertiajs/react";
 import { Button } from "@radix-ui/themes";
 import { useState } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
@@ -14,9 +14,9 @@ const ProductsSearchInput = () => {
 
     const fetchProducts = async (query: string) => {
         if (query) {
-            Inertia.get(route("products"), { query });
+            router.get(route("products"), { query });
         } else {
-            Inertia.get(route("products"));
+            router.get(route("products"));
         }
     };
 
@@ -34,16 +34,15 @@ const ProductsSearchInput = () => {
                 placeholder="Buscar producto..."
                 className="flex-1"
             />
-            <Button type="submit" variant="soft">
+            <Button type="submit" variant="outline" color="gray">
                 Buscar
-                <FaMagnifyingGlass />
             </Button>
 
             {queryParam && (
                 <>
                     <Button
-                        variant="soft"
-                        color="red"
+                        variant="ghost"
+                        color="gray"
                         type="button"
                         onClick={() => {
                             setInputValue("");

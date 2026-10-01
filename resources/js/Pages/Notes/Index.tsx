@@ -2,42 +2,46 @@ import Container from "@/Components/Container";
 import DeliveryStatusBadge from "@/Components/DeliveryStatusBadge";
 import Pagination from "@/Components/Pagination";
 import StatusPaidBadge from "@/Components/StatusPaidBadge";
+import PageHeader from "@/Components/ui/PageHeader";
 import { STATUS_DELIVERY_ENUM } from "@/const";
 import { formatCurrency, formatDate } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
+import { useBranch } from "@/hooks/useBranch";
 import { PageProps, payment_status } from "@/types";
 import { Note } from "@/types/Note";
-import { Inertia } from "@inertiajs/inertia";
-import { router } from "@inertiajs/react";
-import { Button, Checkbox, Flex, Grid, Table, Text } from "@radix-ui/themes";
+import { Link, router } from "@inertiajs/react";
+import { Button, Checkbox, DropdownMenu, Table } from "@radix-ui/themes";
 import { useMemo, useState } from "react";
+import { confirmAlert } from "react-confirm-alert";
 import {
-    BiArchive,
-    BiArrowBack,
-    BiCalendarWeek,
-    BiImport,
-} from "react-icons/bi";
-import { CgAdd } from "react-icons/cg";
-import { GiCancel } from "react-icons/gi";
-import { MdClear, MdUnarchive, MdViewWeek, MdWeekend } from "react-icons/md";
-import { TbCashRegister, TbTrash } from "react-icons/tb";
-import DateFilter from "./components/DateFilter";
-import NoteSearchInput from "./components/NoteSearchInput";
-import SaleCustomerStatusFilter from "./components/SaleCustomerStatusFilter";
-import { BsCashCoin, BsFileExcel } from "react-icons/bs";
-import PurchaseStatusFilter from "./components/PurchaseStatusFilter";
-import DeliveryStatusFilter from "./components/DeliveryStatusFilter";
+    LuArchive,
+    LuArchiveRestore,
+    LuCalculator,
+    LuCalendarRange,
+    LuChevronDown,
+    LuFilePlus,
+    LuHistory,
+    LuPackagePlus,
+    LuTrash2,
+    LuX,
+} from "react-icons/lu";
 import { useLocalStorage } from "usehooks-ts";
-import { useBranch } from "@/hooks/useBranch";
-import HeaderWrapper from "@/Components/TableHeaderWrapper";
+import DateFilter from "./components/DateFilter";
+import DeliveryStatusFilter from "./components/DeliveryStatusFilter";
+import NoteSearchInput from "./components/NoteSearchInput";
+import PurchaseStatusFilter from "./components/PurchaseStatusFilter";
+import SaleCustomerStatusFilter from "./components/SaleCustomerStatusFilter";
 
 interface Props extends PageProps {
     pagination: any;
     branch: Branch;
 }
 
+const saleLabel = (status: string) =>
+    status === "pending" ? "Pendiente" : status === "paid" ? "Pagado" : "Cancelado";
+
 const Home = ({ pagination, flash }: Props) => {
-    const { data: notes } = pagination;
+    const notes: Note[] = pagination.data;
 
     const { currentBranch: branch } = useBranch();
     const archivedParam = Boolean(route().params.archived);
@@ -46,442 +50,292 @@ const Home = ({ pagination, flash }: Props) => {
 
     useAlerts(flash);
 
-    const handleOnArchive = () => {
-        Inertia.post(route("notes.archive.items"), {
-            branch: branch!.id,
-            ids: selectedItems.map((id) => id.toString()),
-        });
-    };
+    // router (Inertia 2) en lugar del cliente legado @inertiajs/inertia: aquel no entiende
+    // la respuesta del servidor, recargaba la página completa y se perdía el mensaje.
+    const afterBulk = { preserveScroll: true, onSuccess: () => setSelectedItems([]) };
 
-    const handleOnDelete = () => {
-        if (
-            confirm(
-                `¿Estás seguro de eliminar ${selectedItems.length} nota${
-                    selectedItems.length > 1 ? "s" : ""
-                }? Esta acción no se puede deshacer`
-            )
-        ) {
-            Inertia.post(route("notes.destroy.items"), {
-                ids: selectedItems.map((id) => id.toString()),
-            });
-        }
+    const handleOnArchive = () => {
+        router.post(
+            route("notes.archive.items"),
+            { branch: branch!.id, ids: selectedItems.map((id) => id.toString()) },
+            afterBulk
+        );
     };
 
     const handleOnUnarchive = () => {
-        Inertia.post(route("notes.unarchive.items"), {
-            branch: branch!.id,
-            ids: selectedItems.map((id) => id.toString()),
+        router.post(
+            route("notes.unarchive.items"),
+            { branch: branch!.id, ids: selectedItems.map((id) => id.toString()) },
+            afterBulk
+        );
+    };
+
+    const handleOnDelete = () => {
+        const total = selectedItems.length;
+        confirmAlert({
+            title: `Eliminar ${total} nota${total > 1 ? "s" : ""}`,
+            message: `¿Estás seguro de eliminar ${total} nota${total > 1 ? "s" : ""}? Esta acción no se puede deshacer.`,
+            buttons: [
+                {
+                    label: "Eliminar",
+                    onClick: () =>
+                        router.post(
+                            route("notes.destroy.items"),
+                            { ids: selectedItems.map((id) => id.toString()) },
+                            afterBulk
+                        ),
+                },
+                { label: "Cancelar" },
+            ],
         });
     };
 
     const hasFiltersApplied = useMemo(() => {
         const params = route().params;
         const noFilterParams = ["page", "archived"];
-
-        const dateFilterValue = params.date;
-
-        return (
-            Object.keys(params).some((key) => !noFilterParams.includes(key)) &&
-            dateFilterValue !== "THIS_WEEK"
-        );
+        return Object.keys(params).some((key) => !noFilterParams.includes(key)) && params.date !== "THIS_WEEK";
     }, []);
 
     const noFiltersParamValues = useMemo(() => {
         const params = route().params;
-        const noFilterParams = ["page", "archived"];
         const filteredParams: Record<string, any> = {};
-        Object.keys(params).forEach((key) => {
-            if (noFilterParams.includes(key)) {
-                filteredParams[key] = params[key];
-            }
+        ["page", "archived"].forEach((key) => {
+            if (key in params) filteredParams[key] = params[key];
         });
         return filteredParams;
     }, []);
 
-    const [filterDate, setFilterDate] = useLocalStorage(
-        `date-filter-${branch?.id}`,
-        "THIS_WEEK"
-    );
+    const [filterDate, setFilterDate] = useLocalStorage(`date-filter-${branch?.id}`, "THIS_WEEK");
+
+    const pageIds = notes.map((note) => note.id!);
+    const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedItems.includes(id));
+    const someSelected = selectedItems.length > 0 && !allSelected;
+
+    const toggle = (id: number) =>
+        setSelectedItems(selectedItems.includes(id) ? selectedItems.filter((i) => i !== id) : [...selectedItems, id]);
+
+    const listUrl = (archived: boolean) =>
+        route("notas", {
+            ...(archived ? { archived: true } : {}),
+            date: route().params.date ?? filterDate,
+        });
 
     return (
         <Container headTitle="Notas">
             <div style={{ minHeight: "calc(100vh - 130px)" }}>
-                <Flex
-                    justify="between"
-                    align="center"
-                    className="mb-6"
-                    direction={{
-                        md: "row",
-                        xs: "column",
-                        sm: "column",
-                        initial: "column",
-                    }}
-                >
-                    <Text size="6" className="font-semibold">
-                        {`Notas ${archivedParam ? "archivadas" : ""} (${
-                            pagination.total
-                        }) - ${branch?.name}`}
-                    </Text>
-                </Flex>
-                <Flex justify="between" gap="4" wrap="wrap" className="my-4">
-                    <Flex
-                        gap="2"
-                        wrap="wrap"
-                        direction={{
-                            md: "row",
-                            xs: "column",
-                            sm: "column",
-                            initial: "column",
-                        }}
-                    >
-                        <Button
-                            onClick={() => {
-                                router.visit(route("notes.create"));
-                            }}
-                            className="hover:cursor-pointer"
-                        >
-                            Crear Nota de Venta
-                            <CgAdd className="w-5 h-5" />
-                        </Button>
-                        <Button
-                            type="button"
-                            color="green"
-                            variant="soft"
-                            onClick={() => {
-                                router.visit(route("stock-entries.create"));
-                            }}
-                            className="hover:cursor-pointer"
-                        >
-                            Crear Nota de Entrada
-                            <BiImport className="w-5 h-5" />
-                        </Button>
-                        <Button
-                            type="button"
-                            color="gold"
-                            variant="soft"
-                            onClick={() => {
-                                router.visit(route("cortes.new"));
-                            }}
-                            className="hover:cursor-pointer"
-                        >
-                            Generar Corte
-                            <TbCashRegister className="w-5 h-5" />
-                        </Button>
-                        <Button
-                            color="bronze"
-                            variant="soft"
-                            className="hover:cursor-pointer"
-                            onClick={() => {
-                                router.visit(route("cortes"));
-                            }}
-                        >
-                            Cortes
-                            <BsCashCoin className="w-5 h-5" />
-                        </Button>
-                        <Button
-                            color="bronze"
-                            variant="soft"
-                            className="hover:cursor-pointer"
-                            onClick={() => {
-                                router.visit(route("cortes_semanales.create"));
-                            }}
-                        >
-                            Generar corte semanal
-                            <BiCalendarWeek className="w-5 h-5" />
-                        </Button>
-                    </Flex>
-                    <Flex
-                        gap="2"
-                        wrap="wrap"
-                        direction={{
-                            md: "row",
-                            xs: "column",
-                            sm: "column",
-                            initial: "column",
-                        }}
-                    >
-                        {archivedParam ? (
-                            <>
-                                <Button
-                                    color="bronze"
-                                    variant="soft"
-                                    className="hover:cursor-pointer"
-                                    onClick={() => {
-                                        router.visit(
-                                            route("notas", {
-                                                branch: branch?.id,
-                                                date:
-                                                    route().params.date ??
-                                                    "THIS_WEEK",
-                                            })
-                                        );
-                                    }}
-                                >
-                                    Ver no archivados
-                                    <BiArrowBack className="w-5 h-5" />
-                                </Button>
-
-                                <Button
-                                    color="orange"
-                                    variant="soft"
-                                    className="hover:cursor-pointer"
-                                    disabled={selectedItems.length === 0}
-                                    onClick={handleOnUnarchive}
-                                >
-                                    Desarchivar
-                                    <MdUnarchive className="w-5 h-5" />
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <Button
-                                    color="bronze"
-                                    variant="soft"
-                                    className="hover:cursor-pointer"
-                                    onClick={() => {
-                                        router.visit(
-                                            route("notas", {
-                                                archived: true,
-                                                date:
-                                                    route().params.date ??
-                                                    filterDate,
-                                            })
-                                        );
-                                    }}
-                                >
-                                    Ver archivados
-                                    <BiArchive className="w-5 h-5" />
-                                </Button>
-                                <Button
-                                    variant="soft"
-                                    className="hover:cursor-pointer"
-                                    color="amber"
-                                    disabled={selectedItems.length === 0}
-                                    onClick={handleOnArchive}
-                                >
-                                    Archivar
-                                    <BiArchive className="w-5 h-5" />
-                                </Button>
-                            </>
-                        )}
-
-                        <Button
-                            type="button"
-                            color="gold"
-                            variant="soft"
-                            className="btn btn-secondary hover:cursor-pointer"
-                            onClick={() => {
-                                setSelectedItems([]);
-                            }}
-                            disabled={selectedItems.length === 0}
-                        >
-                            Deshacer selección
-                            <GiCancel />
-                        </Button>
-                        <Button
-                            variant="soft"
-                            type="button"
-                            color="red"
-                            className="btn btn-secondary hover:cursor-pointer"
-                            onClick={handleOnDelete}
-                            disabled={selectedItems.length === 0}
-                        >
-                            Eliminar
-                            <TbTrash />
-                        </Button>
-                    </Flex>
-                </Flex>
-
-                <Grid gap="5" columns="8" className="mb-4">
-                    <Grid
-                        gridColumn={{
-                            lg: "span 3",
-                            md: "span 4",
-                            xs: "span 8",
-                            initial: "span 8",
-                        }}
-                    >
-                        <NoteSearchInput />
-                    </Grid>
-                    <div>
-                        {hasFiltersApplied && (
-                            <Button
-                                variant="soft"
-                                color="red"
-                                type="button"
-                                onClick={() => {
-                                    setFilterDate("THIS_WEEK");
-                                    Inertia.get(route("notas"), {
-                                        ...noFiltersParamValues,
-                                        date: "THIS_WEEK",
-                                    });
-                                }}
-                            >
-                                Limpiar filtros
-                                <MdClear />
+                <PageHeader
+                    eyebrow={branch?.name}
+                    title={archivedParam ? "Notas archivadas" : "Notas"}
+                    description={`${pagination.total} ${pagination.total === 1 ? "nota" : "notas"}`}
+                    actions={
+                        <>
+                            <DropdownMenu.Root>
+                                <DropdownMenu.Trigger>
+                                    <Button variant="outline" color="gray">
+                                        Cortes
+                                        <LuChevronDown />
+                                    </Button>
+                                </DropdownMenu.Trigger>
+                                <DropdownMenu.Content align="end" variant="soft" color="gray">
+                                    <DropdownMenu.Item onSelect={() => router.visit(route("cortes.new"))}>
+                                        <LuCalculator /> Generar corte del día
+                                    </DropdownMenu.Item>
+                                    <DropdownMenu.Item onSelect={() => router.visit(route("cortes"))}>
+                                        <LuHistory /> Ver cortes
+                                    </DropdownMenu.Item>
+                                    <DropdownMenu.Item onSelect={() => router.visit(route("cortes_semanales.create"))}>
+                                        <LuCalendarRange /> Generar corte semanal
+                                    </DropdownMenu.Item>
+                                </DropdownMenu.Content>
+                            </DropdownMenu.Root>
+                            <Button variant="outline" color="gray" onClick={() => router.visit(route("stock-entries.create"))}>
+                                <LuPackagePlus />
+                                Crear Nota de Entrada
                             </Button>
-                        )}
-                    </div>
-                </Grid>
+                            <Button onClick={() => router.visit(route("notes.create"))}>
+                                <LuFilePlus />
+                                Crear Nota de Venta
+                            </Button>
+                        </>
+                    }
+                />
 
-                <Table.Root>
-                    <Table.Header>
-                        <Table.Row>
-                            <Table.ColumnHeaderCell className="text-center">
-                                <HeaderWrapper>
-                                    {selectedItems.length > 0 &&
-                                        `(${selectedItems.length})`}
-                                </HeaderWrapper>
-                            </Table.ColumnHeaderCell>
-
-                            <Table.ColumnHeaderCell className="text-center">
-                                <HeaderWrapper>No. Nota</HeaderWrapper>
-                            </Table.ColumnHeaderCell>
-
-                            <Table.ColumnHeaderCell className="text-center">
-                                <HeaderWrapper>
-                                    <DateFilter />
-                                </HeaderWrapper>
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                <HeaderWrapper>
-                                    Total venta cliente
-                                </HeaderWrapper>
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                <HeaderWrapper>
-                                    <SaleCustomerStatusFilter />
-                                </HeaderWrapper>
-                            </Table.ColumnHeaderCell>
-
-                            <Table.ColumnHeaderCell className="text-center">
-                                <HeaderWrapper>Total compra</HeaderWrapper>
-                            </Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell className="text-center">
-                                <HeaderWrapper>
-                                    <PurchaseStatusFilter />
-                                </HeaderWrapper>
-                            </Table.ColumnHeaderCell>
-
-                            <Table.ColumnHeaderCell className="text-center">
-                                <HeaderWrapper>
-                                    <DeliveryStatusFilter />
-                                </HeaderWrapper>
-                            </Table.ColumnHeaderCell>
-                        </Table.Row>
-                    </Table.Header>
-
-                    <Table.Body>
-                        {(notes as Note[]).map((note) => (
-                            <Table.Row
-                                key={note.id}
-                                onClick={(e: any) => {
-                                    if (
-                                        !e.target.classList.contains(
-                                            "clickable"
-                                        )
-                                    ) {
-                                        router.visit(
-                                            route("notes.show", note.id)
-                                        );
-                                    }
-                                }}
-                                className="border-b border-gray-200 hover:cursor-pointer hover:bg-gray-100 odd:bg-white even:bg-gray-50 "
+                {/* Activas / archivadas */}
+                <div className="flex items-center gap-1 mb-4 border-b border-ash" role="tablist">
+                    {[
+                        { label: "Activas", archived: false },
+                        { label: "Archivadas", archived: true },
+                    ].map((tab) => {
+                        const active = tab.archived === archivedParam;
+                        return (
+                            <Link
+                                key={tab.label}
+                                href={listUrl(tab.archived)}
+                                role="tab"
+                                aria-selected={active}
+                                className={`-mb-px px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+                                    active ? "border-ink text-charcoal" : "border-transparent text-fog hover:text-charcoal"
+                                }`}
                             >
-                                <Table.Cell className="clickable">
-                                    <div className="flex items-center justify-center w-full h-full checkbox clickable">
-                                        <Checkbox
-                                            className="cursor-pointer hover:cursor-pointer clickable"
-                                            checked={selectedItems.includes(
-                                                note.id!
-                                            )}
-                                            onChange={() => {}}
-                                            onClick={() => {
-                                                if (
-                                                    selectedItems.includes(
-                                                        note.id!
-                                                    )
-                                                ) {
-                                                    setSelectedItems(
-                                                        selectedItems.filter(
-                                                            (id) =>
-                                                                id !== note.id
-                                                        )
-                                                    );
-                                                } else {
-                                                    setSelectedItems([
-                                                        ...selectedItems,
-                                                        note.id!,
-                                                    ]);
-                                                }
-                                            }}
-                                        />
-                                    </div>
-                                </Table.Cell>
+                                {tab.label}
+                            </Link>
+                        );
+                    })}
+                </div>
 
-                                <Table.Cell className="text-center">
-                                    <div className="flex items-center justify-center w-full h-full">
-                                        {note.folio}
-                                    </div>
-                                </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    {formatDate(note.date)}
-                                </Table.Cell>
+                {/* Búsqueda y filtros: una sola fila sobre la tabla */}
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <div className="w-full sm:w-80">
+                        <NoteSearchInput />
+                    </div>
+                    <DateFilter />
+                    <SaleCustomerStatusFilter />
+                    <PurchaseStatusFilter />
+                    <DeliveryStatusFilter />
+                    {hasFiltersApplied && (
+                        <Button
+                            variant="ghost"
+                            color="gray"
+                            onClick={() => {
+                                setFilterDate("THIS_WEEK");
+                                router.get(route("notas"), { ...noFiltersParamValues, date: "THIS_WEEK" });
+                            }}
+                        >
+                            <LuX />
+                            Limpiar filtros
+                        </Button>
+                    )}
+                </div>
 
-                                <Table.Cell className="text-center">
-                                    {formatCurrency(note.sale_total)}
-                                </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    <StatusPaidBadge
-                                        status={note.status as payment_status}
-                                        label={
-                                            note.status === "pending"
-                                                ? "Pendiente"
-                                                : note.status === "paid"
-                                                ? "Pagado"
-                                                : "Cancelado"
-                                        }
-                                    />
-                                </Table.Cell>
-
-                                <Table.Cell className="text-center">
-                                    {formatCurrency(note.purchase_total)}
-                                </Table.Cell>
-                                <Table.Cell className="text-center">
-                                    <StatusPaidBadge
-                                        status={
-                                            note.purchase_status as payment_status
-                                        }
-                                        label={
-                                            note.purchase_status === "pending"
-                                                ? "Costo pendiente"
-                                                : "Costo pagado"
-                                        }
-                                    />
-                                </Table.Cell>
-
-                                <Table.Cell className="text-center">
-                                    <DeliveryStatusBadge
-                                        status={
-                                            note.delivery_status as STATUS_DELIVERY_ENUM
-                                        }
-                                    />
-                                </Table.Cell>
-                            </Table.Row>
-                        ))}
-                    </Table.Body>
-                </Table.Root>
-
-                {notes.length === 0 && (
-                    <div className="flex items-center justify-center w-full h-full min-h-[52vh]">
-                        <Text size="6">No se encontraron notas</Text>
+                {/* Acciones sobre la selección: sólo aparecen cuando hay notas seleccionadas */}
+                {selectedItems.length > 0 && (
+                    <div className="sticky z-20 flex flex-wrap items-center gap-2 px-3 py-2 mb-3 text-sm text-white top-2 rounded-card bg-ink">
+                        <span className="mr-2 font-medium">
+                            {selectedItems.length} {selectedItems.length === 1 ? "seleccionada" : "seleccionadas"}
+                        </span>
+                        {archivedParam ? (
+                            <SelectionButton onClick={handleOnUnarchive} icon={<LuArchiveRestore />} label="Desarchivar" />
+                        ) : (
+                            <SelectionButton onClick={handleOnArchive} icon={<LuArchive />} label="Archivar" />
+                        )}
+                        <SelectionButton onClick={handleOnDelete} icon={<LuTrash2 />} label="Eliminar" danger />
+                        <button
+                            type="button"
+                            onClick={() => setSelectedItems([])}
+                            className="inline-flex items-center gap-1 px-2 py-1 ml-auto text-white/70 hover:text-white rounded-button"
+                        >
+                            <LuX className="w-4 h-4" />
+                            Quitar selección
+                        </button>
                     </div>
                 )}
+
+                <div className="overflow-x-auto border border-ash rounded-card">
+                    <Table.Root>
+                        <Table.Header>
+                            <Table.Row>
+                                <Table.ColumnHeaderCell width="44px">
+                                    <Checkbox
+                                        aria-label="Seleccionar todas las notas de esta página"
+                                        disabled={pageIds.length === 0}
+                                        checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                                        onCheckedChange={() =>
+                                            setSelectedItems(
+                                                allSelected
+                                                    ? selectedItems.filter((id) => !pageIds.includes(id))
+                                                    : Array.from(new Set([...selectedItems, ...pageIds]))
+                                            )
+                                        }
+                                    />
+                                </Table.ColumnHeaderCell>
+                                <Table.ColumnHeaderCell>No. nota</Table.ColumnHeaderCell>
+                                <Table.ColumnHeaderCell>Fecha</Table.ColumnHeaderCell>
+                                <Table.ColumnHeaderCell justify="end">Venta</Table.ColumnHeaderCell>
+                                <Table.ColumnHeaderCell>Estatus venta</Table.ColumnHeaderCell>
+                                <Table.ColumnHeaderCell justify="end">Compra</Table.ColumnHeaderCell>
+                                <Table.ColumnHeaderCell>Estatus compra</Table.ColumnHeaderCell>
+                                <Table.ColumnHeaderCell>Entrega</Table.ColumnHeaderCell>
+                            </Table.Row>
+                        </Table.Header>
+
+                        <Table.Body>
+                            {notes.map((note) => (
+                                <Table.Row
+                                    key={note.id}
+                                    align="center"
+                                    className="cursor-pointer"
+                                    onClick={(e: any) => {
+                                        if (!(e.target as HTMLElement).closest(".clickable")) {
+                                            router.visit(route("notes.show", note.id));
+                                        }
+                                    }}
+                                >
+                                    <Table.Cell className="clickable">
+                                        <Checkbox
+                                            className="clickable"
+                                            aria-label={`Seleccionar nota ${note.folio}`}
+                                            checked={selectedItems.includes(note.id!)}
+                                            onCheckedChange={() => toggle(note.id!)}
+                                        />
+                                    </Table.Cell>
+                                    <Table.Cell className="font-medium text-charcoal">{note.folio}</Table.Cell>
+                                    <Table.Cell className="whitespace-nowrap text-steel">{formatDate(note.date)}</Table.Cell>
+                                    <Table.Cell justify="end" className="font-medium tabular-nums">
+                                        {formatCurrency(note.sale_total)}
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        <div className="flex">
+                                            <StatusPaidBadge status={note.status as payment_status} label={saleLabel(note.status)} />
+                                        </div>
+                                    </Table.Cell>
+                                    <Table.Cell justify="end" className="tabular-nums text-steel">
+                                        {formatCurrency(note.purchase_total)}
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        <div className="flex">
+                                            <StatusPaidBadge
+                                                status={note.purchase_status as payment_status}
+                                                label={note.purchase_status === "pending" ? "Costo pendiente" : "Costo pagado"}
+                                            />
+                                        </div>
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        <div className="flex">
+                                            <DeliveryStatusBadge status={note.delivery_status as STATUS_DELIVERY_ENUM} />
+                                        </div>
+                                    </Table.Cell>
+                                </Table.Row>
+                            ))}
+                        </Table.Body>
+                    </Table.Root>
+
+                    {notes.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <p className="text-base font-medium text-charcoal">No se encontraron notas</p>
+                            <p className="mt-1 text-sm text-fog">
+                                {hasFiltersApplied ? "Prueba con otros filtros o limpia la búsqueda." : "Aún no hay notas en este periodo."}
+                            </p>
+                        </div>
+                    )}
+                </div>
 
                 <Pagination pagination={pagination} />
             </div>
         </Container>
     );
 };
+
+const SelectionButton = ({ onClick, icon, label, danger = false }: { onClick: () => void; icon: JSX.Element; label: string; danger?: boolean }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className={`inline-flex items-center gap-1.5 h-7 px-2.5 font-medium rounded-button border border-white/15 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 [&>svg]:w-4 [&>svg]:h-4 ${
+            danger ? "text-red-300" : "text-white"
+        }`}
+    >
+        {icon}
+        {label}
+    </button>
+);
 
 export default Home;

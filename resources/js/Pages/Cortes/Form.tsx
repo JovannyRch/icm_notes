@@ -18,7 +18,6 @@ import { formatCurrency } from "@/helpers/formatters";
 import ExpensesTable from "./components/ExpensesTable";
 import { isNumber } from "@/helpers/utils";
 import { Corte } from "@/types/Corte";
-import { Inertia } from "@inertiajs/inertia";
 import useAlerts from "@/hooks/useAlerts";
 import { confirmAlert } from "react-confirm-alert";
 import ReturnsTable from "./components/ReturnsTable";
@@ -234,7 +233,7 @@ const CorteForm = ({
         if (savingRef.current) return;
         savingRef.current = true;
         setSaving(true);
-        Inertia.post(route("cortes.store"), {
+        router.post(route("cortes.store"), {
             date: date,
             sale_total: total,
             notes_total: notesSum,
@@ -299,7 +298,7 @@ const CorteForm = ({
             title: "Eliminar corte",
             message: "¿Estás seguro de eliminar este corte?",
             buttons: [
-                { label: "Sí", onClick: () => Inertia.delete(route("cortes.destroy", { corte: corte!.id })) },
+                { label: "Sí", onClick: () => router.delete(route("cortes.destroy", { corte: corte!.id })) },
                 { label: "No" },
             ],
         });
@@ -338,7 +337,7 @@ const CorteForm = ({
                             <Button
                                 variant="outline"
                                 color="gray"
-                                onClick={() => Inertia.get(route("cortes.export", { corte: corte.id }))}
+                                onClick={() => (window.location.href = route("cortes.export", { corte: corte.id }))}
                             >
                                 <FaDownload />
                                 Descargar PDF
