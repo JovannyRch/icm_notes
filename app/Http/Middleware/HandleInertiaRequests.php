@@ -46,7 +46,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'currentBranch' => fn() => currentBranchId(),
-            'branches' => fn() => Branch::all(['id', 'name']),
+            'branches' => fn() => Branch::orderBy('id')->get(['id', 'name', 'extra_percentage']), // sin orderBy, Postgres reordena tras un UPDATE
             'billing' => fn() => $request->user() ? app(BillingStatusService::class)->status() : null,
             'canManageBilling' => fn() => $request->user() && Gate::allows('manage-billing'),
         ];

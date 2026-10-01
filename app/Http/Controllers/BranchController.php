@@ -16,7 +16,7 @@ class BranchController extends Controller
         $branches = Branch::all();
 
         return Inertia::render('Branches/Index', [
-            'branches' => $branches
+            'branches' => $branches,
         ]);
     }
 
@@ -68,6 +68,24 @@ class BranchController extends Controller
     public function getList()
     {
         $branches = Branch::all();
+
         return response()->json($branches);
+    }
+
+    /**
+     * Extra (%) global de la sucursal para todos sus productos; null lo quita
+     * y se vuelve a usar el extra de cada producto.
+     */
+    public function updateExtra(Request $request, Branch $branch)
+    {
+        $validated = $request->validate([
+            'extra_percentage' => 'nullable|numeric|min:0|max:1000',
+        ]);
+
+        $branch->update(['extra_percentage' => $validated['extra_percentage']]);
+
+        return redirect()->back()->with('success', $branch->extra_percentage === null
+            ? "{$branch->name} vuelve a usar el extra de cada producto."
+            : "Extra global de {$branch->name}: {$branch->extra_percentage}%.");
     }
 }

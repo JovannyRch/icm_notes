@@ -13,6 +13,12 @@ export const calculatePurchaseSubtotal = (
     );
 };
 
+/** El extra global de la sucursal, si existe, reemplaza al del producto. */
+export const effectiveExtra = (
+    productExtra: number | null | undefined,
+    globalExtra: number | null
+): number => globalExtra ?? Number(productExtra ?? 0);
+
 export const calculateSaleSubtotal = (product: NoteItemInterface): number => {
     return Number(product.price) * Number(product.quantity);
 };

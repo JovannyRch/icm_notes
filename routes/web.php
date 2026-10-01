@@ -70,6 +70,7 @@ Route::get('/productos/{product}', [ProductController::class, 'show'])->middlewa
 Route::put('/productos/{product}', [ProductController::class, 'update'])->middleware(['auth', 'verified'])->name('products.update');
 Route::post('/productos', [ProductController::class, 'store'])->middleware(['auth', 'verified'])->name('products.store');
 Route::delete('/productos/{product}', [ProductController::class, 'destroy'])->middleware(['auth', 'verified'])->name('products.destroy');
+Route::put('/sucursales/{branch}/extra', [BranchController::class, 'updateExtra'])->middleware(['auth', 'verified'])->name('branches.extra.update');
 
 
 

@@ -16,6 +16,8 @@ import { confirmAlert } from "react-confirm-alert";
 import { MdDeleteSweep } from "react-icons/md";
 import { BiDownload } from "react-icons/bi";
 import ProductsSearchInput from "./components/ProductsSearchInput";
+import BranchExtraDialog from "./components/BranchExtraDialog";
+import { useBranchExtra } from "@/hooks/useBranchExtra";
 
 import { DropdownFilter } from "@/Components/ProductsModal/DropdownFilter/DropdownFilter";
 
@@ -34,6 +36,7 @@ const Index = ({ pagination, flash, brands }: Props) => {
     const [selectedItems, setSelectedItems] = useState<number[]>([]);
 
     useAlerts(flash);
+    const { globalExtra } = useBranchExtra();
 
     const handleDelete = () => {
         confirmAlert({
@@ -124,6 +127,7 @@ const Index = ({ pagination, flash, brands }: Props) => {
                         </Button>
                     </div>
                     <Flex gap="2" align="center">
+                        <BranchExtraDialog />
                         <ImportProducts />
                         <Button
                             color="teal"
@@ -318,7 +322,14 @@ const Index = ({ pagination, flash, brands }: Props) => {
                                     {product.iva}%
                                 </Table.Cell>
                                 <Table.Cell className="text-center">
-                                    {product.extra ?? 0}%
+                                    {globalExtra === null ? (
+                                        `${product.extra ?? 0}%`
+                                    ) : (
+                                        <span title={`Extra global de la sucursal (el del producto es ${product.extra ?? 0}%)`}>
+                                            {globalExtra}%{" "}
+                                            <span className="text-xs text-violet-700">global</span>
+                                        </span>
+                                    )}
                                 </Table.Cell>
                                 <Table.Cell className="text-center">
                                     <b>{product.stock?.quantity ?? "-"}</b>

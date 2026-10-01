@@ -19,6 +19,7 @@ import { MdOutlineEdit } from "react-icons/md";
 import { BiPlus } from "react-icons/bi";
 import StockMovementForm from "./components/StockMovementForm";
 import { useUpdateEffect } from "@/hooks/useUpdateEffect";
+import { useBranchExtra } from "@/hooks/useBranchExtra";
 
 interface FormProps extends PageProps {
     product?: Product;
@@ -51,6 +52,7 @@ const Form = ({
     useAlerts(flash);
 
     const { currentBranchName } = useBranch();
+    const { globalExtra } = useBranchExtra();
 
     const { data, setData, errors, put, post } = useForm({
         brand: product ? product.brand : "",
@@ -320,6 +322,11 @@ const Form = ({
                                                 }
                                                 error={errors.extra}
                                             />
+                                            {globalExtra !== null && (
+                                                <p className="mt-1 text-xs text-violet-700">
+                                                    {currentBranchName} usa un extra global de {globalExtra}%; este valor no se aplica ahí.
+                                                </p>
+                                            )}
                                         </Grid>
                                         <Grid gridColumn="span 1">
                                             <InputWithLabel

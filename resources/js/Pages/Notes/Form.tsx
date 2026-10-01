@@ -11,6 +11,7 @@ import { formatCurrency, getToday } from "@/helpers/formatters";
 import {
     calculatePurchaseSubtotal,
     calculateSaleSubtotal,
+    effectiveExtra,
 } from "@/helpers/utils";
 import useAlerts from "@/hooks/useAlerts";
 import { useUpdateEffect } from "@/hooks/useUpdateEffect";
@@ -310,7 +311,8 @@ const NoteForm = ({
             cost: product.cost,
             price: product.price,
             iva: product.iva,
-            extra: product.extra,
+            // La nota es de `branch` (la activa al crear, la de la nota al editar).
+            extra: effectiveExtra(product.extra, branch?.extra_percentage ?? null),
             supplied_status: "no_enviado",
             delivery_status: STATUS_DELIVERY_ENUM.PENDING,
             quantity: 1,
