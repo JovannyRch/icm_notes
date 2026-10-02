@@ -207,7 +207,8 @@ test("el cajero hace el corte del día sin ver compras", async ({ page }) => {
     await page.waitForURL("**/cortes");
     await expect(page.getByRole("button", { name: /Corte semanal/ })).toHaveCount(0);
 
-    await page.getByRole("button", { name: /Crear un corte/ }).click();
+    await expect(page.getByText("Todavía no se hace el corte de hoy")).toBeVisible();
+    await page.getByRole("button", { name: /Hacer el corte de hoy/ }).click();
     await page.waitForURL(/\/cortes\/crear/);
     await expect(page.getByText(/Total de compra/i)).toHaveCount(0);
     await expect(page.getByRole("columnheader", { name: "Total compra" })).toHaveCount(0);

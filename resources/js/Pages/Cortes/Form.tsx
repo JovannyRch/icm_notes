@@ -9,10 +9,11 @@ import { formatDate } from "date-fns";
 import { es } from "date-fns/locale/es";
 import { useEffect, useRef, useState } from "react";
 import DatePicker from "react-datepicker";
-import { BiArrowBack, BiRefresh, BiSave, BiTrash } from "react-icons/bi";
+import { BiRefresh, BiSave, BiTrash } from "react-icons/bi";
 import NotesTable from "./components/NotesTable";
 import PendingNotesTable from "./components/PendingNotesTable";
-import CorteSummary from "./components/CorteSummary";
+import CashSummary from "./components/CashSummary";
+import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import SectionCard from "@/Components/SectionCard";
 import PageHeader from "@/Components/ui/PageHeader";
 import { formatCurrency } from "@/helpers/formatters";
@@ -25,7 +26,6 @@ import ReturnsTable from "./components/ReturnsTable";
 import { router } from "@inertiajs/react";
 import { FaDownload } from "react-icons/fa6";
 import { toast } from "react-toastify";
-import { CgAdd } from "react-icons/cg";
 import axios from "axios";
 
 interface Props extends PageProps {
@@ -321,148 +321,166 @@ const CorteForm = ({
         setSums(sums);
     }, [notes, expenses, previousNotes, returns, date]);
 
+    // Navegar entre días (corte nuevo): el anterior, el siguiente y hoy.
+    const goToDate = (value: Date) =>
+        router.visit(route("cortes.new", { branch: branch.id, date: formatDate(value, "yyyy-MM-dd") }));
+    const shiftDay = (days: number) => {
+        const next = new Date(selectedDate);
+        next.setDate(next.getDate() + days);
+        goToDate(next);
+    };
+    const longDay = capitalize(formatDate(selectedDate, "EEEE d 'de' MMMM 'de' yyyy", { locale: es }));
+    const canceledCount = notes.length - activeNotes;
+
+    const saveButton = (
+        <Button size="3" style={{ width: "100%" }} disabled={saving} onClick={handleSubmit}>
+            <BiSave />
+            {saving ? "Guardando…" : "Guardar corte"}
+        </Button>
+    );
+
     return (
-        <Container headTitle={isDetail ? `Corte #${corte.id}` : "Nuevo corte"}>
-            <div className={isDetail ? "" : "pb-28 sm:pb-16"}>
+        <Container headTitle={isDetail ? `Corte #${corte.id}` : "Corte del día"}>
+            <div className={isDetail ? "" : "pb-24 lg:pb-0"}>
                 <PageHeader
-                    back={{ label: "Lista de cortes", href: route("cortes") }}
+                    back={{ label: "Cortes", href: route("cortes") }}
                     eyebrow={branch.name}
                     title={isDetail ? `Corte #${corte.id}` : "Corte del día"}
-                    description={
-                        isDetail
-                            ? capitalize(formatDate(selectedDate, "EEEE d 'de' MMMM 'de' yyyy", { locale: es }))
-                            : undefined
-                    }
+                    description={isDetail ? `${longDay} · guardado` : longDay}
                     actions={
                         isDetail ? (
-                        <Flex gap="2" wrap="wrap">
-                            <Button
-                                variant="outline"
-                                color="gray"
-                                onClick={() => (window.location.href = route("cortes.export", { corte: corte.id }))}
-                            >
-                                <FaDownload />
-                                Descargar PDF
-                            </Button>
-                            {can("cortes.manage") && (
-                                <Button color="red" variant="soft" onClick={confirmDelete}>
-                                    <BiTrash />
-                                    Eliminar
+                            <Flex gap="2" wrap="wrap">
+                                <Button
+                                    variant="outline"
+                                    color="gray"
+                                    onClick={() => (window.location.href = route("cortes.export", { corte: corte.id }))}
+                                >
+                                    <FaDownload />
+                                    Descargar PDF
                                 </Button>
-                            )}
-                            <Button onClick={() => router.visit(route("cortes.new"))}>
-                                Nuevo corte
-                                <CgAdd className="w-5 h-5" />
-                            </Button>
-                        </Flex>
+                                {can("cortes.manage") && (
+                                    <Button color="red" variant="soft" onClick={confirmDelete}>
+                                        <BiTrash />
+                                        Eliminar
+                                    </Button>
+                                )}
+                            </Flex>
                         ) : (
-                        <Flex gap="3" align="end" wrap="wrap">
-                            <label className="text-xs text-steel">
-                                Fecha del corte
-                                <DatePicker
-                                    locale={es}
-                                    dateFormat={"dd/MM/yyyy"}
-                                    className="block h-8 px-3 text-sm bg-white w-[150px]"
-                                    selected={selectedDate}
-                                    onSelect={(picked) => {
-                                        if (!picked) return;
-                                        router.visit(
-                                            route("cortes.new", {
-                                                branch: branch.id,
-                                                date: formatDate(picked, "yyyy-MM-dd"),
-                                            })
-                                        );
-                                    }}
-                                />
-                            </label>
-                            <Button
-                                variant="outline"
-                                color="gray"
-                                disabled={refreshing}
-                                onClick={refreshNotes}
-                                title="Vuelve a cargar las notas y los pagos de este día"
-                            >
-                                <BiRefresh className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-                                Actualizar notas
-                            </Button>
-                        </Flex>
+                            <Flex gap="2" align="center" wrap="wrap">
+                                <div className="inline-flex items-center overflow-hidden bg-white border rounded-button border-pebble">
+                                    <button
+                                        type="button"
+                                        onClick={() => shiftDay(-1)}
+                                        aria-label="Día anterior"
+                                        className="flex items-center justify-center w-8 h-8 text-steel hover:bg-paper"
+                                    >
+                                        <LuChevronLeft className="w-4 h-4" />
+                                    </button>
+                                    <DatePicker
+                                        locale={es}
+                                        dateFormat={"dd/MM/yyyy"}
+                                        className="block h-8 px-2 text-sm text-center bg-white border-0 border-x border-ash w-[118px] focus:ring-0"
+                                        selected={selectedDate}
+                                        onSelect={(picked) => picked && goToDate(picked)}
+                                        aria-label="Fecha del corte"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => shiftDay(1)}
+                                        aria-label="Día siguiente"
+                                        className="flex items-center justify-center w-8 h-8 text-steel hover:bg-paper"
+                                    >
+                                        <LuChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <Button variant="soft" color="gray" onClick={() => goToDate(new Date())}>
+                                    Hoy
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    color="gray"
+                                    disabled={refreshing}
+                                    onClick={refreshNotes}
+                                    title="Vuelve a cargar las notas y los pagos de este día"
+                                >
+                                    <BiRefresh className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                                    Actualizar notas
+                                </Button>
+                            </Flex>
                         )
                     }
                 />
 
-                <div className="mb-5">
-                    <CorteSummary
-                        total={total}
-                        cashSum={cashSum}
-                        transferSum={transferSum}
-                        cardSum={cardSum}
-                        balanceSum={balanceSum}
-                        expensesSum={sums.expensesSum}
-                        previousNotesTotal={sums.previousNotesSum}
-                        returnsSum={sums.returnsSum}
-                        purchasesSum={sums.purchasesSum}
-                    />
-                </div>
+                <div className="grid items-start gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_340px]">
+                    {/* Resumen: arriba en celular, a la derecha (fijo al bajar) en escritorio */}
+                    <aside className="lg:order-2 lg:sticky lg:top-4">
+                        <CashSummary
+                            total={total}
+                            notesCount={activeNotes}
+                            balanceSum={balanceSum}
+                            cashSum={cashSum}
+                            cardSum={cardSum}
+                            transferSum={transferSum}
+                            expensesSum={sums.expensesSum}
+                            returnsSum={sums.returnsSum}
+                            previousNotesSum={sums.previousNotesSum}
+                            purchasesSum={sums.purchasesSum}
+                        >
+                            {!isDetail && <div className="hidden lg:block">{saveButton}</div>}
+                        </CashSummary>
+                    </aside>
 
-                <div className="space-y-4">
-                    <SectionCard
-                        title="Venta con notas de pedido"
-                        subtitle={`${activeNotes} ${activeNotes === 1 ? "nota" : "notas"} del día${
-                            notes.length > activeNotes ? ` · ${notes.length - activeNotes} cancelada(s), no suman` : ""
-                        }`}
-                    >
-                        <NotesTable
-                            notes={notes.map((note) => ({
-                                ...note,
-                                ...paymentsOnDate(note, date),
-                            }))}
-                            setNotes={setNotes}
-                            isEditable={!isDetail}
-                        />
-                    </SectionCard>
-
-                    <SectionCard
-                        title="Entradas anteriores"
-                        subtitle="Pagos recibidos este día de notas de días anteriores"
-                    >
-                        <PendingNotesTable
-                            previousNotes={previousNotes}
-                            setPreviousNotes={setPreviousNotes}
-                            isDisabled={isDetail}
-                            branch={branch}
-                        />
-                    </SectionCard>
-
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        <SectionCard title="Devoluciones" subtitle="Se descuentan del efectivo">
-                            <ReturnsTable returns={returns} setReturns={setReturns} isDisabled={isDetail} />
+                    <div className="space-y-4 lg:order-1">
+                        <SectionCard
+                            title="Notas del día"
+                            subtitle={
+                                notes.length === 0
+                                    ? "No hay notas en este día."
+                                    : `${activeNotes} ${activeNotes === 1 ? "nota" : "notas"}${
+                                          canceledCount > 0 ? ` · ${canceledCount} cancelada(s), no suman` : ""
+                                      } · se cuentan los pagos de este día`
+                            }
+                        >
+                            <NotesTable
+                                notes={notes.map((note) => ({
+                                    ...note,
+                                    ...paymentsOnDate(note, date),
+                                }))}
+                                setNotes={setNotes}
+                                isEditable={!isDetail}
+                            />
                         </SectionCard>
-                        <SectionCard title="Gastos" subtitle="Se descuentan del efectivo">
-                            <ExpensesTable expenses={expenses} setExpenses={setExpenses} isDisabled={isDetail} />
+
+                        <SectionCard title="Entradas de notas anteriores" subtitle="Pagos recibidos este día de notas de días anteriores">
+                            <PendingNotesTable
+                                previousNotes={previousNotes}
+                                setPreviousNotes={setPreviousNotes}
+                                isDisabled={isDetail}
+                                branch={branch}
+                            />
                         </SectionCard>
+
+                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                            <SectionCard title="Gastos" subtitle="Salen del efectivo de la caja">
+                                <ExpensesTable expenses={expenses} setExpenses={setExpenses} isDisabled={isDetail} />
+                            </SectionCard>
+                            <SectionCard title="Devoluciones" subtitle="Dinero regresado a clientes; sale del efectivo">
+                                <ReturnsTable returns={returns} setReturns={setReturns} isDisabled={isDetail} />
+                            </SectionCard>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* Celular: barra fija con lo esencial y el botón de guardar */}
             {!isDetail && (
-                <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur border-ash">
-                    <div className="flex flex-wrap items-center justify-between max-w-[1200px] gap-3 px-6 py-3 mx-auto">
-                        <div className="flex flex-wrap text-sm gap-x-6 gap-y-1 tabular-nums">
-                            <span>
-                                <span className="text-fog">Venta </span>
-                                <span className="font-semibold">{formatCurrency(total)}</span>
-                            </span>
-                            <span>
-                                <span className="text-fog">Efectivo </span>
-                                <span className={`font-semibold ${cashSum < 0 ? "text-[#d03b3b]" : ""}`}>
-                                    {formatCurrency(cashSum)}
-                                </span>
-                            </span>
+                <div className="fixed inset-x-0 bottom-0 z-40 border-t lg:hidden bg-white/95 backdrop-blur border-ash">
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 mx-auto max-w-[1200px]">
+                        <div className="text-sm leading-tight tabular-nums">
+                            <div className="text-fog">Debe haber en caja</div>
+                            <div className={`text-lg font-semibold ${cashSum < 0 ? "text-[#d03b3b]" : "text-charcoal"}`}>{formatCurrency(cashSum)}</div>
                         </div>
-                        <Button size="3" disabled={saving} onClick={handleSubmit}>
-                            {saving ? "Guardando..." : "Guardar corte"}
-                            <BiSave />
-                        </Button>
+                        <div className="w-44">{saveButton}</div>
                     </div>
                 </div>
             )}

@@ -17,52 +17,49 @@ class CorteController extends Controller
      */
     public function index()
     {
-        $branch_id = currentBranchId();
-        $branch = Branch::find($branch_id);
-
+        $branch = Branch::find(currentBranchId());
         $filter = request('filter') ?? 'THIS_MONTH';
+        // El mes y el año del negocio (México), no los del servidor en UTC.
+        $today = now(config('app.business_timezone'));
+        $lastMonth = $today->copy()->subMonthNoOverflow();
 
-        $cortes = Corte::where('branch_id', $branch->id)->orderBy('date', 'desc')->paginate(20);
+        $query = Corte::where('branch_id', $branch->id);
+        match ($filter) {
+            'LAST_MONTH' => $query->whereBetween('date', [$lastMonth->copy()->startOfMonth()->toDateString(), $lastMonth->copy()->endOfMonth()->toDateString()]),
+            'THIS_YEAR' => $query->whereBetween('date', [$today->copy()->startOfYear()->toDateString(), $today->copy()->endOfYear()->toDateString()]),
+            'LAST_YEAR' => $query->whereBetween('date', [$today->copy()->subYear()->startOfYear()->toDateString(), $today->copy()->subYear()->endOfYear()->toDateString()]),
+            'ALL_TIME' => null,
+            default => $query->whereBetween('date', [$today->copy()->startOfMonth()->toDateString(), $today->copy()->endOfMonth()->toDateString()]),
+        };
 
-        switch ($filter) {
-            case 'THIS_MONTH':
-                $cortes = Corte::where('branch_id', $branch->id)
-                    ->whereMonth('date', date('m'))
-                    ->whereYear('date', date('Y'))
-                    ->orderBy('date', 'desc')
-                    ->paginate(50);
-                break;
-            case 'LAST_MONTH':
-                $cortes = Corte::where('branch_id', $branch->id)
-                    ->whereMonth('date', date('m', strtotime('-1 month')))
-                    ->whereYear('date', date('Y', strtotime('-1 month')))
-                    ->orderBy('date', 'desc')
-                    ->paginate(50);
-                break;
-            case 'THIS_YEAR':
-                $cortes = Corte::where('branch_id', $branch->id)
-                    ->whereYear('date', date('Y'))
-                    ->orderBy('date', 'desc')
-                    ->paginate(50);
-                break;
-            case 'LAST_YEAR':
-                $cortes = Corte::where('branch_id', $branch->id)
-                    ->whereYear('date', date('Y', strtotime('-1 year')))
-                    ->orderBy('date', 'desc')
-                    ->paginate(50);
-                break;
-            case 'ALL_TIME':
-                $cortes = Corte::where('branch_id', $branch->id)
-                    ->orderBy('date', 'desc')
-                    ->paginate(50);
-                break;
-        }
+        // Totales de TODO el periodo (no sólo de la página).
+        $totals = (clone $query)->selectRaw('COUNT(*) as count, COALESCE(SUM(sale_total), 0) as sale, COALESCE(SUM(cash_total), 0) as cash,
+            COALESCE(SUM(card_total), 0) as card, COALESCE(SUM(transfer_total), 0) as transfer, COALESCE(SUM(expenses_total), 0) as expenses')->first();
 
-        $cortes->appends(request()->query());
+        $cortes = $query->orderBy('date', 'desc')->orderBy('id', 'desc')->paginate(50)->appends(request()->query());
+
+        // Días con más de un corte: se marcan para revisar (puede ser un corte repetido).
+        $repeated = Corte::where('branch_id', $branch->id)->whereIn('date', collect($cortes->items())->pluck('date')->all())
+            ->select('date')->groupBy('date')->havingRaw('COUNT(*) > 1')->pluck('date')
+            ->map(fn ($d) => substr((string) $d, 0, 10))->values();
+
+        $todayDate = businessToday();
 
         return Inertia::render('Cortes/Index', [
             'branch' => $branch,
             'pagination' => $cortes,
+            'filter' => $filter,
+            'totals' => [
+                'count' => (int) $totals->count,
+                'sale' => (float) $totals->sale,
+                'cash' => (float) $totals->cash,
+                'card' => (float) $totals->card,
+                'transfer' => (float) $totals->transfer,
+                'expenses' => (float) $totals->expenses,
+            ],
+            'repeatedDates' => $repeated,
+            'today' => $todayDate,
+            'todayCorteId' => Corte::where('branch_id', $branch->id)->where('date', $todayDate)->orderByDesc('id')->value('id'),
         ]);
     }
 

@@ -1,0 +1,52 @@
+{
+  "branch_id": 1,
+  "card_total": 500,
+  "cash_total": 2070,
+  "date": "2026-05-18",
+  "expenses": [
+    {
+      "amount": "150",
+      "concept": "Gasolina"
+    }
+  ],
+  "expenses_total": 150,
+  "notes": [
+    {
+      "advance": 2500,
+      "balance": 0,
+      "card": 500,
+      "cash": 2000,
+      "date": "2026-05-18",
+      "delivery_status": "pendiente",
+      "folio": "E2E-CORTE-1",
+      "purchase_total": 1800,
+      "sale_total": 2500,
+      "status": "pending",
+      "transfer": 0
+    },
+    {
+      "advance": 300,
+      "balance": 2200,
+      "card": 0,
+      "cash": 300,
+      "date": "2026-05-18",
+      "delivery_status": "pendiente",
+      "folio": "E2E-CORTE-2",
+      "purchase_total": 1800,
+      "sale_total": 2500,
+      "status": "pending",
+      "transfer": 0
+    }
+  ],
+  "notes_total": 5000,
+  "previous_notes": [],
+  "previous_notes_total": 0,
+  "returns": [
+    {
+      "amount": "80",
+      "concept": "Cambio de pieza"
+    }
+  ],
+  "sale_total": 5000,
+  "transfer_total": 0
+}

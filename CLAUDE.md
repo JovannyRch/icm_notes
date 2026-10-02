@@ -147,7 +147,7 @@ One row per payment event in `note_payments` (`note_id`, `branch_id`, `date`, `c
 
 ## Business math lives in the frontend
 
-`resources/js/Pages/Cortes/Form.tsx` is the heart of the app: `calculateSums()` derives every corte total, and `cleanNotes()` filters out `delivery_status === "cancelado"` / `status === "canceled"` before summing. Per-item subtotals come from `helpers/utils.ts` — `calculatePurchaseSubtotal` applies `iva` and `extra` as compounding percentages on `cost × quantity`, while `calculateSaleSubtotal` is a flat `price × quantity`. The backend stores what it is given (`CorteController::store` only validates types and `json_decode`s the arrays), so **a change to these functions changes the books** and won't be caught by any test.
+`resources/js/Pages/Cortes/Form.tsx` is the heart of the app (the "Cuadre de caja" panel, `components/CashSummary.tsx`, only *presents* those sums; `tests/e2e/corte-payload.spec.ts` snapshots exactly what saving a corte sends — any UI change must keep it identical): `calculateSums()` derives every corte total, and `cleanNotes()` filters out `delivery_status === "cancelado"` / `status === "canceled"` before summing. Per-item subtotals come from `helpers/utils.ts` — `calculatePurchaseSubtotal` applies `iva` and `extra` as compounding percentages on `cost × quantity`, while `calculateSaleSubtotal` is a flat `price × quantity`. The backend stores what it is given (`CorteController::store` only validates types and `json_decode`s the arrays), so **a change to these functions changes the books** and won't be caught by any test.
 
 ## Reports
 
