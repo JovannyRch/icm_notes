@@ -59,6 +59,19 @@ const Index = ({ pagination, flash, brands }: Props) => {
     const [saved, setSaved] = useState<Record<string, boolean>>({});
     const cellKey = (id: number, field: QuickField) => `${id}:${field}`;
 
+    // Si se recarga o se sale mientras una celda se guarda, el navegador cancela el guardado:
+    // se avisa antes de salir.
+    const anySaving = Object.values(saving).some(Boolean);
+    useEffect(() => {
+        if (!anySaving) return;
+        const warn = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = "";
+        };
+        window.addEventListener("beforeunload", warn);
+        return () => window.removeEventListener("beforeunload", warn);
+    }, [anySaving]);
+
     const currentValue = (p: Product, field: QuickField): number | null =>
         field === "stock" ? (p.stock?.counted_at ? Number(p.stock.quantity) : null) : Number(p[field] ?? 0);
 

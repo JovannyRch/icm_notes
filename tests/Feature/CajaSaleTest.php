@@ -27,6 +27,7 @@ class CajaSaleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['features.discounts' => true]); // estas pruebas cubren los descuentos; ver test_discounts_off
         $this->a = Branch::create(['name' => 'A']);
         $this->b = Branch::create(['name' => 'B']);
         $this->tire = Product::create(['brand' => 'MICHELIN', 'model' => 'P4', 'measure' => '205', 'mc' => '', 'unit' => 'PZA', 'iva' => 16, 'extra' => 5, 'price' => 2500, 'cost' => 1800]);
@@ -154,6 +155,79 @@ class CajaSaleTest extends TestCase
             'items' => [['product_id' => $this->cement->id, 'quantity' => 1]], 'discount' => 200, 'cash_received' => 45,
         ])->assertSessionHasNoErrors();
         $this->assertEquals(45, Note::sole()->sale_total);
+    }
+
+    public function test_discounts_off_rejects_them_even_with_permission(): void
+    {
+        config(['features.discounts' => false]);
+        $cashier = $this->cashier(['sales.discount' => true], max: 50);
+        $item = ['product_id' => $this->cement->id, 'quantity' => 1];
+
+        $this->sell($cashier, ['items' => [$item + ['discount' => 10]], 'cash_received' => 300])->assertSessionHasErrors('items.0.discount');
+        $this->sell($cashier, ['items' => [$item], 'discount' => 10, 'cash_received' => 300])->assertSessionHasErrors('discount');
+        $this->actingAs($cashier)->get('/caja')->assertInertia(fn ($page) => $page->where('rules.discount', false)->where('features.discounts', false));
+        $this->assertSame(0, Note::count());
+    }
+
+    public function test_credit_sale_with_down_payment_stays_pending(): void
+    {
+        $cashier = $this->cashier();
+        // 2 × $2,500 = 5,000; abona 1,000 en efectivo y 500 con tarjeta → debe 3,500.
+        $this->sell($cashier, [
+            'items' => [['product_id' => $this->tire->id, 'quantity' => 2]],
+            'credit' => true, 'cash' => 1000, 'card' => 500,
+            'customer' => 'Juan Pérez', 'customer_phone' => '712 111 2233', 'customer_address' => 'Calle 1, Centro',
+        ])->assertSessionHasNoErrors()->assertSessionHas('lastSale.balance', 3500.0);
+
+        $note = Note::sole();
+        $this->assertSame('pending', $note->status);
+        $this->assertEquals(1500, $note->advance);
+        $this->assertEquals(3500, $note->balance);
+        $this->assertEquals(1000, $note->cash);
+        $this->assertNull($note->cash_received);
+        $this->assertSame('712 111 2233', $note->customer_phone);
+        $this->assertSame('Calle 1, Centro', $note->customer_address);
+        $this->assertEquals(8, $this->stock($this->tire), 'a crédito también sale del inventario');
+    }
+
+    public function test_credit_sale_without_payment_has_no_payment_row(): void
+    {
+        $this->sell($this->cashier(), [
+            'items' => [['product_id' => $this->cement->id, 'quantity' => 1]],
+            'credit' => true, 'customer' => 'Ana', 'customer_phone' => '7121234567',
+        ])->assertSessionHasNoErrors();
+
+        $note = Note::sole();
+        $this->assertSame(0, $note->payments()->count());
+        $this->assertEquals(245, $note->balance);
+        $this->assertSame('pending', $note->status);
+    }
+
+    public function test_credit_sale_needs_permission_and_a_valid_down_payment(): void
+    {
+        $item = [['product_id' => $this->cement->id, 'quantity' => 1]];
+
+        $this->sell($this->cashier(), ['items' => $item, 'credit' => true, 'cash' => 300])->assertSessionHasErrors('cash');
+
+        $noCredit = $this->cashier(['sales.credit' => false]);
+        $this->sell($noCredit, ['items' => $item, 'credit' => true])->assertSessionHasErrors('credit');
+
+        $this->assertSame(0, Note::count());
+    }
+
+    public function test_credit_sale_does_not_require_customer_data(): void
+    {
+        // Como en las notas: basta con los productos; nombre, teléfono y dirección son opcionales.
+        $this->sell($this->cashier(), [
+            'items' => [['product_id' => $this->cement->id, 'quantity' => 1]],
+            'credit' => true,
+        ])->assertSessionHasNoErrors();
+
+        $note = Note::sole();
+        $this->assertSame('Público en general', $note->customer);
+        $this->assertNull($note->customer_phone);
+        $this->assertSame('pending', $note->status);
+        $this->assertEquals(245, $note->balance);
     }
 
     public function test_payment_must_cover_the_total(): void

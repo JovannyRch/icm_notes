@@ -90,6 +90,8 @@ const paymentsTotal = (payments: PaymentInput[]): number =>
 interface NoteFormData {
     folio: string;
     customer: string;
+    customer_phone: string;
+    customer_address: string;
     notes: string;
     purchase_total: string;
     sale_total: string;
@@ -116,6 +118,7 @@ const NoteForm = ({
     date,
     nextFolio = "",
     seller,
+    features,
 }: Props) => {
     useAlerts(flash);
     const isEdit = !!note;
@@ -145,6 +148,8 @@ const NoteForm = ({
     const { data, setData, errors, post, put, transform, processing } = useForm<NoteFormData>({
         folio: isEdit ? note?.folio : nextFolio,
         customer: isEdit ? note?.customer : "",
+        customer_phone: isEdit ? note?.customer_phone ?? "" : "",
+        customer_address: isEdit ? note?.customer_address ?? "" : "",
         sale_total: String(isEdit ? note?.sale_total : 0),
         purchase_total: String(isEdit ? note?.purchase_total : 0),
         notes: isEdit ? note?.notes : "",
@@ -599,6 +604,26 @@ const NoteForm = ({
                                                     error={errors.customer}
                                                 />
                                             </Grid>
+                                            <Grid gridColumn={{ initial: "span 3", sm: "span 1" }}>
+                                                <InputWithLabel
+                                                    label="Teléfono"
+                                                    name="customer_phone"
+                                                    type="text"
+                                                    value={data.customer_phone}
+                                                    onChange={(e) => setData("customer_phone", e.target.value)}
+                                                    error={errors.customer_phone}
+                                                />
+                                            </Grid>
+                                            <Grid gridColumn={{ initial: "span 3", sm: "span 2" }}>
+                                                <InputWithLabel
+                                                    label="Dirección"
+                                                    name="customer_address"
+                                                    type="text"
+                                                    value={data.customer_address}
+                                                    onChange={(e) => setData("customer_address", e.target.value)}
+                                                    error={errors.customer_address}
+                                                />
+                                            </Grid>
                                         </Grid>
                                     </ContainerSection>
                                 </Grid>
@@ -735,6 +760,9 @@ const NoteForm = ({
                                         leading={<BiDollar />}
                                         error={errors.flete}
                                     />
+                                    {/* Descuentos apagados por ahora (config/features.php); una nota que ya trae
+                                        descuento lo sigue mostrando para no esconder por qué baja el total. */}
+                                    {(features?.discounts || Number(note?.discount ?? 0) > 0) && (
                                     <InlineInput
                                         label="Descuento"
                                         name="discount"
@@ -750,6 +778,7 @@ const NoteForm = ({
                                                 : undefined)
                                         }
                                     />
+                                    )}
                                     <LineDivider className="my-4" />
                                     <Flex
                                         gap="2"

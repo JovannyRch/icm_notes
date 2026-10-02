@@ -24,7 +24,8 @@ class CajaController extends Controller
             'nextFolio' => $branch ? Note::nextFolio($branch->id) : '1',
             'rules' => [
                 'changePrice' => $user->can('sales.change_price'),
-                'discount' => $user->can('sales.discount'),
+                'discount' => config('features.discounts') && $user->can('sales.discount'),
+                'credit' => $user->can('sales.credit'),
                 'maxDiscountPercent' => $user->isCashier() ? $user->max_discount_percent : null,
                 'viewStock' => $user->can('stock.view') || $user->can('costs.view'),
                 'history' => $user->can('sales.history'),
@@ -42,6 +43,10 @@ class CajaController extends Controller
         $data = $request->validate([
             'folio' => 'nullable|string|max:50',
             'customer' => 'nullable|string|max:255',
+            'customer_phone' => 'nullable|string|max:30',
+            'customer_address' => 'nullable|string|max:255',
+            'credit' => 'boolean',
+            'cash' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1|max:100',
             'items.*.product_id' => 'required|integer|distinct|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1|max:100000',
@@ -67,6 +72,7 @@ class CajaController extends Controller
             'total' => (float) $note->sale_total,
             'cash_received' => $note->cash_received !== null ? (float) $note->cash_received : null,
             'change' => $change,
+            'balance' => round((float) $note->balance, 2),
         ]);
     }
 
@@ -96,6 +102,8 @@ class CajaController extends Controller
                 'folio' => $n->folio,
                 'code' => $n->code,
                 'customer' => $n->customer,
+                'customer_phone' => $n->customer_phone,
+                'balance' => (float) $n->balance,
                 'time' => $n->created_at?->timezone(config('app.business_timezone'))->format('H:i'),
                 'items_count' => $n->items_count,
                 'sale_total' => (float) $n->sale_total,

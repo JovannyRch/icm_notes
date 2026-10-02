@@ -59,6 +59,8 @@ test("editar precio, costo y existencias desde la lista con el teclado", async (
     await page.getByLabel("precio público de QUICKEDIT QE-2").press("Escape");
 
     // Al recargar, todo quedó guardado (y las filas no cambiaron de lugar).
+    // Primero se espera a que terminen los guardados en curso.
+    await page.waitForLoadState("networkidle");
     await page.reload();
     await expect(row(page, "QE-1")).toContainText("$149.90");
     await expect(row(page, "QE-1")).toContainText("8");

@@ -81,6 +81,8 @@
     <div class="row"><span>Folio: <b>{{ $t['folio'] }}</b></span><span>{{ $t['datetime'] }}</span></div>
     @if ($t['seller'])<div>Atendió: {{ $t['seller'] }}</div>@endif
     <div>Cliente: {{ $t['customer'] ?: 'Público en general' }}</div>
+    @if ($t['customer_phone'])<div>Tel.: {{ $t['customer_phone'] }}</div>@endif
+    @if ($t['customer_address'])<div>Dirección: {{ $t['customer_address'] }}</div>@endif
 
     @if ($sample)<div class="banner">TICKET DE PRUEBA</div>@endif
     @if ($reprint)<div class="banner">REIMPRESIÓN</div>@endif
@@ -96,6 +98,9 @@
                 <span>{{ $qty($line['quantity']) }} x {{ $money($line['price']) }}</span>
                 <span class="bold">{{ $money($line['amount']) }}</span>
             </div>
+            @if ($line['m2'])
+                <div class="detail"><span>{{ $qty($line['m2_per_box']) }} m²/caja</span><span>{{ $qty($line['m2']) }} m²</span></div>
+            @endif
             @if ($line['discount'] > 0)
                 <div class="detail"><span>Descuento</span><span>-{{ $money($line['discount']) }}</span></div>
             @endif
@@ -104,6 +109,7 @@
 
     <hr class="rule">
     <div class="row"><span>Artículos</span><span>{{ $qty($t['units']) }}</span></div>
+    @if ($t['m2'] > 0)<div class="row"><span>Total m²</span><span>{{ $qty($t['m2']) }} m²</span></div>@endif
     <div class="row"><span>Subtotal</span><span>{{ $money($t['gross']) }}</span></div>
     @if ($t['discount'] > 0)<div class="row"><span>Descuento</span><span>-{{ $money($t['discount']) }}</span></div>@endif
     @if ($t['flete'] > 0)<div class="row"><span>Flete</span><span>{{ $money($t['flete']) }}</span></div>@endif
@@ -121,6 +127,9 @@
             <div class="row bold"><span>Cambio</span><span>{{ $money($t['change']) }}</span></div>
         @endif
         @if ($t['balance'] > 0.009)
+            @if ($t['cash'] + $t['card'] + $t['transfer'] > 0.009)
+                <div class="row"><span>Abonado</span><span>{{ $money($t['cash'] + $t['card'] + $t['transfer']) }}</span></div>
+            @endif
             <div class="row bold"><span>Saldo pendiente</span><span>{{ $money($t['balance']) }}</span></div>
         @endif
     @endunless

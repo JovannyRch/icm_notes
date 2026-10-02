@@ -115,7 +115,9 @@ class UserController extends Controller
     {
         return [
             'roles' => config('permissions.roles'),
+            // Con los descuentos apagados (config/features.php) no se ofrece ese permiso.
             'abilities' => collect($this->cashierAbilities())
+                ->reject(fn ($a, $key) => $key === 'sales.discount' && ! config('features.discounts'))
                 ->map(fn ($a, $key) => ['key' => $key, 'label' => $a['label'], 'default' => (bool) ($a['default'] ?? false)])
                 ->values(),
             'allBranches' => Branch::orderBy('id')->get(['id', 'name']),

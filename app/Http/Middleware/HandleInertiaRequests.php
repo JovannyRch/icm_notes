@@ -58,6 +58,8 @@ class HandleInertiaRequests extends Middleware
             // El servidor sigue validando cada ruta (can:); esto sólo es presentación.
             'permissions' => fn() => $request->user()?->grantedPermissions() ?? [],
             'appVersion' => config('app.version'),
+            // Funciones que se pueden apagar (config/features.php).
+            'features' => ['discounts' => (bool) config('features.discounts')],
             // "Entrar como": quién es el super_admin que está viendo el sistema como este usuario.
             'impersonator' => fn() => $request->session()->has(ImpersonationController::SESSION_KEY)
                 ? User::find($request->session()->get(ImpersonationController::SESSION_KEY))?->only('id', 'name')

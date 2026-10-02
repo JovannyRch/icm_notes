@@ -60,5 +60,12 @@ class E2eSeeder extends Seeder
                 $product + ['mc' => '1', 'unit' => 'PZA', 'iva' => 0, 'extra' => 0, 'stock' => 100]
             );
         }
+
+        // Piso (al final, para no mover los ids de los productos de arriba): MC = m² por caja (para la calculadora de m² → cajas en la caja).
+        Product::firstOrCreate(
+            ['brand' => 'CASTEL', 'model' => 'MARMOL E2E'],
+            ['measure' => '60x60', 'mc' => '1.44', 'unit' => 'CAJA', 'price' => 389, 'cost' => 250, 'iva' => 0, 'extra' => 0, 'stock' => 100]
+        );
+
     }
 }

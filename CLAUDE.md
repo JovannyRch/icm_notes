@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app is
 
-**ICM Notes** — a point-of-sale / cash-register app for a multi-branch retail business (tires & construction material). Laravel 11 backend, Inertia 2 + React 18 + TypeScript frontend, single monolith. The domain language is Spanish; the four core objects are:
+**ICM Notes** — a point-of-sale / cash-register app for a multi-branch business of **flooring stores** (tiles, floors; some tires/construction products in the demo data). **`mc` on products and note lines is the m² per box**: the register and the ticket show it as "m²/caja" and sum the m² (boxes × mc). Laravel 11 backend, Inertia 2 + React 18 + TypeScript frontend, single monolith. The domain language is Spanish; the four core objects are:
 
 - **Nota** (`Note` + `NoteProduct` + `NotePayment`) — a sales note/ticket. Has both a `purchase_total` (what the business paid) and `sale_total` (what the customer pays), a `status` and `purchase_status` (`pending|paid|canceled`), and a free-form `delivery_status` string (see `resources/js/const.ts` for the canonical values).
 - **Pagos** (`note_payments`) — **N payments per note**, one row per payment event, each with its own `date` and a split across `cash`/`card`/`transfer`. See "Payments" below; this replaced the old two-fixed-payments design.
@@ -123,9 +123,16 @@ One row per payment event in `note_payments` (`note_id`, `branch_id`, `date`, `c
 ## Caja (register)
 
 - `/caja` (`CajaController`, `Pages/Caja/Index.tsx`) is the counter POS for cashiers and owners. **Unlike the owner's note form, the server computes everything** in `App\Services\SaleService::calculate()`: price and cost come from the catalog, `purchase_subtotal` uses the same formula as `calculatePurchaseSubtotal()` (branch global extra wins), discounts and price changes are checked against `sales.discount` / `sales.change_price`, and the cashier's `max_discount_percent` caps **line + total discounts together** as a % of the pre-discount amount. A price lowered with `sales.change_price` is not counted against the cap.
-- A register sale is always fully paid (card + transfer as given, cash covers the rest, `cash_received` must cover it), `status=paid`, `delivery_status=entregado_a_cliente`, one `note_payments` row, stock out per line, and it is dated with `businessToday()`. **The app runs in UTC** (`APP_TIMEZONE`); `config('app.business_timezone')` (default America/Mexico_City) defines the business day. Credit/partial sales stay in the owner's note form.
+- A register sale is paid in full (card + transfer as given, cash covers the rest, `cash_received` must cover it, `status=paid`) **or on credit** (`credit: true`, permission `sales.credit`, default on): the customer pays any down payment (`cash`/`card`/`transfer`, or nothing) and the note stays `status=pending` with its balance; customer name, phone and address are optional, as in the note form. No `note_payments` row is created for a zero payment. Either way `delivery_status=entregado_a_cliente`, stock goes out per line and the date is `businessToday()`. **The app runs in UTC** (`APP_TIMEZONE`); `config('app.business_timezone')` (default America/Mexico_City) defines the business day.
 - `/caja/ventas` ("Mis ventas", gate `sales.history` = view_own or view_branch) lists the day's sales without costs; cancelling (`sales.cancel_own`, own sale, same day, not already cancelled) removes the payment and returns stock through `NoteStockService::sync`.
 - Product search never matches by `cost` and never returns `branch_stock` for users without `costs.view` / `stock.view`, or for a branch they can't access.
+
+## Feature switches, contact data and collections
+
+- `config/features.php`: `discounts` (`FEATURE_DISCOUNTS`, **off** by default at the client's request). Off means: no discount inputs in the register or the note form (a note that already has a discount still shows it), `SaleService` rejects discounts even with `sales.discount`, and the user form doesn't offer that permission. Shared to the frontend as `features`.
+- The register shows each product's `mc` as "m²/caja" (tiles: same model name, different m² per box) in search results and cart lines. Lines with a numeric `mc` also get an "o m²" input: the m² the customer needs become boxes with `boxesFor()` (always rounded **up**), and editing the quantity by hand clears it. Only the box quantity is sent to the server.
+- `notes.customer_phone` / `customer_address`: captured in the register and the note form, printed on the ticket, shown in Mis ventas and the dashboard.
+- Dashboard "Notas por cobrar" lists notes with a balance **or** still marked `pending` (`AnalyticsService::receivables`). `POST /nota/{note}/cobrar` (`NoteController@collect`, `notes.manage`) adds a payment dated **today** (so it lands in today's corte as an earlier note's payment), and marks the note `paid` when nothing is owed; with a zero balance it only flips the status.
 
 ## Ticket printing (Epson TM-T20IV, 80 mm, USB)
 

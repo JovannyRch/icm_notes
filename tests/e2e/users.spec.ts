@@ -13,11 +13,12 @@ test("crear un cajero, editarlo y entrar como él", async ({ page }) => {
     await page.fill('input[name="name"]', "Cajero E2E");
     await page.fill('input[name="email"]', email);
     await page.fill('input[name="password"]', "contra-e2e-1");
-    // Rol cajero viene seleccionado; asignar una sucursal y activar descuentos.
+    // Rol cajero viene seleccionado; asignar una sucursal y permitir cancelar sus ventas.
     const branchCard = page.getByRole("checkbox", { name: "Jilotepec", exact: true });
     await page.locator("section", { hasText: "Sucursales" }).getByText("Jilotepec", { exact: true }).click();
-    await page.getByRole("switch", { name: /Aplicar descuentos/ }).click();
-    await page.fill('input[name="max_discount_percent"]', "15");
+    // (Descuentos apagados por ahora: ese permiso no se ofrece.)
+    await expect(page.getByRole("switch", { name: /Aplicar descuentos/ })).toHaveCount(0);
+    await page.getByRole("switch", { name: /Cancelar sus ventas/ }).click();
     await page.getByRole("button", { name: "Crear usuario" }).click();
 
     await page.waitForURL("**/admin/usuarios");
@@ -28,8 +29,7 @@ test("crear un cajero, editarlo y entrar como él", async ({ page }) => {
     // Clic en la fila: abre la edición con lo guardado.
     await row.getByText(email).click();
     await page.waitForURL(/\/admin\/usuarios\/\d+$/);
-    await expect(page.getByRole("switch", { name: /Aplicar descuentos/ })).toBeChecked();
-    await expect(page.locator('input[name="max_discount_percent"]')).toHaveValue("15");
+    await expect(page.getByRole("switch", { name: /Cancelar sus ventas/ })).toBeChecked();
     await expect(branchCard).toHaveAttribute("aria-checked", "true");
 
     // Entrar como el cajero: ve su caja y su sucursal; luego volver.

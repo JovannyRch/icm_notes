@@ -100,6 +100,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/nota/{note}/destroy', [NoteController::class, 'destroy'])->name('notes.destroy');
         Route::post('/nota/destroyItems', [NoteController::class, 'deleteNotes'])->name('notes.destroy.items');
         Route::patch('/nota/{note}/archive', [NoteController::class, 'switchArchive'])->name('notes.archive');
+        Route::post('/nota/{note}/cobrar', [NoteController::class, 'collect'])->name('notes.collect');
         Route::post('/branch/archive', [NoteController::class, 'archiveNotes'])->name('notes.archive.items');
         Route::post('/branch/unarchive', [NoteController::class, 'unarchiveNotes'])->name('notes.unarchive.items');
     });

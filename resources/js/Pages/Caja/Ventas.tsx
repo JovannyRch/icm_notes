@@ -15,6 +15,8 @@ interface Sale {
     folio: string;
     code: string | null;
     customer: string;
+    customer_phone: string | null;
+    balance: number;
     time: string | null;
     items_count: number;
     sale_total: number;
@@ -104,13 +106,25 @@ const SalesIndex = ({ branch, date, allBranch, sales, flash }: Props) => {
                                 <Table.Cell className="font-medium tabular-nums text-charcoal">{s.folio}</Table.Cell>
                                 <Table.Cell>
                                     {s.customer}
+                                    {s.customer_phone && <span className="ml-1 text-xs text-fog">· Tel. {s.customer_phone}</span>}
                                     <div className="text-xs text-fog">
                                         {s.items_count} {s.items_count === 1 ? "producto" : "productos"}
                                         {s.discount > 0 && ` · desc. ${formatCurrency(s.discount)}`}
                                     </div>
                                 </Table.Cell>
                                 {allBranch && <Table.Cell className="text-steel">{s.seller ?? "—"}</Table.Cell>}
-                                <Table.Cell className="text-xs text-steel">{s.canceled ? <StatusPill tone="gray">Cancelada</StatusPill> : methods(s)}</Table.Cell>
+                                <Table.Cell className="text-xs text-steel">{s.canceled ? (
+                                        <StatusPill tone="gray">Cancelada</StatusPill>
+                                    ) : (
+                                        <>
+                                            {methods(s) || "Sin abono"}
+                                            {s.balance > 0.009 && (
+                                                <div className="mt-1">
+                                                    <StatusPill tone="amber">Debe {formatCurrency(s.balance)}</StatusPill>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}</Table.Cell>
                                 <Table.Cell justify="end" className={`font-semibold tabular-nums ${s.canceled ? "line-through text-fog" : "text-charcoal"}`}>
                                     {formatCurrency(s.sale_total)}
                                 </Table.Cell>

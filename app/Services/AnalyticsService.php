@@ -151,11 +151,13 @@ class AnalyticsService
      */
     public function receivables(int $limit = 15): array
     {
+        // Con saldo, o marcadas "Pendiente" aunque ya no deban (falta marcarlas como pagadas).
         $notes = $this->baseNotes(DB::table('notes'))
-            ->where('balance', '>', 0.009)
+            ->where(fn ($q) => $q->where('notes.balance', '>', 0.009)->orWhere('notes.status', 'pending'))
             ->join('branches', 'branches.id', '=', 'notes.branch_id')
             ->orderBy('notes.date')
-            ->get(['notes.id', 'notes.folio', 'notes.date', 'notes.sale_total', 'notes.balance', 'branches.name as branch']);
+            ->orderBy('notes.id')
+            ->get(['notes.id', 'notes.folio', 'notes.date', 'notes.sale_total', 'notes.balance', 'notes.status', 'notes.customer', 'notes.customer_phone', 'branches.name as branch']);
 
         $buckets = ['0-30' => 0.0, '31-60' => 0.0, '61-90' => 0.0, '90+' => 0.0];
         $counts = array_fill_keys(array_keys($buckets), 0);
@@ -164,8 +166,10 @@ class AnalyticsService
             $age = (int) CarbonImmutable::parse($note->date)->diffInDays($this->today, false);
             $age = max($age, 0);
             $bucket = $age <= 30 ? '0-30' : ($age <= 60 ? '31-60' : ($age <= 90 ? '61-90' : '90+'));
-            $buckets[$bucket] += (float) $note->balance;
-            $counts[$bucket]++;
+            if ((float) $note->balance > 0.009) {
+                $buckets[$bucket] += (float) $note->balance;
+                $counts[$bucket]++;
+            }
             $note->age_days = $age;
             $note->balance = round((float) $note->balance, 2);
             $note->sale_total = round((float) $note->sale_total, 2);
@@ -175,7 +179,8 @@ class AnalyticsService
 
         return [
             'total' => round($notes->sum('balance'), 2),
-            'notes_count' => $notes->count(),
+            'notes_count' => $notes->where('balance', '>', 0.009)->count(),
+            'pending_count' => $notes->count(),
             'aging' => collect($buckets)->map(fn ($amount, $label) => [
                 'label' => $label,
                 'amount' => round($amount, 2),

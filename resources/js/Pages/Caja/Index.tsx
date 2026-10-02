@@ -18,6 +18,7 @@ interface Rules {
     maxDiscountPercent: number | null;
     viewStock: boolean;
     history: boolean;
+    credit: boolean;
 }
 
 interface LastSale {
@@ -27,6 +28,7 @@ interface LastSale {
     total: number;
     cash_received: number | null;
     change: number;
+    balance: number;
 }
 
 interface Props extends PageProps {
@@ -39,13 +41,18 @@ interface Props extends PageProps {
 type DiscountMode = "$" | "%";
 
 interface CartLine {
-    product: Pick<Product, "id" | "brand" | "model" | "measure" | "unit" | "price">;
+    product: Pick<Product, "id" | "brand" | "model" | "measure" | "mc" | "unit" | "price">;
     stock: number | null; // null = sin inventario cargado o sin permiso para verlo
     quantity: string;
     price: string;
     discountMode: DiscountMode;
     discount: string;
+    /** m² que pidió el cliente (pisos): de aquí se calculan las cajas. Vacío = se capturan cajas. */
+    m2: string;
 }
+
+/** Cajas para cubrir los m² pedidos: siempre hacia arriba, para que no falte material. */
+const boxesFor = (m2: number, perBox: number) => Math.max(1, Math.ceil(m2 / perBox - 1e-9));
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const num = (v: string) => (v.trim() === "" || isNaN(Number(v)) ? 0 : Number(v));
@@ -57,6 +64,16 @@ const quickCash = (due: number) =>
     Array.from(new Set([50, 100, 200, 500].map((step) => Math.ceil(due / step) * step))).filter((v) => v > due).slice(0, 3);
 
 const productName = (p: CartLine["product"]) => [p.brand, p.model].filter(Boolean).join(" ");
+
+/** m² por caja (campo MC) como número, o null si no tiene. */
+const boxM2 = (p: Pick<Product, "mc">): number | null => {
+    const value = Number(String(p.mc ?? "").trim().replace(",", "."));
+    return String(p.mc ?? "").trim() !== "" && !isNaN(value) && value > 0 ? value : null;
+};
+
+/** Medida, m² por caja (campo MC) y unidad: distingue modelos con el mismo nombre. */
+const productDetail = (p: Pick<Product, "measure" | "mc" | "unit">) =>
+    [p.measure, p.mc && String(p.mc).trim() ? `${String(p.mc).trim()} m²/caja` : null, p.unit].filter(Boolean).join(" · ");
 
 const inputCls =
     "h-9 w-full px-2.5 text-sm bg-white border rounded-input border-pebble text-charcoal tabular-nums focus:border-electric focus:ring-2 focus:ring-electric/20 disabled:bg-paper disabled:text-steel";
@@ -82,6 +99,11 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
 
     const [cart, setCart] = useState<CartLine[]>([]);
     const [customer, setCustomer] = useState("");
+    const [customerPhone, setCustomerPhone] = useState("");
+    const [customerAddress, setCustomerAddress] = useState("");
+    // A crédito: el cliente abona lo que quiera (o nada) y la venta queda "Pendiente".
+    const [credit, setCredit] = useState(false);
+    const [downPayment, setDownPayment] = useState("");
     const [folio, setFolio] = useState(nextFolio);
     const [noteDiscountMode, setNoteDiscountMode] = useState<DiscountMode>("$");
     const [noteDiscount, setNoteDiscount] = useState("");
@@ -191,12 +213,13 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
             return [
                 ...current,
                 {
-                    product: { id: p.id, brand: p.brand, model: p.model, measure: p.measure, unit: p.unit, price: p.price },
+                    product: { id: p.id, brand: p.brand, model: p.model, measure: p.measure, mc: p.mc, unit: p.unit, price: p.price },
                     stock: stockOf(p),
                     quantity: "1",
                     price: String(Number(p.price)),
                     discountMode: "$",
                     discount: "",
+                    m2: "",
                 },
             ];
         });
@@ -247,14 +270,18 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
         const discountPercent = gross > 0 ? (totalDiscount / gross) * 100 : 0;
         const cashDue = round2(total - num(card) - num(transfer));
         const received = cashReceived.trim() === "" ? null : num(cashReceived);
-        const change = cashDue > 0 && received !== null ? round2(received - cashDue) : 0;
-        return { lines, gross, lineDiscounts, linesNet, noteDisc, total, totalDiscount, discountPercent, cashDue, received, change };
-    }, [cart, noteDiscountMode, noteDiscount, card, transfer, cashReceived, rules.discount]);
+        const change = !credit && cashDue > 0 && received !== null ? round2(received - cashDue) : 0;
+        const paid = round2(num(downPayment) + num(card) + num(transfer));
+        const balance = credit ? round2(total - paid) : 0;
+        return { lines, gross, lineDiscounts, linesNet, noteDisc, total, totalDiscount, discountPercent, cashDue, received, change, paid, balance };
+    }, [cart, noteDiscountMode, noteDiscount, card, transfer, cashReceived, rules.discount, credit, downPayment]);
 
     const overCap = rules.maxDiscountPercent !== null && totals.discountPercent > rules.maxDiscountPercent + 0.001;
     const lineProblem = totals.lines.some((l, i) => l.discount > l.gross || num(cart[i].quantity) < 1 || !Number.isInteger(num(cart[i].quantity)));
-    const paymentProblem =
-        totals.cashDue < -0.001
+    const creditProblem = credit && totals.paid > totals.total + 0.001 ? "El abono es mayor que el total." : null;
+    const paymentProblem = credit
+        ? creditProblem
+        : totals.cashDue < -0.001
             ? "Tarjeta y transferencia suman más que el total."
             : totals.cashDue > 0.001 && (totals.received ?? 0) < totals.cashDue
               ? `Falta efectivo: ${formatCurrency(totals.cashDue - (totals.received ?? 0))}`
@@ -273,6 +300,10 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
     const resetSale = () => {
         setCart([]);
         setCustomer("");
+        setCustomerPhone("");
+        setCustomerAddress("");
+        setCredit(false);
+        setDownPayment("");
         setNoteDiscount("");
         setNoteDiscountMode("$");
         setCashReceived("");
@@ -296,6 +327,10 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
             {
                 folio: folio.trim() || null,
                 customer: customer.trim() || null,
+                customer_phone: customerPhone.trim() || null,
+                customer_address: customerAddress.trim() || null,
+                credit,
+                cash: credit ? num(downPayment) : null,
                 items: cart.map((l, i) => ({
                     product_id: l.product.id,
                     quantity: num(l.quantity),
@@ -303,7 +338,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                     ...(rules.discount && totals.lines[i].discount > 0 ? { discount: totals.lines[i].discount } : {}),
                 })),
                 discount: totals.noteDisc > 0 ? totals.noteDisc : null,
-                cash_received: totals.cashDue > 0 ? totals.received : null,
+                cash_received: !credit && totals.cashDue > 0 ? totals.received : null,
                 card: num(card),
                 transfer: num(transfer),
             },
@@ -407,7 +442,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                                             >
                                                 <span className="flex-1 min-w-0">
                                                     <span className="block font-medium truncate text-charcoal">{productName(p)}</span>
-                                                    <span className="block text-xs truncate text-fog">{[p.measure, p.unit].filter(Boolean).join(" · ")}</span>
+                                                    <span className="block text-xs truncate text-fog">{productDetail(p)}</span>
                                                 </span>
                                                 {rules.viewStock && (
                                                     <span className={`text-xs tabular-nums ${stock === null ? "text-fog" : stock <= 0 ? "text-red-700" : "text-steel"}`}>
@@ -452,17 +487,25 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                                             <div className="min-w-0 col-span-2 pr-8 md:col-span-1 md:pr-0">
                                                 <div className="font-medium leading-snug break-words line-clamp-2 text-charcoal">{productName(line.product)}</div>
                                                 <div className="text-xs truncate text-fog">
-                                                    {[line.product.measure, line.product.unit].filter(Boolean).join(" · ")}
+                                                    {productDetail(line.product)}
                                                     {exceeds && <span className="ml-2 font-medium text-amber-700">· sólo hay {line.stock}</span>}
                                                 </div>
+                                                {boxM2(line.product) !== null && num(line.quantity) > 0 && (
+                                                    <div className="text-xs font-medium text-steel tabular-nums" data-testid="line-m2">
+                                                        {num(line.m2.replace(",", ".")) > 0
+                                                            ? `Pidió ${line.m2} m² → ${num(line.quantity)} ${num(line.quantity) === 1 ? "caja cubre" : "cajas cubren"} ${round2(boxM2(line.product)! * num(line.quantity))} m²`
+                                                            : `${round2(boxM2(line.product)! * num(line.quantity))} m² en total`}
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex items-center">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center">
                                                 <IconButton
                                                     type="button"
                                                     variant="soft"
                                                     color="gray"
                                                     aria-label="Quitar uno"
-                                                    onClick={() => updateLine(i, { quantity: String(Math.max(1, num(line.quantity) - 1)) })}
+                                                    onClick={() => updateLine(i, { quantity: String(Math.max(1, num(line.quantity) - 1)), m2: "" })}
                                                 >
                                                     <LuMinus />
                                                 </IconButton>
@@ -470,7 +513,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                                                     aria-label={`Cantidad de ${productName(line.product)}`}
                                                     inputMode="numeric"
                                                     value={line.quantity}
-                                                    onChange={(e) => updateLine(i, { quantity: e.target.value.replace(/[^\d]/g, "") })}
+                                                    onChange={(e) => updateLine(i, { quantity: e.target.value.replace(/[^\d]/g, ""), m2: "" })}
                                                     className={`${inputCls} mx-1 text-center !w-12 !px-1`}
                                                 />
                                                 <IconButton
@@ -478,10 +521,31 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                                                     variant="soft"
                                                     color="gray"
                                                     aria-label="Agregar uno"
-                                                    onClick={() => updateLine(i, { quantity: String(num(line.quantity) + 1) })}
+                                                    onClick={() => updateLine(i, { quantity: String(num(line.quantity) + 1), m2: "" })}
                                                 >
                                                     <LuPlus />
                                                 </IconButton>
+                                                </div>
+                                                {boxM2(line.product) !== null && (
+                                                    <label className="flex items-center gap-1.5 text-[11px] text-fog">
+                                                        o m²
+                                                        <input
+                                                            aria-label={`m² que necesita de ${productName(line.product)}`}
+                                                            inputMode="decimal"
+                                                            placeholder="m²"
+                                                            value={line.m2}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                const m2 = num(value.replace(",", "."));
+                                                                updateLine(i, {
+                                                                    m2: value,
+                                                                    ...(m2 > 0 ? { quantity: String(boxesFor(m2, boxM2(line.product)!)) } : {}),
+                                                                });
+                                                            }}
+                                                            className={`${inputCls} !h-7 !w-[76px] !px-2 text-xs`}
+                                                        />
+                                                    </label>
+                                                )}
                                             </div>
                                             <div>
                                                 {rules.changePrice ? (
@@ -554,6 +618,24 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                                 />
                             </label>
                         </div>
+                        <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2 mt-2">
+                            <label className="text-xs font-medium text-steel">
+                                Teléfono
+                                <input
+                                    value={customerPhone}
+                                    inputMode="tel"
+                                    onChange={(e) => setCustomerPhone(e.target.value)}
+                                    className={`${inputCls} mt-1`}
+                                />
+                            </label>
+                            <label className="text-xs font-medium text-steel">
+                                Dirección
+                                <input value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className={`${inputCls} mt-1`} />
+                            </label>
+                        </div>
+                        {(serverErrors.customer || serverErrors.customer_phone) && (
+                            <p className="mt-1 text-xs text-red-700">{serverErrors.customer ?? serverErrors.customer_phone}</p>
+                        )}
 
                         <dl className="mt-4 space-y-1.5 text-sm">
                             <div className="flex justify-between">
@@ -609,6 +691,31 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                     </section>
 
                     <section className="p-4 bg-white border border-ash rounded-card">
+                        {rules.credit && (
+                            <Text as="label" size="2" className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-ash">
+                                <span>
+                                    <span className="block font-medium text-charcoal">A crédito</span>
+                                    <span className="block text-xs text-fog">El cliente paga después; queda pendiente.</span>
+                                </span>
+                                <Switch checked={credit} onCheckedChange={(v) => { setServerErrors({}); setCredit(v); }} />
+                            </Text>
+                        )}
+                        {credit ? (
+                            <>
+                                <label htmlFor="caja-down" className="flex items-center gap-1.5 text-xs font-medium text-steel">
+                                    <LuBanknote className="w-4 h-4" aria-hidden /> Abono en efectivo (opcional)
+                                </label>
+                                <input
+                                    id="caja-down"
+                                    inputMode="decimal"
+                                    value={downPayment}
+                                    onChange={(e) => setDownPayment(e.target.value)}
+                                    placeholder="0"
+                                    className={`${inputCls} mt-1 !h-11 !text-lg`}
+                                />
+                            </>
+                        ) : (
+                        <>
                         <label htmlFor="caja-cash" className="flex items-center gap-1.5 text-xs font-medium text-steel">
                             <LuBanknote className="w-4 h-4" aria-hidden /> Efectivo recibido <span className="ml-auto"><Kbd>F8</Kbd></span>
                         </label>
@@ -645,6 +752,9 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                             </div>
                         )}
 
+                        </>
+                        )}
+
                         {showOther ? (
                             <div className="grid grid-cols-2 gap-2 mt-3">
                                 <label className="text-xs font-medium text-steel">
@@ -666,6 +776,14 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                             </button>
                         )}
 
+                        {credit ? (
+                        <div className="flex items-baseline justify-between mt-4">
+                            <span className="text-sm font-medium text-steel">Queda a deber</span>
+                            <span className="text-2xl font-semibold tabular-nums text-amber-700" data-testid="caja-balance">
+                                {formatCurrency(Math.max(totals.balance, 0))}
+                            </span>
+                        </div>
+                        ) : (
                         <div className="flex items-baseline justify-between mt-4">
                             <span className="text-sm font-medium text-steel">Cambio</span>
                             <span
@@ -675,13 +793,14 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                                 {formatCurrency(Math.max(totals.change, 0))}
                             </span>
                         </div>
+                        )}
                         {cart.length > 0 && blocker && <p className="mt-2 text-xs text-amber-800">{blocker}</p>}
-                        {(serverErrors.cash_received || serverErrors.card) && (
-                            <p className="mt-2 text-xs text-red-700">{serverErrors.cash_received ?? serverErrors.card}</p>
+                        {(serverErrors.cash_received || serverErrors.card || serverErrors.cash || serverErrors.credit) && (
+                            <p className="mt-2 text-xs text-red-700">{serverErrors.cash_received ?? serverErrors.card ?? serverErrors.cash ?? serverErrors.credit}</p>
                         )}
 
                         <Button size="4" className="mt-4" style={{ width: "100%" }} disabled={!!blocker || processing} onClick={charge}>
-                            {processing ? "Cobrando…" : `Cobrar ${formatCurrency(totals.total)}`}
+                            {processing ? "Guardando…" : credit ? "Registrar venta a crédito" : `Cobrar ${formatCurrency(totals.total)}`}
                         </Button>
                         {cart.length > 0 && (
                             <button
@@ -702,6 +821,13 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                     <Dialog.Description size="2" color="gray">
                         Folio {lastSale?.folio} · Total {formatCurrency(lastSale?.total ?? 0)}
                     </Dialog.Description>
+                    {lastSale && lastSale.balance > 0.009 && (
+                        <div className="p-4 mt-4 text-center rounded-card bg-amber-tint">
+                            <div className="text-sm font-medium text-amber-900">Venta a crédito · queda a deber</div>
+                            <div className="text-4xl font-semibold tracking-tight tabular-nums text-amber-900">{formatCurrency(lastSale.balance)}</div>
+                            <div className="mt-1 text-xs text-amber-900/70">Se cobra después desde el dashboard o desde Notas.</div>
+                        </div>
+                    )}
                     {lastSale && lastSale.cash_received !== null && (
                         <div className="p-4 mt-4 text-center rounded-card bg-mint">
                             <div className="text-sm font-medium text-green-900">Cambio</div>

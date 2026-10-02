@@ -26,7 +26,7 @@ class SaleService
     public function __construct(private StockService $stock = new StockService) {}
 
     /**
-     * @param  array{folio?: ?string, customer?: ?string, items: array, discount?: ?float, cash_received?: ?float, card?: ?float, transfer?: ?float}  $data
+     * @param  array{folio?: ?string, customer?: ?string, customer_phone?: ?string, customer_address?: ?string, items: array, discount?: ?float, credit?: bool, cash?: ?float, cash_received?: ?float, card?: ?float, transfer?: ?float}  $data
      */
     public function create(User $user, Branch $branch, array $data): Note
     {
@@ -44,6 +44,8 @@ class SaleService
             $note = new Note([
                 'folio' => $folio,
                 'customer' => trim((string) ($data['customer'] ?? '')) ?: 'Público en general',
+                'customer_phone' => trim((string) ($data['customer_phone'] ?? '')) ?: null,
+                'customer_address' => trim((string) ($data['customer_address'] ?? '')) ?: null,
                 'date' => $today,
                 'branch_id' => $branch->id,
                 'purchase_total' => $sale['purchase_total'],
@@ -52,7 +54,8 @@ class SaleService
                 'cash_received' => $sale['cash_received'],
                 'flete' => 0,
                 'notes' => '',
-                'status' => 'paid',
+                // A crédito con saldo: "Pendiente" hasta que se registre el resto (dashboard o Notas).
+                'status' => $sale['balance'] > 0.009 ? 'pending' : 'paid',
                 'purchase_status' => 'pending',
                 'delivery_status' => self::DELIVERED,
             ]);
@@ -63,14 +66,17 @@ class SaleService
                 $this->stock->adjustStock($branch->id, $line['product_id'], $line['quantity'], 'OUT', $note->id, 'Salida por venta en caja #'.$note->folio);
             }
 
-            $note->payments()->create([
-                'branch_id' => $branch->id,
-                'date' => $today,
-                'cash' => $sale['cash'],
-                'card' => $sale['card'],
-                'transfer' => $sale['transfer'],
-                'position' => 0,
-            ]);
+            // Sin pago (crédito sin abono) no hay fila: los pagos en cero no se guardan.
+            if ($sale['cash'] + $sale['card'] + $sale['transfer'] > 0.009) {
+                $note->payments()->create([
+                    'branch_id' => $branch->id,
+                    'date' => $today,
+                    'cash' => $sale['cash'],
+                    'card' => $sale['card'],
+                    'transfer' => $sale['transfer'],
+                    'position' => 0,
+                ]);
+            }
             $note->recalculateTotalsFromPayments();
 
             return $note;
@@ -97,7 +103,8 @@ class SaleService
     {
         $errors = [];
         $canChangePrice = $user->can('sales.change_price');
-        $canDiscount = $user->can('sales.discount');
+        // Descuentos: además del permiso, la función debe estar encendida (config/features.php).
+        $canDiscount = config('features.discounts') && $user->can('sales.discount');
 
         $products = Product::whereIn('id', collect($data['items'])->pluck('product_id'))->get()->keyBy('id');
         $extra = $branch->extra_percentage; // el extra global de la sucursal manda
@@ -171,16 +178,31 @@ class SaleService
 
         $saleTotal = round($linesNet - $noteDiscount, 2);
 
-        // Pago completo: tarjeta y transferencia por su importe, el efectivo cubre el resto.
         $card = round((float) ($data['card'] ?? 0), 2);
         $transfer = round((float) ($data['transfer'] ?? 0), 2);
-        $cash = round($saleTotal - $card - $transfer, 2);
-        $cashReceived = isset($data['cash_received']) ? round((float) $data['cash_received'], 2) : null;
+        $credit = ! empty($data['credit']);
 
-        if ($cash < -0.001) {
-            $errors['card'] = 'Tarjeta y transferencia suman más que el total.';
-        } elseif ($cash > 0.001 && ($cashReceived ?? 0) < $cash - 0.001) {
-            $errors['cash_received'] = 'Falta efectivo: el cliente debe entregar al menos $'.number_format($cash, 2).'.';
+        if ($credit) {
+            // A crédito: el cliente abona lo que quiera (o nada) y el resto queda como saldo.
+            if (! $user->can('sales.credit')) {
+                $errors['credit'] = 'No tienes permiso para vender a crédito.';
+            }
+            $cash = round((float) ($data['cash'] ?? 0), 2);
+            $cashReceived = null;
+            if ($cash + $card + $transfer > $saleTotal + 0.001) {
+                $errors['cash'] = 'El abono es mayor que el total de la venta.';
+            }
+            // Nombre, teléfono y dirección son opcionales también a crédito (como en las notas).
+        } else {
+            // De contado: tarjeta y transferencia por su importe, el efectivo cubre el resto.
+            $cash = round($saleTotal - $card - $transfer, 2);
+            $cashReceived = isset($data['cash_received']) ? round((float) $data['cash_received'], 2) : null;
+
+            if ($cash < -0.001) {
+                $errors['card'] = 'Tarjeta y transferencia suman más que el total.';
+            } elseif ($cash > 0.001 && ($cashReceived ?? 0) < $cash - 0.001) {
+                $errors['cash_received'] = 'Falta efectivo: el cliente debe entregar al menos $'.number_format($cash, 2).'.';
+            }
         }
 
         if ($errors) {
@@ -195,8 +217,9 @@ class SaleService
             'cash' => max($cash, 0),
             'card' => $card,
             'transfer' => $transfer,
-            'cash_received' => $cash > 0 ? $cashReceived : null,
-            'change' => $cash > 0 ? round($cashReceived - $cash, 2) : 0.0,
+            'cash_received' => ! $credit && $cash > 0 ? $cashReceived : null,
+            'change' => ! $credit && $cash > 0 ? round($cashReceived - $cash, 2) : 0.0,
+            'balance' => round($saleTotal - max($cash, 0) - $card - $transfer, 2),
         ];
     }
 }

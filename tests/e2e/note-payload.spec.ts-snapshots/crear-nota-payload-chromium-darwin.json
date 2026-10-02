@@ -3,6 +3,8 @@
   "balance": "6399.5",
   "branch_id": 1,
   "customer": "Cliente payload",
+  "customer_address": "",
+  "customer_phone": "",
   "date": "2026-07-20",
   "delivery_status": "pendiente",
   "discount": "0",

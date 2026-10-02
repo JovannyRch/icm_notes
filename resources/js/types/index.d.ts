@@ -34,6 +34,8 @@ export type PageProps<
     impersonator: { id: number; name: string } | null;
     /** Versión de la app (config/app.php). */
     appVersion: string;
+    /** Funciones que se pueden apagar (config/features.php). */
+    features: { discounts: boolean };
 };
 
 export type payment_status = "pending" | "paid" | "canceled";

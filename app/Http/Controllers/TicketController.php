@@ -109,13 +109,21 @@ class TicketController extends Controller
         $settings = $branch->ticketSettings();
         $tz = config('app.business_timezone');
 
-        $lines = $items->map(fn ($i) => [
-            'quantity' => (float) $i->quantity,
-            'description' => trim(implode(' ', array_filter([$i->brand, $i->model, $i->measure]))),
-            'price' => (float) $i->price,
-            'discount' => (float) ($i->discount ?? 0),
-            'amount' => (float) $i->sale_subtotal,
-        ]);
+        $lines = $items->map(function ($i) {
+            // Tiendas de pisos: MC son los m² que trae cada caja; se imprime y se suma.
+            $mc = str_replace(',', '.', trim((string) $i->mc));
+            $perBox = is_numeric($mc) && (float) $mc > 0 ? (float) $mc : null;
+
+            return [
+                'quantity' => (float) $i->quantity,
+                'description' => trim(implode(' ', array_filter([$i->brand, $i->model, $i->measure]))),
+                'price' => (float) $i->price,
+                'discount' => (float) ($i->discount ?? 0),
+                'amount' => (float) $i->sale_subtotal,
+                'm2_per_box' => $perBox,
+                'm2' => $perBox ? round($perBox * (float) $i->quantity, 2) : null,
+            ];
+        });
 
         $gross = $lines->sum(fn ($l) => $l['price'] * $l['quantity']);
         $discount = $lines->sum('discount') + (float) ($note->discount ?? 0);
@@ -132,8 +140,11 @@ class TicketController extends Controller
             'datetime' => ($note->created_at ?? now())->timezone($tz)->format('d/m/Y H:i'),
             'seller' => $note->seller?->name,
             'customer' => $note->customer,
+            'customer_phone' => $note->customer_phone,
+            'customer_address' => $note->customer_address,
             'lines' => $lines,
             'units' => $lines->sum('quantity'),
+            'm2' => round($lines->sum('m2'), 2),
             'gross' => round($gross, 2),
             'discount' => round($discount, 2),
             'flete' => (float) ($note->flete ?? 0),

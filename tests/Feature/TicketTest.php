@@ -26,6 +26,7 @@ class TicketTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['features.discounts' => true]);
         $this->a = Branch::create(['name' => 'San Felipe']);
         $this->b = Branch::create(['name' => 'Jilotepec']);
         $product = Product::create(['brand' => 'MICHELIN', 'model' => 'PRIMACY 4', 'measure' => '205/55R16', 'mc' => '', 'unit' => 'PZA', 'iva' => 16, 'extra' => 0, 'price' => 2500, 'cost' => 1777]);
@@ -132,6 +133,17 @@ class TicketTest extends TestCase
         $this->actingAs(User::factory()->create())->get("/nota/{$this->note->id}/ticket/pdf")->assertOk();
         auth()->logout();
         $this->get("/nota/{$this->note->id}/ticket/pdf")->assertRedirect(route('login'));
+    }
+
+    public function test_ticket_shows_m2_per_box_and_total_m2(): void
+    {
+        $this->note->items()->create(['brand' => 'CASTEL', 'model' => 'MARMOL', 'measure' => '60x60', 'mc' => '1.44', 'unit' => 'CAJA', 'quantity' => 4,
+            'cost' => 1, 'price' => 300, 'iva' => 0, 'extra' => 0, 'sale_subtotal' => 1200, 'purchase_subtotal' => 4, 'supplied_status' => 'no_enviado', 'delivery_status' => 'entregado_a_cliente']);
+
+        $html = $this->actingAs($this->cashier)->get("/nota/{$this->note->id}/ticket")->getContent();
+        $this->assertStringContainsString('1.44 m²/caja', $html);
+        $this->assertStringContainsString('5.76 m²', $html);
+        $this->assertStringContainsString('Total m²', $html);
     }
 
     public function test_canceled_sale_ticket_says_so(): void

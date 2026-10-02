@@ -5,6 +5,8 @@ export interface Note {
     id?: number;
     folio: string;
     customer: string;
+    customer_phone?: string | null;
+    customer_address?: string | null;
     date: string;
     advance: number;
     flete: number;

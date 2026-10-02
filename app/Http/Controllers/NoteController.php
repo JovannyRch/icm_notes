@@ -46,6 +46,8 @@ class NoteController extends Controller
             'folio' => 'nullable|string|max:50',
             'discount' => 'nullable|numeric|min:0',
             'cash_received' => 'nullable|numeric|min:0',
+            'customer_phone' => 'nullable|string|max:30',
+            'customer_address' => 'nullable|string|max:255',
             'items.*.discount' => 'nullable|numeric|min:0',
             'items.*.list_price' => 'nullable|numeric|min:0',
             'date' => 'required',
@@ -252,6 +254,57 @@ class NoteController extends Controller
         });
 
         return redirect()->route('notes.show', $note->id)->with('success', 'Nota actualizada');
+    }
+
+    /**
+     * Cobro rápido de una nota pendiente (desde el dashboard): registra un pago con fecha
+     * de HOY —así entra al corte del día como "entrada anterior"— y, si ya no debe nada,
+     * la marca como pagada. Con saldo en cero sólo cambia el estatus.
+     */
+    public function collect(Request $request, Note $note)
+    {
+        abort_unless($request->user()->canAccessBranch((int) $note->branch_id), 403, 'No tienes acceso a esa sucursal.');
+        $data = $request->validate([
+            'method' => 'required|in:cash,card,transfer',
+            'amount' => 'required|numeric|min:0',
+        ], ['amount.required' => 'Escribe el importe que pagó el cliente.']);
+
+        if (NoteStockService::isCancelled($note)) {
+            return back()->with('error', "La nota {$note->folio} está cancelada.");
+        }
+
+        $balance = round((float) $note->balance, 2);
+        $amount = round((float) $data['amount'], 2);
+        if ($amount > $balance + 0.009) {
+            return back()->withErrors(['amount' => 'El pago es mayor que el saldo ($'.number_format($balance, 2).').']);
+        }
+        if ($amount <= 0 && $balance > 0.009) {
+            return back()->withErrors(['amount' => 'Escribe el importe que pagó el cliente.']);
+        }
+
+        DB::transaction(function () use ($note, $data, $amount) {
+            if ($amount > 0) {
+                $note->payments()->create([
+                    'branch_id' => $note->branch_id,
+                    'date' => businessToday(),
+                    'cash' => $data['method'] === 'cash' ? $amount : 0,
+                    'card' => $data['method'] === 'card' ? $amount : 0,
+                    'transfer' => $data['method'] === 'transfer' ? $amount : 0,
+                    'position' => (int) $note->payments()->max('position') + 1,
+                    'description' => 'Cobro desde el dashboard',
+                ]);
+            }
+            $note->recalculateTotalsFromPayments();
+            if ((float) $note->balance <= 0.009) {
+                $note->update(['status' => 'paid']);
+            }
+        });
+
+        $note->refresh();
+
+        return back()->with('success', $note->status === 'paid'
+            ? "Nota {$note->folio} pagada."
+            : 'Pago de $'.number_format($amount, 2)." registrado en la nota {$note->folio}. Resta $".number_format((float) $note->balance, 2).'.');
     }
 
     public function switchArchive(Note $note)

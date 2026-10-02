@@ -30,6 +30,8 @@ class Note extends Model
         'cash',
         'discount',       // descuento sobre el total de la nota (importe); sale_total ya es neto
         'cash_received',  // efectivo entregado por el cliente; el cambio se deriva
+        'customer_phone',
+        'customer_address',
         // user_id (quién vendió) y code (código del documento) no son asignables en masa.
         // card2/transfer2/cash2/second_payment_date quedan como columnas legacy:
         // los pagos viven en note_payments desde la migración de N pagos.

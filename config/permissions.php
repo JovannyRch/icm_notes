@@ -31,6 +31,7 @@ return [
         'sales.view_branch' => ['label' => 'Ver las ventas de toda la sucursal', 'group' => 'Caja', 'cashier' => true, 'default' => false],
         'sales.change_price' => ['label' => 'Cambiar el precio de un producto', 'group' => 'Caja', 'cashier' => true, 'default' => false],
         'sales.discount' => ['label' => 'Aplicar descuentos (hasta su tope)', 'group' => 'Caja', 'cashier' => true, 'default' => false],
+        'sales.credit' => ['label' => 'Vender a crédito (el cliente paga después)', 'group' => 'Caja', 'cashier' => true, 'default' => true],
         'sales.cancel_own' => ['label' => 'Cancelar sus ventas del día', 'group' => 'Caja', 'cashier' => true, 'default' => false],
         'stock.view' => ['label' => 'Ver existencias', 'group' => 'Caja', 'cashier' => true, 'default' => true],
 

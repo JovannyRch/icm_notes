@@ -53,7 +53,7 @@ class DashboardController extends Controller
 
         $branchId = isset($validated['branch']) ? (int) $validated['branch'] : null;
         $analytics = new AnalyticsService($from, $to, $branchId, $today);
-        $receivables = $analytics->receivables($limit);
+        $receivables = $analytics->receivables(max($limit, 15));
 
         return [
             'filters' => [
@@ -68,7 +68,7 @@ class DashboardController extends Controller
             'salesSeries' => $analytics->salesSeries(),
             'salesByBranch' => $analytics->salesByBranch(),
             'collections' => $analytics->collections(),
-            'receivables' => [...$receivables, 'oldest' => array_slice($receivables['oldest'], 0, 10)],
+            'receivables' => [...$receivables, 'oldest' => array_slice($receivables['oldest'], 0, 15)],
             'receivablesAll' => $receivables['oldest'],
             'products' => $analytics->topProducts($limit),
             'inventory' => $analytics->inventory($limit),

@@ -34,6 +34,9 @@ import {
     LuPackagePlus,
 } from "react-icons/lu";
 import PageHeader from "@/Components/ui/PageHeader";
+import CollectPaymentDialog, { CollectableNote } from "@/Components/CollectPaymentDialog";
+import useAlerts from "@/hooks/useAlerts";
+import { useCan } from "@/hooks/useCan";
 
 interface Totals {
     sale: number;
@@ -74,7 +77,19 @@ interface Props extends PageProps {
         total: number;
         notes_count: number;
         aging: { label: string; amount: number; notes_count: number }[];
-        oldest: { id: number; folio: string; date: string; branch: string; sale_total: number; balance: number; age_days: number }[];
+        pending_count: number;
+        oldest: {
+            id: number;
+            folio: string;
+            date: string;
+            branch: string;
+            sale_total: number;
+            balance: number;
+            age_days: number;
+            status: string;
+            customer: string | null;
+            customer_phone: string | null;
+        }[];
     };
     products: { by_sale: ProductRow[]; by_units: ProductRow[]; by_profit: ProductRow[] };
     inventory: {
@@ -159,7 +174,11 @@ const Dashboard = ({
     receivables,
     products,
     inventory,
+    flash,
 }: Props) => {
+    useAlerts(flash);
+    const can = useCan();
+    const [collecting, setCollecting] = useState<CollectableNote | null>(null);
     const { branches } = useBranch();
     const today = new Date(`${filters.today}T00:00:00`);
     const activePreset = presets(today).find(
@@ -356,20 +375,24 @@ const Dashboard = ({
             </div>
 
             <div className="grid grid-cols-1 gap-4 mb-4 xl:grid-cols-3">
-                <SectionCard title="Notas con saldo más antiguas" subtitle="Para dar seguimiento de cobranza" className="xl:col-span-2">
+                <SectionCard
+                    title="Notas por cobrar"
+                    subtitle={`${receivables.pending_count} pendientes: ventas a crédito, con saldo o sin marcar como pagadas. Las más antiguas primero.`}
+                    className="xl:col-span-2"
+                >
                     {receivables.oldest.length === 0 ? (
-                        <Empty>No hay notas con saldo pendiente.</Empty>
+                        <Empty>No hay notas pendientes de pago.</Empty>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
-                                <thead className="text-xs text-left text-fog uppercase border-b">
+                                <thead className="text-xs text-left uppercase border-b text-fog">
                                     <tr>
                                         <th className="py-2 pr-3">Folio</th>
+                                        <th className="py-2 pr-3">Cliente</th>
                                         <th className="py-2 pr-3">Sucursal</th>
-                                        <th className="py-2 pr-3">Fecha</th>
                                         <th className="py-2 pr-3 text-right">Días</th>
-                                        <th className="py-2 pr-3 text-right">Venta</th>
-                                        <th className="py-2 text-right">Saldo</th>
+                                        <th className="py-2 pr-3 text-right">Saldo</th>
+                                        {can("notes.manage") && <th className="py-2" />}
                                     </tr>
                                 </thead>
                                 <tbody className="tabular-nums">
@@ -377,18 +400,31 @@ const Dashboard = ({
                                         <tr key={n.id} className="border-b border-ash hover:bg-paper">
                                             <td className="py-2 pr-3">
                                                 <a href={route("notes.show", n.id)} className="text-electric hover:underline">{n.folio}</a>
+                                                <div className="text-xs text-fog">{n.date}</div>
+                                            </td>
+                                            <td className="py-2 pr-3">
+                                                <div className="text-charcoal">{n.customer || "—"}</div>
+                                                {n.customer_phone && <div className="text-xs text-fog">Tel. {n.customer_phone}</div>}
                                             </td>
                                             <td className="py-2 pr-3">{n.branch}</td>
-                                            <td className="py-2 pr-3">{n.date}</td>
                                             <td className={`py-2 pr-3 text-right ${n.age_days > 60 ? "text-[#d03b3b] font-medium" : ""}`}>{n.age_days}</td>
-                                            <td className="py-2 pr-3 text-right">{formatCurrency(n.sale_total)}</td>
-                                            <td className="py-2 font-medium text-right">{formatCurrency(n.balance)}</td>
+                                            <td className="py-2 pr-3 font-medium text-right">
+                                                {n.balance > 0.009 ? formatCurrency(n.balance) : <span className="text-xs font-normal text-fog">sin saldo</span>}
+                                            </td>
+                                            {can("notes.manage") && (
+                                                <td className="py-2 text-right">
+                                                    <Button size="1" variant="soft" onClick={() => setCollecting(n)}>
+                                                        {n.balance > 0.009 ? "Cobrar" : "Marcar pagada"}
+                                                    </Button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
                     )}
+                    <CollectPaymentDialog note={collecting} onClose={() => setCollecting(null)} />
                 </SectionCard>
 
                 <SectionCard

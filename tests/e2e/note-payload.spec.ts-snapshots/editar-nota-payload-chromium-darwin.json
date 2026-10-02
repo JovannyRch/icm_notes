@@ -3,6 +3,8 @@
   "balance": "7780",
   "branch_id": 1,
   "customer": "Edición",
+  "customer_address": "",
+  "customer_phone": "",
   "date": "2026-07-21",
   "delivery_status": "pendiente",
   "discount": "0",
