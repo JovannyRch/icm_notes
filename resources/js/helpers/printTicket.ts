@@ -14,6 +14,11 @@ export function printTicket(url: string) {
     window.setTimeout(() => frame.remove(), 120_000);
 }
 
+/** Descarga el ticket en PDF (80 mm). Es una descarga normal: la pantalla no cambia. */
+export function downloadTicketPdf(noteId: number) {
+    window.location.href = route("tickets.pdf", noteId);
+}
+
 const AUTO_PRINT_KEY = "caja-auto-print";
 
 /** ¿Imprimir solo al cobrar? Se recuerda por computadora (por omisión, sí). */

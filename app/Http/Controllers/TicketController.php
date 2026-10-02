@@ -11,6 +11,8 @@ use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Http\Request;
 
 /**
@@ -122,11 +124,64 @@ class TicketController extends Controller
         ];
     }
 
+    /** QR en SVG como data URI: sirve igual en el navegador que en el PDF (dompdf). */
     private function qr(string $content): string
     {
         $svg = (new Writer(new ImageRenderer(new RendererStyle(160, 0), new SvgImageBackEnd)))->writeString($content);
 
-        // Sin la declaración XML para incrustarlo directo en el HTML.
-        return preg_replace('/^<\?xml[^>]*\?>\s*/', '', $svg);
+        return 'data:image/svg+xml;base64,'.base64_encode($svg);
+    }
+
+    /** El mismo ticket en PDF de 80 mm, para guardarlo o mandarlo. No cuenta como impresión. */
+    public function pdf(Request $request, Note $note)
+    {
+        abort_unless($this->canView($request, $note), 403, 'No puedes ver este ticket.');
+
+        $html = view('tickets.ticket', ['t' => $this->payload($note), 'printing' => false, 'reprint' => false, 'sample' => false, 'pdf' => true])->render();
+        $name = 'ticket-'.(preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) $note->folio) ?: $note->id).'.pdf';
+
+        return response($this->renderPdf($html), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$name.'"',
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
+    /**
+     * Papel de 80 mm con el largo exacto del ticket: se dibuja una vez en una hoja muy
+     * larga, se mide dónde quedó la marca #ticket-end y se vuelve a dibujar con ese alto.
+     */
+    private function renderPdf(string $html): string
+    {
+        $width = 80 / 25.4 * 72; // 80 mm en puntos
+
+        $make = function (float $height, ?callable $onEnd = null) use ($html, $width): Dompdf {
+            $options = new Options;
+            $options->setDefaultMediaType('print');
+            $options->setIsRemoteEnabled(false);
+            $options->setDefaultFont('Helvetica');
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html, 'UTF-8');
+            $dompdf->setPaper([0, 0, $width, $height]);
+            if ($onEnd) {
+                // Al terminar render() dompdf descarta el árbol: la posición se toma al dibujar.
+                $dompdf->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use ($onEnd) {
+                    $node = $frame->get_node();
+                    if ($node instanceof \DOMElement && $node->getAttribute('id') === 'ticket-end') {
+                        $onEnd((float) $frame->get_position('y'));
+                    }
+                }]]);
+            }
+            $dompdf->render();
+
+            return $dompdf;
+        };
+
+        $height = 1400.0;
+        $make(5000, function (float $y) use (&$height) {
+            $height = $y + 10;
+        });
+
+        return $make(max($height, 200))->output();
     }
 }

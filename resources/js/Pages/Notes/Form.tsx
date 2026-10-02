@@ -47,8 +47,8 @@ import {
 import { TbCashRegister, TbTrash } from "react-icons/tb";
 import { toast } from "react-toastify";
 import PageHeader from "@/Components/ui/PageHeader";
-import { LuArchive, LuArchiveRestore, LuCalculator, LuChevronDown, LuFilePlus, LuPrinter, LuTrash2 } from "react-icons/lu";
-import { printTicket } from "@/helpers/printTicket";
+import { LuArchive, LuArchiveRestore, LuCalculator, LuChevronDown, LuFileDown, LuFilePlus, LuPrinter, LuTrash2 } from "react-icons/lu";
+import { downloadTicketPdf, printTicket } from "@/helpers/printTicket";
 import { SuppliedStatusSelect } from "@/Components/SuppliedStatusSelect";
 import { DeliveryStatusSelect } from "@/Components/DeliveryStatusSelect";
 import StatusPaidBadge from "@/Components/StatusPaidBadge";
@@ -463,6 +463,9 @@ const NoteForm = ({
                                         {/* Imprime lo guardado: los cambios sin guardar no salen en el ticket. */}
                                         <DropdownMenu.Item onSelect={() => printTicket(route("tickets.show", { note: note.id, print: 1 }))}>
                                             <LuPrinter /> Imprimir ticket
+                                        </DropdownMenu.Item>
+                                        <DropdownMenu.Item onSelect={() => downloadTicketPdf(note.id!)}>
+                                            <LuFileDown /> Descargar ticket en PDF
                                         </DropdownMenu.Item>
                                         <DropdownMenu.Separator />
                                         <DropdownMenu.Item onSelect={handleArchive}>

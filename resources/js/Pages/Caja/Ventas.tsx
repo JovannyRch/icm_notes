@@ -2,13 +2,13 @@ import Container from "@/Components/Container";
 import StatusPill from "@/Components/StatusPill";
 import PageHeader from "@/Components/ui/PageHeader";
 import { formatCurrency } from "@/helpers/formatters";
-import { printTicket } from "@/helpers/printTicket";
+import { downloadTicketPdf, printTicket } from "@/helpers/printTicket";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { router } from "@inertiajs/react";
 import { Button, Table } from "@radix-ui/themes";
 import { confirmAlert } from "react-confirm-alert";
-import { LuBan, LuPrinter } from "react-icons/lu";
+import { LuBan, LuFileDown, LuPrinter } from "react-icons/lu";
 
 interface Sale {
     id: number;
@@ -119,6 +119,10 @@ const SalesIndex = ({ branch, date, allBranch, sales, flash }: Props) => {
                                     <Button size="1" variant="soft" color="gray" onClick={() => printTicket(route("tickets.show", { note: s.id, print: 1 }))}>
                                         <LuPrinter />
                                         Reimprimir
+                                    </Button>
+                                    <Button size="1" variant="soft" color="gray" onClick={() => downloadTicketPdf(s.id)} aria-label={`PDF del ticket ${s.folio}`}>
+                                        <LuFileDown />
+                                        PDF
                                     </Button>
                                     {s.can_cancel && (
                                         <Button size="1" variant="soft" color="red" onClick={() => cancel(s)}>

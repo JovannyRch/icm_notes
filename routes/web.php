@@ -63,6 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // --- Ticket (80 mm) ----------------------------------------------------------
     Route::middleware('can:tickets.view')->group(function () {
         Route::get('/nota/{note}/ticket', [TicketController::class, 'show'])->name('tickets.show');
+        Route::get('/nota/{note}/ticket/pdf', [TicketController::class, 'pdf'])->name('tickets.pdf');
     });
 
     // --- Sucursales y datos del ticket ---------------------------------------------

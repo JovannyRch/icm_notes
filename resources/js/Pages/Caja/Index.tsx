@@ -1,7 +1,7 @@
 import Container from "@/Components/Container";
 import PageHeader from "@/Components/ui/PageHeader";
 import { formatCurrency } from "@/helpers/formatters";
-import { getAutoPrint, printTicket, setAutoPrint } from "@/helpers/printTicket";
+import { downloadTicketPdf, getAutoPrint, printTicket, setAutoPrint } from "@/helpers/printTicket";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
@@ -10,7 +10,7 @@ import { Button, Dialog, IconButton, Switch, Text } from "@radix-ui/themes";
 import axios from "axios";
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { LuBanknote, LuCreditCard, LuHistory, LuMinus, LuPlus, LuPrinter, LuSearch, LuShoppingCart, LuTrash2, LuX } from "react-icons/lu";
+import { LuBanknote, LuCreditCard, LuFileDown, LuHistory, LuMinus, LuPlus, LuPrinter, LuSearch, LuShoppingCart, LuTrash2, LuX } from "react-icons/lu";
 
 interface Rules {
     changePrice: boolean;
@@ -700,6 +700,10 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                             Imprimir al cobrar
                         </Text>
                         <div className="flex gap-2">
+                            <Button variant="outline" color="gray" onClick={() => lastSale && downloadTicketPdf(lastSale.id)}>
+                                <LuFileDown />
+                                PDF
+                            </Button>
                             <Button variant="outline" color="gray" onClick={() => lastSale && printSale(lastSale.id)}>
                                 <LuPrinter />
                                 {autoPrint ? "Reimprimir" : "Imprimir ticket"}

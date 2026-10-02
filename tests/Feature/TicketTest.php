@@ -58,7 +58,7 @@ class TicketTest extends TestCase
 
         foreach (['CAJA SAN FELIPE', 'Folio: <b>1</b>', 'Atendió: Ana Caja', 'Cliente: Juan Pérez', 'MICHELIN PRIMACY 4 205/55R16',
             '2 x $2,500.00', '$4,900.00', '-$100.00', '-$250.00', '$4,750.00', 'Recibido', '$5,000.00', '$250.00',
-            'CUATRO MIL SETECIENTOS CINCUENTA PESOS 00/100 M.N.', $this->note->code, '<svg', 'Ideas Modernas de Construcción', '¡Gracias por su compra!', 'img/ticket-logo.png'] as $text) {
+            'CUATRO MIL SETECIENTOS CINCUENTA PESOS 00/100 M.N.', $this->note->code, 'data:image/svg+xml;base64,', 'Ideas Modernas de Construcción', '¡Gracias por su compra!', 'img/ticket-logo.png'] as $text) {
             $this->assertStringContainsString($text, $html, "Falta en el ticket: {$text}");
         }
         $this->assertStringNotContainsString('1,777', $html, 'el ticket no muestra costos');
@@ -88,6 +88,50 @@ class TicketTest extends TestCase
         $this->actingAs($this->cashier(['sales.view_branch' => true], $this->b))->get($this->ticketUrl())->assertForbidden();
         // Dueño: sí.
         $this->actingAs(User::factory()->create())->get($this->ticketUrl())->assertOk();
+    }
+
+    /** [ancho, alto] en mm de la primera página del PDF. */
+    private function pdfSize(string $pdf): array
+    {
+        $this->assertMatchesRegularExpression('/MediaBox \[[\d.]+ [\d.]+ ([\d.]+) ([\d.]+)\]/', $pdf);
+        preg_match('/MediaBox \[[\d.]+ [\d.]+ ([\d.]+) ([\d.]+)\]/', $pdf, $m);
+
+        return [round($m[1] / 72 * 25.4, 1), round($m[2] / 72 * 25.4, 1)];
+    }
+
+    public function test_ticket_pdf_is_80mm_and_as_long_as_the_ticket(): void
+    {
+        $response = $this->actingAs($this->cashier)->get("/nota/{$this->note->id}/ticket/pdf")->assertOk();
+        $response->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringContainsString('attachment; filename="ticket-1.pdf"', $response->headers->get('Content-Disposition'));
+
+        $pdf = $response->getContent();
+        $this->assertStringStartsWith('%PDF', $pdf);
+        $this->assertSame(1, preg_match_all('#/Type\s*/Page[^s]#', $pdf), 'una sola página');
+        [$width, $height] = $this->pdfSize($pdf);
+        $this->assertSame(80.0, $width);
+        $this->assertGreaterThan(120, $height);
+        $this->assertLessThan(260, $height, 'recortado al largo del ticket, sin hoja en blanco');
+
+        // Descargar el PDF no cuenta como impresión.
+        $this->assertSame(0, TicketPrint::count());
+
+        // Con más productos, el PDF es más largo.
+        foreach (range(1, 8) as $i) {
+            $this->note->items()->create(['brand' => 'CEMEX', 'model' => "M{$i}", 'measure' => '50KG', 'mc' => '', 'unit' => 'PZA', 'quantity' => 1,
+                'cost' => 1, 'price' => 10, 'iva' => 0, 'extra' => 0, 'sale_subtotal' => 10, 'purchase_subtotal' => 1, 'supplied_status' => 'no_enviado', 'delivery_status' => 'entregado_a_cliente']);
+        }
+        [, $longer] = $this->pdfSize($this->actingAs($this->cashier)->get("/nota/{$this->note->id}/ticket/pdf")->getContent());
+        $this->assertGreaterThan($height + 40, $longer);
+    }
+
+    public function test_ticket_pdf_follows_the_same_access_rules(): void
+    {
+        $this->actingAs($this->cashier())->get("/nota/{$this->note->id}/ticket/pdf")->assertForbidden();
+        $this->actingAs($this->cashier(['sales.view_branch' => true], $this->b))->get("/nota/{$this->note->id}/ticket/pdf")->assertForbidden();
+        $this->actingAs(User::factory()->create())->get("/nota/{$this->note->id}/ticket/pdf")->assertOk();
+        auth()->logout();
+        $this->get("/nota/{$this->note->id}/ticket/pdf")->assertRedirect(route('login'));
     }
 
     public function test_canceled_sale_ticket_says_so(): void

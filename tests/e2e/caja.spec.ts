@@ -47,6 +47,9 @@ test("el cajero cobra una venta con descuento y cambio", async ({ page }) => {
     const ticketUrl = (await ticketRequest).url();
     const ticket = await page.request.get(ticketUrl.replace("?print=1", ""));
     expect(await ticket.text()).toContain("$5,795.00");
+    // El ticket también se descarga en PDF desde el mismo diálogo.
+    const [download] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "PDF" }).click()]);
+    expect(download.suggestedFilename()).toMatch(/^ticket-.+\.pdf$/);
     await dialog.getByRole("button", { name: "Nueva venta" }).click();
     await expect(total).toHaveText("$0.00");
     await expect(search).toBeFocused();

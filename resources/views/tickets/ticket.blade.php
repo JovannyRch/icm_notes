@@ -2,6 +2,7 @@
     $s = $t['settings'];
     $money = fn ($v) => '$' . number_format((float) $v, 2);
     $qty = fn ($v) => rtrim(rtrim(number_format((float) $v, 2), '0'), '.');
+    $pdf = $pdf ?? false;
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -10,8 +11,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ticket {{ $t['folio'] }}</title>
     <style>
-        /* Epson TM-T20IV, papel de 80 mm: el área imprimible es de ~72 mm (576 puntos). */
+        /* Epson TM-T20IV, papel de 80 mm: el área imprimible es de ~72 mm (576 puntos).
+           Sin flexbox: el PDF lo genera dompdf, que sólo entiende tablas (display: table). */
+        @if ($pdf)
+        @page { margin: 0; }
+        @else
         @page { size: 80mm auto; margin: 0; }
+        @endif
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; background: #fff; }
         body {
@@ -20,6 +26,9 @@
             color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;
             font-variant-numeric: tabular-nums;
         }
+        @if ($pdf)
+        body { width: auto; margin: 0; padding: 3mm 4mm 2mm; }
+        @endif
         @media screen {
             html { background: #e9e9ea; }
             body { margin: 16px auto; padding: 5mm 3mm 8mm; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
@@ -32,28 +41,32 @@
         .center { text-align: center; }
         .right { text-align: right; }
         .bold { font-weight: 700; }
-        .logo { display: block; width: 38mm; height: auto; margin: 0 auto 2mm; image-rendering: pixelated; }
+        .logo-wrap { text-align: center; margin: 0 0 2mm; }
+        .logo { display: inline-block; width: 38mm; height: auto; image-rendering: pixelated; }
         .name { font-size: 15px; font-weight: 700; text-transform: uppercase; }
         .muted { font-size: 11px; }
         .rule { border: 0; border-top: 1px dashed #000; margin: 2mm 0; }
         .rule-solid { border: 0; border-top: 1.5px solid #000; margin: 2mm 0; }
-        .row { display: flex; justify-content: space-between; gap: 2mm; }
-        .row > :first-child { min-width: 0; }
+        .row { display: table; width: 100%; }
+        .row > span { display: table-cell; vertical-align: top; }
+        .row > span:last-child { text-align: right; white-space: nowrap; padding-left: 2mm; }
         .item { margin: 0 0 1.4mm; }
         .item .desc { font-weight: 600; word-break: break-word; }
-        .item .detail { display: flex; justify-content: space-between; font-size: 11.5px; }
+        .item .detail { display: table; width: 100%; font-size: 11.5px; }
+        .item .detail > span { display: table-cell; }
+        .item .detail > span:last-child { text-align: right; white-space: nowrap; }
         .total { font-size: 18px; font-weight: 800; }
         .banner { border: 2px solid #000; padding: 1mm; margin: 2mm 0; text-align: center; font-weight: 800; font-size: 14px; letter-spacing: 1px; }
         .words { font-size: 10.5px; text-transform: uppercase; margin-top: 1.5mm; }
-        .qr { display: flex; justify-content: center; margin: 3mm 0 1mm; }
-        .qr svg { width: 26mm; height: 26mm; }
+        .qr { text-align: center; margin: 3mm 0 1mm; }
+        .qr img { width: 26mm; height: 26mm; }
         .pre { white-space: pre-line; }
     </style>
 </head>
 <body>
     @if ($s['show_logo'])
         {{-- Versión en negro puro para papel térmico (public/img/ticket-logo.png). --}}
-        <img class="logo" src="{{ asset('img/ticket-logo.png') }}" alt="">
+        <div class="logo-wrap"><img class="logo" src="{{ $pdf ? 'data:image/png;base64,'.base64_encode(file_get_contents(public_path('img/ticket-logo.png'))) : asset('img/ticket-logo.png') }}" alt=""></div>
     @endif
     <div class="center">
         <div class="name">{{ $s['business_name'] }}</div>
@@ -113,7 +126,7 @@
     @endunless
 
     @if ($t['qr'])
-        <div class="qr">{!! $t['qr'] !!}</div>
+        <div class="qr"><img src="{{ $t['qr'] }}" alt="QR {{ $t['code'] }}"></div>
         <div class="center muted">{{ $t['code'] }}</div>
     @endif
     @if ($s['footer'])
@@ -121,10 +134,15 @@
         <div class="center pre">{{ $s['footer'] }}</div>
     @endif
 
+    {{-- Marca del final: el PDF mide hasta aquí para recortar la página al largo del ticket. --}}
+    <div id="ticket-end" style="height: 1px; font-size: 1px; line-height: 1px;">&nbsp;</div>
+
+    @unless ($pdf)
     <div class="screen-bar">
         <button type="button" class="primary" onclick="window.print()">Imprimir</button>
         <button type="button" onclick="window.close()">Cerrar</button>
     </div>
+    @endunless
 
     @if ($printing)
         <script>
