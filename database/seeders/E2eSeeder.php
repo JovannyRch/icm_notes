@@ -66,6 +66,11 @@ class E2eSeeder extends Seeder
             ['brand' => 'CASTEL', 'model' => 'MARMOL E2E'],
             ['measure' => '60x60', 'mc' => '1.44', 'unit' => 'CAJA', 'price' => 389, 'cost' => 250, 'iva' => 0, 'extra' => 0, 'stock' => 100]
         );
+        // Producto sin precio (para el flujo de "escribe el precio" en la caja).
+        Product::firstOrCreate(
+            ['brand' => 'NUEVO', 'model' => 'SIN PRECIO E2E'],
+            ['measure' => '30x30', 'mc' => '1.5', 'unit' => 'CAJA', 'price' => 0, 'cost' => 100, 'iva' => 0, 'extra' => 0, 'stock' => 0]
+        );
 
     }
 }

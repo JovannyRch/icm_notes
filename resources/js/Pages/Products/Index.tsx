@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useCan } from "@/hooks/useCan";
+import { showsStock } from "@/helpers/utils";
 import QuickEditCell, { Move } from "./components/QuickEditCell";
 import { confirmAlert } from "react-confirm-alert";
 import { LuDownload, LuEllipsis, LuPencil, LuPlus, LuTag, LuTrash2, LuX } from "react-icons/lu";
@@ -73,7 +74,7 @@ const Index = ({ pagination, flash, brands }: Props) => {
     }, [anySaving]);
 
     const currentValue = (p: Product, field: QuickField): number | null =>
-        field === "stock" ? (p.stock?.counted_at ? Number(p.stock.quantity) : null) : Number(p[field] ?? 0);
+        field === "stock" ? (showsStock(p.stock?.quantity, p.stock?.counted_at) ? Number(p.stock!.quantity) : null) : Number(p[field] ?? 0);
 
     const target = (id: number, field: QuickField, move: Move) => {
         const row = products.findIndex((p) => p.id === id);
@@ -362,8 +363,13 @@ const Index = ({ pagination, flash, brands }: Props) => {
                                     </Table.Cell>
                                     <Table.Cell justify="end" className={`font-semibold tabular-nums ${can("stock.manage") ? "clickable" : ""}`}>
                                         {(() => {
-                                            const display = product.stock?.counted_at ? (
-                                                Number(product.stock.quantity)
+                                            const display = showsStock(product.stock?.quantity, product.stock?.counted_at) ? (
+                                                <span
+                                                    className={Number(product.stock!.quantity) < 0 ? "text-red-700" : undefined}
+                                                    title={!product.stock?.counted_at ? "Se ha vendido sin existencias cargadas: se descuenta desde 0" : undefined}
+                                                >
+                                                    {Number(product.stock!.quantity)}
+                                                </span>
                                             ) : (
                                                 <span className="text-xs font-normal text-fog" title="Aún no se han cargado existencias en esta sucursal">
                                                     sin inventario

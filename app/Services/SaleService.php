@@ -8,6 +8,7 @@ use App\Models\NoteProduct;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -23,6 +24,9 @@ class SaleService
 {
     public const DELIVERED = 'entregado_a_cliente';
 
+    /** Cuántos precios del catálogo actualizó la última venta (para avisarle al cajero). */
+    public int $lastCatalogUpdates = 0;
+
     public function __construct(private StockService $stock = new StockService) {}
 
     /**
@@ -33,7 +37,8 @@ class SaleService
         $sale = $this->calculate($user, $branch, $data);
 
         return DB::transaction(function () use ($user, $branch, $data, $sale) {
-            $folio = trim((string) ($data['folio'] ?? ''));
+            // El cajero no elige el folio (salvo con sales.edit_folio): siempre el siguiente.
+            $folio = $user->can('sales.edit_folio') ? trim((string) ($data['folio'] ?? '')) : '';
             if ($folio === '') {
                 // Bloquea la sucursal: dos ventas simultáneas no toman el mismo folio.
                 Branch::whereKey($branch->id)->lockForUpdate()->first();
@@ -64,6 +69,14 @@ class SaleService
             foreach ($sale['lines'] as $line) {
                 NoteProduct::create($line + ['note_id' => $note->id]);
                 $this->stock->adjustStock($branch->id, $line['product_id'], $line['quantity'], 'OUT', $note->id, 'Salida por venta en caja #'.$note->folio);
+            }
+
+            // Precio desactualizado o vacío: el cajero pidió guardar el nuevo en el catálogo.
+            $this->lastCatalogUpdates = count($sale['catalog_updates']);
+            foreach ($sale['catalog_updates'] as $productId => $price) {
+                $before = Product::whereKey($productId)->value('price');
+                Product::whereKey($productId)->update(['price' => $price]);
+                Log::info('Precio actualizado desde la caja', ['product_id' => $productId, 'antes' => $before, 'ahora' => $price, 'user_id' => $user->id, 'nota' => $note->folio]);
             }
 
             // Sin pago (crédito sin abono) no hay fila: los pagos en cero no se guardan.
@@ -103,6 +116,7 @@ class SaleService
     {
         $errors = [];
         $canChangePrice = $user->can('sales.change_price');
+        $catalogUpdates = [];
         // Descuentos: además del permiso, la función debe estar encendida (config/features.php).
         $canDiscount = config('features.discounts') && $user->can('sales.discount');
 
@@ -123,6 +137,18 @@ class SaleService
 
             if (abs($price - $listPrice) >= 0.005 && ! $canChangePrice) {
                 $errors["items.{$i}.price"] = 'No tienes permiso para cambiar precios.';
+            }
+            if ($price <= 0) {
+                $errors["items.{$i}.price"] = $canChangePrice
+                    ? "{$product->brand} {$product->model} no tiene precio: escribe el precio."
+                    : "{$product->brand} {$product->model} no tiene precio: pide al encargado que se lo ponga.";
+            }
+            if (! empty($item['update_catalog']) && abs($price - $listPrice) >= 0.005) {
+                if ($canChangePrice && $user->can('products.update_price')) {
+                    $catalogUpdates[$product->id] = $price;
+                } else {
+                    $errors["items.{$i}.price"] = 'No tienes permiso para cambiar el precio del catálogo.';
+                }
             }
             if ($discount > 0 && ! $canDiscount) {
                 $errors["items.{$i}.discount"] = 'No tienes permiso para aplicar descuentos.';
@@ -211,6 +237,7 @@ class SaleService
 
         return [
             'lines' => $lines,
+            'catalog_updates' => $catalogUpdates,
             'discount' => $noteDiscount,
             'sale_total' => $saleTotal,
             'purchase_total' => round($purchaseTotal, 2),

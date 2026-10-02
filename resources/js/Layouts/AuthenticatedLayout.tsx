@@ -12,6 +12,7 @@ import { DropdownMenu } from "@radix-ui/themes";
 import { PropsWithChildren, ReactNode, useState } from "react";
 import { IconType } from "react-icons";
 import {
+    LuCalculator,
     LuChevronDown,
     LuCreditCard,
     LuFileText,
@@ -42,6 +43,10 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
         can("sales.create") && { label: "Caja", href: route("caja"), active: route().current("caja*"), icon: LuShoppingCart },
         can("notes.view") && { label: "Notas", href: route("notas", { date: filterDate }), active: route().current("notas"), icon: LuFileText },
         can("products.manage") && { label: "Productos", href: route("products"), active: route().current("products"), icon: LuPackage },
+        // Cajero: el corte del día (el dueño llega a cortes desde Notas).
+        !can("notes.view") && can("cortes.create") && { label: "Corte", href: route("cortes"), active: route().current("cortes*"), icon: LuCalculator },
+        // Cajero: catálogo de consulta (sin costos). El dueño usa la administración de productos.
+        !can("products.manage") && can("products.view") && { label: "Productos", href: route("catalog"), active: route().current("catalog"), icon: LuPackage },
     ].filter(Boolean) as { label: string; href: string; active: boolean; icon: IconType }[];
 
     const initials = user.name

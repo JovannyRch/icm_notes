@@ -8,7 +8,7 @@ import { addProduct, login } from "./helpers";
 test("producto sin inventario cargado: no hay aviso aunque se pidan muchas piezas", async ({ page }) => {
     await login(page);
     await page.goto("/nota/crear");
-    await addProduct(page, "MICHELIN"); // en la base e2e nunca se ha contado
+    await addProduct(page, "CASTEL"); // piso del seeder: en la base e2e nunca se cuenta ni se vende
     await page.locator('input[name="quantity"]').first().fill("50");
     await expect(page.getByText("Sin inventario cargado")).toBeVisible();
     await expect(page.getByText(/Disponibles:/)).toHaveCount(0);
@@ -16,8 +16,27 @@ test("producto sin inventario cargado: no hay aviso aunque se pidan muchas pieza
 
     // En el buscador también se distingue de "0".
     await page.getByRole("button", { name: "Agregar producto" }).click();
-    await page.getByPlaceholder("Buscar producto...").fill("MICHELIN");
-    await expect(page.getByRole("row", { name: /MICHELIN/ })).toContainText("sin inventario");
+    await page.getByPlaceholder("Buscar producto...").fill("CASTEL");
+    await expect(page.getByRole("row", { name: /CASTEL/ })).toContainText("sin inventario");
+});
+
+test("vendido sin inventario cargado: se descuenta desde 0 y se ve el número, sin aviso", async ({ page }) => {
+    await login(page);
+    // Vende 2 MICHELIN (en la base e2e nunca se cuenta): queda en negativo.
+    await page.goto("/nota/crear");
+    await page.fill('input[name="note_number"]', "E2E-SIN-INV");
+    await addProduct(page, "MICHELIN");
+    await page.locator('input[name="quantity"]').first().fill("2");
+    await page.getByRole("button", { name: "Crear nota" }).first().click();
+    await page.waitForURL(/\/nota\/\d+$/);
+
+    await page.goto("/productos?query=MICHELIN");
+    await expect(page.getByRole("row", { name: /MICHELIN/ })).toContainText(/-\d+/);
+
+    await page.goto("/nota/crear");
+    await addProduct(page, "MICHELIN");
+    await expect(page.getByText(/Disponibles: -\d+/)).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "disponibles" })).toHaveCount(0);
 });
 
 test("la nota avisa cuando se piden más piezas de las disponibles", async ({ page }) => {

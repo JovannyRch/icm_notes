@@ -27,7 +27,7 @@ interface NoteItemProps {
      * available = piezas que se pueden vender en la sucursal de la nota,
      * requested = piezas de este producto en toda la nota.
      */
-    stock?: { available: number; requested: number; branchName: string; counted: boolean };
+    stock?: { available: number; requested: number; branchName: string; counted: boolean; moved?: boolean };
 }
 
 const CenteredCell = ({ children }: { children: React.ReactNode }) => (
@@ -122,12 +122,12 @@ const NoteItem = ({
                                         });
                                     }}
                                 />
-                                {stock && !stock.counted && (
+                                {stock && !stock.counted && !stock.moved && (
                                     <p className="mt-1 text-xs text-fog" title="Aún no se han cargado existencias de este producto en esta sucursal">
                                         Sin inventario cargado
                                     </p>
                                 )}
-                                {stock?.counted && (
+                                {(stock?.counted || stock?.moved) && (
                                     <p className={`mt-1 text-xs tabular-nums ${exceeds ? "font-medium text-amber-700" : "text-fog"}`}>
                                         Disponibles: {Number.isInteger(stock.available) ? stock.available : stock.available.toFixed(2)}
                                     </p>

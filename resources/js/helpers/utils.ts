@@ -41,6 +41,14 @@ export const getPaymentMethods = (note: Note): string[] => {
     return result;
 };
 
+/**
+ * ¿Se muestran las existencias como número? Sí si ya se contaron, o si se movieron aunque
+ * nunca se hayan contado: vender sin inventario cargado descuenta desde 0 (queda en negativo)
+ * y ese número debe verse. "Sin inventario" sólo para lo que nunca se contó ni se movió.
+ */
+export const showsStock = (quantity: number | string | null | undefined, countedAt: string | null | undefined): boolean =>
+    !!countedAt || (quantity !== null && quantity !== undefined && quantity !== "" && Number(quantity) !== 0);
+
 export const isNumber = (value: any): boolean => {
     return !isNaN(Number(value));
 };

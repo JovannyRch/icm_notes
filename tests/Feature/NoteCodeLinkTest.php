@@ -59,7 +59,7 @@ class NoteCodeLinkTest extends TestCase
     public function test_qr_link_never_shows_what_the_user_cannot_see(): void
     {
         // Otro cajero de la misma sucursal, sin permiso de ver ventas ajenas.
-        $this->actingAs($this->cashier())->get($this->link())->assertRedirect(route('caja'))->assertSessionHas('error');
+        $this->actingAs($this->cashier(['sales.view_branch' => false]))->get($this->link())->assertRedirect(route('caja'))->assertSessionHas('error');
         // Cajero de otra sucursal.
         $this->actingAs($this->cashier(['sales.view_branch' => true], $this->b))->get($this->link())
             ->assertRedirect(route('caja'))->assertSessionHas('error', 'La venta 77 es de otra sucursal.');

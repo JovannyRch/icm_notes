@@ -190,7 +190,7 @@ function getPurchaseTotal($corte)
         <p>Restan notas: {{ getBalance($corte) }}</p>
         <p>Gastos: {{ getExpenses($corte) }}</p>
         <p>Devoluciones: {{ getReturns($corte) }}</p>
-        <p>Total de compra a pisos Leo: {{ getPurchaseTotal($corte) }}</p>
+        @unless ($hideCosts ?? false)<p>Total de compra a pisos Leo: {{ getPurchaseTotal($corte) }}</p>@endunless
     </div>
     <br>
 
@@ -208,7 +208,7 @@ function getPurchaseTotal($corte)
                 <th>RESTA</th>
                 <th>TOTAL VENTA</th>
                 <th>MÉTODO DE PAGO</th>
-                <th>TOTAL COMPRA</th>
+                @unless ($hideCosts ?? false)<th>TOTAL COMPRA</th>@endunless
             </tr>
         </thead>
         <tbody>
@@ -222,7 +222,7 @@ function getPurchaseTotal($corte)
                     <td>
                         {{ getPaymentMethods($note) }}
                     </td>
-                    <td>{{ isset($note['purchase_total']) ? format_currency($note['purchase_total'], 2) : '-' }}</td>
+                    @unless ($hideCosts ?? false)<td>{{ isset($note['purchase_total']) ? format_currency($note['purchase_total'], 2) : '-' }}</td>@endunless
 
                 </tr>
             @endforeach

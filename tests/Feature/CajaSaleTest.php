@@ -98,7 +98,7 @@ class CajaSaleTest extends TestCase
 
     public function test_price_change_and_discounts_need_permission(): void
     {
-        $cashier = $this->cashier();
+        $cashier = $this->cashier(['sales.change_price' => false]);
         $item = ['product_id' => $this->cement->id, 'quantity' => 1];
 
         $this->sell($cashier, ['items' => [$item + ['price' => 200]], 'cash_received' => 300])->assertSessionHasErrors('items.0.price');
@@ -132,6 +132,47 @@ class CajaSaleTest extends TestCase
         $this->assertEquals(2500, $item->list_price);
         $this->assertEquals(200, $item->discount);
         $this->assertEquals(4600, $item->sale_subtotal);
+    }
+
+    public function test_cashier_changes_price_by_default_and_can_save_it_to_the_catalog(): void
+    {
+        $cashier = $this->cashier();
+        $item = ['product_id' => $this->cement->id, 'quantity' => 2];
+
+        // Sólo en la venta: el catálogo no cambia.
+        $this->sell($cashier, ['items' => [$item + ['price' => 260]], 'cash_received' => 520])->assertSessionHasNoErrors();
+        $this->assertEquals(245, $this->cement->fresh()->price);
+        $this->assertEquals(260, NoteProduct::latest('id')->first()->price);
+
+        // Guardándolo como precio nuevo.
+        $this->sell($cashier, ['items' => [$item + ['price' => 270, 'update_catalog' => true]], 'cash_received' => 540])
+            ->assertSessionHasNoErrors()->assertSessionHas('lastSale.catalog_updated', 1);
+        $this->assertEquals(270, $this->cement->fresh()->price);
+        $this->assertEquals(245, NoteProduct::latest('id')->first()->list_price, 'la partida guarda el precio que tenía');
+
+        // Sin el permiso de catálogo, no.
+        $noCatalog = $this->cashier(['products.update_price' => false]);
+        $this->sell($noCatalog, ['items' => [$item + ['price' => 300, 'update_catalog' => true]], 'cash_received' => 600])
+            ->assertSessionHasErrors('items.0.price');
+        $this->assertEquals(270, $this->cement->fresh()->price);
+    }
+
+    public function test_product_without_price_cannot_be_sold_at_zero(): void
+    {
+        $free = Product::create(['brand' => 'CASTEL', 'model' => 'NUEVO', 'measure' => '30x30', 'mc' => '1.5', 'unit' => 'CAJA', 'iva' => 0, 'extra' => 0, 'price' => 0, 'cost' => 100]);
+        $cashier = $this->cashier();
+
+        $this->sell($cashier, ['items' => [['product_id' => $free->id, 'quantity' => 1]], 'cash_received' => 100])
+            ->assertSessionHasErrors(['items.0.price' => 'CASTEL NUEVO no tiene precio: escribe el precio.']);
+
+        $this->sell($cashier, ['items' => [['product_id' => $free->id, 'quantity' => 1, 'price' => 180, 'update_catalog' => true]], 'cash_received' => 200])
+            ->assertSessionHasNoErrors();
+        $this->assertEquals(180, $free->fresh()->price);
+
+        $locked = $this->cashier(['sales.change_price' => false]);
+        Product::whereKey($free->id)->update(['price' => 0]);
+        $this->sell($locked, ['items' => [['product_id' => $free->id, 'quantity' => 1]], 'cash_received' => 100])
+            ->assertSessionHasErrors(['items.0.price' => 'CASTEL NUEVO no tiene precio: pide al encargado que se lo ponga.']);
     }
 
     public function test_discount_cap_counts_item_and_total_discounts_together(): void
@@ -256,18 +297,30 @@ class CajaSaleTest extends TestCase
         $this->assertSame($this->a->id, Note::sole()->branch_id);
     }
 
-    public function test_folio_is_automatic_or_the_typed_one(): void
+    public function test_cashier_folio_is_always_automatic(): void
     {
         $cashier = $this->cashier();
         $item = [['product_id' => $this->cement->id, 'quantity' => 1]];
         $this->sell($cashier, ['items' => $item, 'cash_received' => 245]);
-        $this->sell($cashier, ['items' => $item, 'cash_received' => 245, 'folio' => '500']);
-        $this->sell($cashier, ['items' => $item, 'cash_received' => 245]);
+        $this->sell($cashier, ['items' => $item, 'cash_received' => 245, 'folio' => '500']); // se ignora
+        $this->actingAs($cashier)->get('/caja')->assertInertia(fn ($page) => $page->where('rules.editFolio', false)->where('nextFolio', '3'));
 
-        $this->assertSame(['1', '500', '501'], Note::orderBy('id')->pluck('folio')->all());
+        $this->assertSame(['1', '2'], Note::orderBy('id')->pluck('folio')->all());
     }
 
-    public function test_sales_history_shows_own_sales_without_costs(): void
+    public function test_folio_can_be_typed_with_permission(): void
+    {
+        $item = [['product_id' => $this->cement->id, 'quantity' => 1]];
+        $this->sell($this->cashier(['sales.edit_folio' => true]), ['items' => $item, 'cash_received' => 245, 'folio' => '500']);
+        $this->sell($this->cashier(), ['items' => $item, 'cash_received' => 245]);
+
+        $owner = User::factory()->create();
+        $this->actingAs($owner)->withSession(['branch_id' => $this->a->id])->post('/caja/ventas', ['items' => $item, 'cash_received' => 245, 'folio' => 'A-7']);
+
+        $this->assertSame(['500', '501', 'A-7'], Note::orderBy('id')->pluck('folio')->all());
+    }
+
+    public function test_sales_history_shows_the_branch_without_costs_and_can_filter_mine(): void
     {
         $me = $this->cashier();
         $other = $this->cashier();
@@ -275,15 +328,21 @@ class CajaSaleTest extends TestCase
         $this->sell($me, ['items' => $item, 'cash_received' => 245]);
         $this->sell($other, ['items' => $item, 'cash_received' => 245]);
 
+        // Por omisión el cajero ve toda su sucursal.
         $this->actingAs($me)->get('/caja/ventas')->assertInertia(fn ($page) => $page
+            ->has('sales', 2)
+            ->where('onlyMine', false)
+            ->missing('sales.0.purchase_total'));
+        $this->actingAs($me)->get('/caja/ventas?mias=1')->assertInertia(fn ($page) => $page
             ->has('sales', 1)
             ->where('sales.0.seller', $me->name)
-            ->missing('sales.0.purchase_total'));
+            ->where('sales.0.is_mine', true));
 
-        $boss = $this->cashier(['sales.view_branch' => true]);
-        $this->actingAs($boss)->get('/caja/ventas')->assertInertia(fn ($page) => $page->has('sales', 2));
+        // Si se le quita el permiso, sólo las suyas.
+        $this->actingAs($this->cashier(['sales.view_branch' => false]))->get('/caja/ventas')
+            ->assertInertia(fn ($page) => $page->has('sales', 0)->where('onlyMine', true));
 
-        $blind = $this->cashier(['sales.view_own' => false]);
+        $blind = $this->cashier(['sales.view_own' => false, 'sales.view_branch' => false]);
         $this->actingAs($blind)->get('/caja/ventas')->assertForbidden();
     }
 

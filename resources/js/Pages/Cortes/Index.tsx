@@ -1,3 +1,4 @@
+import { useCan } from "@/hooks/useCan";
 import Container from "@/Components/Container";
 import Pagination from "@/Components/Pagination";
 import { DropdownFilter } from "@/Components/ProductsModal/DropdownFilter/DropdownFilter";
@@ -36,6 +37,7 @@ const longDate = (date: string) => {
 };
 
 const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
+    const can = useCan();
     const cortes: Corte[] = pagination.data;
 
     useAlerts(flash);
@@ -61,10 +63,12 @@ const CortesIndex = ({ branch, pagination, flash }: CortesProps) => {
                     description={`${pagination.total} ${pagination.total === 1 ? "corte guardado" : "cortes guardados"}`}
                     actions={
                         <>
-                            <Button variant="outline" color="gray" onClick={() => router.visit(route("cortes_semanales.create"))}>
-                                <LuCalendarRange />
-                                Corte semanal
-                            </Button>
+                            {can("cortes.manage") && (
+                                <Button variant="outline" color="gray" onClick={() => router.visit(route("cortes_semanales.create"))}>
+                                    <LuCalendarRange />
+                                    Corte semanal
+                                </Button>
+                            )}
                             <Button onClick={() => router.visit(route("cortes.new"))}>
                                 <LuPlus />
                                 Crear un corte

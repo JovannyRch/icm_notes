@@ -5,7 +5,7 @@ import PageHeader from "@/Components/ui/PageHeader";
 import Modal from "@/Components/Modal";
 import Pagination from "@/Components/Pagination";
 import UnitInput from "@/Components/UnitInput";
-import { effectiveExtra, isNumber } from "@/helpers/utils";
+import { effectiveExtra, isNumber, showsStock } from "@/helpers/utils";
 import { formatCurrency } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
 import { useBranch } from "@/hooks/useBranch";
@@ -83,7 +83,8 @@ const Form = ({
 
     const originalStock = isNumber(product?.stock?.quantity) ? Number(product?.stock?.quantity) : null;
     // Nunca contado en la sucursal: las ventas pudieron moverlo, pero no hay inventario cargado.
-    const isCounted = !!product?.stock?.counted_at;
+    // Se muestra el número si ya se contó o si ya se movió (vender sin inventario descuenta desde 0).
+    const isCounted = showsStock(product?.stock?.quantity, product?.stock?.counted_at);
     // isNumber("") es true (Number("") === 0): un campo vacío no es un número capturado.
     const isFilledNumber = (value: string) => value.trim() !== "" && isNumber(value);
 

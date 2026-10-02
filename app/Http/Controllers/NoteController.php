@@ -8,6 +8,7 @@ use App\Models\NoteProduct;
 use App\Services\CortePaymentsService;
 use App\Services\NoteStockService;
 use App\Services\StockService;
+use App\Support\CorteCosts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -501,9 +502,14 @@ class NoteController extends Controller
 
     public function searchNoteByFolio($branchId, $folio)
     {
+        abort_unless(request()->user()->canAccessBranch((int) $branchId), 403, 'No tienes acceso a esa sucursal.');
         $note = Note::where('branch_id', $branchId)
             ->where('folio', $folio)
             ->first();
+
+        if ($note && ! request()->user()->can('costs.view')) {
+            return response()->json(CorteCosts::strip([$note])[0]);
+        }
 
         return response()->json($note);
     }
@@ -514,6 +520,12 @@ class NoteController extends Controller
      */
     public function getNotesByDate($branch, $date, CortePaymentsService $cortePayments)
     {
-        return response()->json($cortePayments->forBranchAndDate((int) $branch, $date));
+        abort_unless(request()->user()->canAccessBranch((int) $branch), 403, 'No tienes acceso a esa sucursal.');
+        $data = $cortePayments->forBranchAndDate((int) $branch, $date);
+        if (! request()->user()->can('costs.view')) {
+            $data['notes'] = CorteCosts::strip($data['notes']);
+        }
+
+        return response()->json($data);
     }
 }

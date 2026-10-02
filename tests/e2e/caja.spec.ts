@@ -30,8 +30,8 @@ test("el cajero cobra una venta de contado con cambio", async ({ page }) => {
     const total = page.getByTestId("caja-total");
     await expect(total).toHaveText("$6,100.00"); // 2500 + 2×1800
 
-    // Sin permiso de cambiar precio: el precio es texto, no campo.
-    await expect(page.getByLabel("Precio de PIRELLI P7")).toHaveCount(0);
+    // El cajero puede cambiar el precio (permiso encendido por omisión).
+    await expect(page.getByLabel("Precio de PIRELLI P7")).toBeVisible();
 
     // Descuentos apagados por ahora: no hay campos de descuento.
     await expect(page.locator("#caja-discount")).toHaveCount(0);
@@ -149,4 +149,72 @@ test("m² que pide el cliente se convierten en cajas, redondeando hacia arriba",
     await expect(quantity).toHaveValue("11");
     await expect(m2).toHaveValue("");
     await expect(summary).toHaveText("15.84 m² en total");
+});
+
+/** Catálogo del cajero: buscar sin ver costos y mandar un producto a la caja. */
+test("el cajero consulta el catálogo y manda un producto a la caja", async ({ page }) => {
+    await loginCashier(page);
+    await page.getByRole("link", { name: "Productos" }).first().click();
+    await page.waitForURL("**/catalogo");
+
+    // Sin datos sensibles.
+    await expect(page.getByText("Costo")).toHaveCount(0);
+    await expect(page.getByText("IVA")).toHaveCount(0);
+
+    await page.getByRole("searchbox", { name: "Buscar productos" }).fill("MARMOL E2E");
+    const row = page.getByRole("row", { name: /MARMOL E2E/ });
+    await expect(row).toContainText("1.44 m²/caja");
+    await expect(row).toContainText("$270.14 / m²"); // 389 ÷ 1.44
+    await row.getByRole("button", { name: /Vender/ }).click();
+
+    await page.waitForURL("**/caja");
+    await expect(page.getByLabel("Cantidad de CASTEL MARMOL E2E")).toHaveValue("1");
+    await expect(page.getByTestId("caja-total")).toHaveText("$389.00");
+    // El folio es automático: el cajero no lo puede cambiar.
+    await expect(page.getByTitle("Folio automático: lo asigna el sistema al cobrar")).toBeVisible();
+});
+
+/** Producto sin precio: no deja cobrar en $0; el cajero escribe el precio y lo guarda en el catálogo. */
+test("producto sin precio: el cajero lo escribe y lo guarda como precio nuevo", async ({ page }) => {
+    await loginCashier(page);
+    const search = page.getByRole("combobox", { name: "Buscar producto" });
+    await search.fill("SIN PRECIO E2E");
+    await expect(page.getByRole("option").first()).toContainText("SIN PRECIO E2E");
+    await search.press("Enter");
+
+    await expect(page.getByText("Sin precio", { exact: true })).toBeVisible();
+    await expect(page.getByText("Hay productos sin precio: escribe su precio.")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Cobrar/ })).toBeDisabled();
+
+    await page.getByLabel("Precio de NUEVO SIN PRECIO E2E").fill("450");
+    await page.getByLabel("Guardar como precio nuevo").check();
+    await page.fill("#caja-cash", "450");
+    await page.getByRole("button", { name: /^Cobrar/ }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Venta registrada" });
+    await expect(dialog).toContainText("Se guardó el precio nuevo de 1 producto en el catálogo.");
+    await dialog.getByRole("button", { name: "Nueva venta" }).click();
+
+    // La siguiente búsqueda ya trae el precio nuevo.
+    await search.fill("SIN PRECIO E2E");
+    await expect(page.getByRole("option").first()).toContainText("$450.00");
+});
+
+/** El cajero hace el corte del día de su sucursal sin ver las compras. */
+test("el cajero hace el corte del día sin ver compras", async ({ page }) => {
+    await loginCashier(page);
+    await page.getByRole("link", { name: "Corte" }).first().click();
+    await page.waitForURL("**/cortes");
+    await expect(page.getByRole("button", { name: /Corte semanal/ })).toHaveCount(0);
+
+    await page.getByRole("button", { name: /Crear un corte/ }).click();
+    await page.waitForURL(/\/cortes\/crear/);
+    await expect(page.getByText(/Total de compra/i)).toHaveCount(0);
+    await expect(page.getByRole("columnheader", { name: "Total compra" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: /Guardar corte/ }).click();
+    await page.waitForURL(/\/corte\/\d+$/);
+    await expect(page.getByText(/Total de compra/i)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Eliminar" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Descargar PDF/ })).toBeVisible();
 });

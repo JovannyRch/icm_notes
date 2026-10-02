@@ -24,15 +24,38 @@ class CajaController extends Controller
             'nextFolio' => $branch ? Note::nextFolio($branch->id) : '1',
             'rules' => [
                 'changePrice' => $user->can('sales.change_price'),
+                'updateCatalogPrice' => $user->can('sales.change_price') && $user->can('products.update_price'),
                 'discount' => config('features.discounts') && $user->can('sales.discount'),
                 'credit' => $user->can('sales.credit'),
+                'editFolio' => $user->can('sales.edit_folio'),
                 'maxDiscountPercent' => $user->isCashier() ? $user->max_discount_percent : null,
                 'viewStock' => $user->can('stock.view') || $user->can('costs.view'),
                 'history' => $user->can('sales.history'),
             ],
+            // Producto que mandaron desde el catálogo ("Vender"): se agrega solo a la venta.
+            'preload' => $this->preload($request, $branch),
             // Resumen de la venta recién cobrada (flash del store) para el diálogo de cambio.
             'lastSale' => fn () => $request->session()->get('lastSale'),
         ]);
+    }
+
+    /** Datos seguros del producto ?agregar=ID, con sus existencias en la sucursal si las puede ver. */
+    private function preload(Request $request, ?Branch $branch): ?array
+    {
+        $product = $request->integer('agregar') ? \App\Models\Product::find($request->integer('agregar')) : null;
+        if (! $product) {
+            return null;
+        }
+        $seeStock = $request->user()->can('stock.view') || $request->user()->can('costs.view');
+        $stock = $seeStock && $branch ? \App\Models\Stock::where(['branch_id' => $branch->id, 'product_id' => $product->id])->first() : null;
+
+        return [
+            ...$product->only('id', 'brand', 'model', 'measure', 'mc', 'unit'),
+            // Números siempre como número: Postgres regresa decimales como texto ("12.00").
+            'price' => (float) $product->price,
+            'branch_stock' => $stock ? (float) $stock->quantity : null,
+            'branch_counted_at' => $stock?->counted_at,
+        ];
     }
 
     public function store(Request $request, SaleService $sales)
@@ -52,6 +75,7 @@ class CajaController extends Controller
             'items.*.quantity' => 'required|integer|min:1|max:100000',
             'items.*.price' => 'nullable|numeric|min:0',
             'items.*.discount' => 'nullable|numeric|min:0',
+            'items.*.update_catalog' => 'boolean',
             'discount' => 'nullable|numeric|min:0',
             'cash_received' => 'nullable|numeric|min:0',
             'card' => 'nullable|numeric|min:0',
@@ -73,6 +97,7 @@ class CajaController extends Controller
             'cash_received' => $note->cash_received !== null ? (float) $note->cash_received : null,
             'change' => $change,
             'balance' => round((float) $note->balance, 2),
+            'catalog_updated' => $sales->lastCatalogUpdates,
         ]);
     }
 
@@ -83,12 +108,14 @@ class CajaController extends Controller
         $branch = Branch::find(currentBranchId());
         $date = businessToday();
         $allBranch = $user->can('sales.view_branch');
+        // Con permiso de sucursal se ven todas; ?mias=1 filtra las propias.
+        $onlyMine = ! $allBranch || $request->boolean('mias');
 
         $notes = Note::with(['seller:id,name'])
             ->withCount('items')
             ->where('branch_id', $branch?->id)
             ->where('date', $date)
-            ->when(! $allBranch, fn ($q) => $q->where('user_id', $user->id))
+            ->when($onlyMine, fn ($q) => $q->where('user_id', $user->id))
             ->orderByDesc('id')
             ->get();
 
@@ -96,6 +123,7 @@ class CajaController extends Controller
             'branch' => $branch?->only('id', 'name'),
             'date' => $date,
             'allBranch' => $allBranch,
+            'onlyMine' => $onlyMine,
             // Sin costos: sólo lo que el cajero cobró.
             'sales' => $notes->map(fn (Note $n) => [
                 'id' => $n->id,
@@ -112,6 +140,7 @@ class CajaController extends Controller
                 'card' => (float) $n->card,
                 'transfer' => (float) $n->transfer,
                 'seller' => $n->seller?->name,
+                'is_mine' => $n->user_id === $user->id,
                 'canceled' => $n->delivery_status === 'cancelado' || $n->status === 'canceled',
                 'can_cancel' => $this->canCancel($request, $n),
             ]),

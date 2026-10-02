@@ -6,7 +6,7 @@ import { downloadTicketPdf, printTicket } from "@/helpers/printTicket";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { router } from "@inertiajs/react";
-import { Button, Table } from "@radix-ui/themes";
+import { Button, SegmentedControl, Table } from "@radix-ui/themes";
 import { confirmAlert } from "react-confirm-alert";
 import { LuBan, LuFileDown, LuPrinter } from "react-icons/lu";
 
@@ -33,6 +33,7 @@ interface Props extends PageProps {
     branch: { id: number; name: string } | null;
     date: string;
     allBranch: boolean;
+    onlyMine: boolean;
     sales: Sale[];
 }
 
@@ -46,7 +47,7 @@ const methods = (s: Sale) =>
         .filter(Boolean)
         .join(" · ");
 
-const SalesIndex = ({ branch, date, allBranch, sales, flash }: Props) => {
+const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) => {
     useAlerts(flash);
 
     const active = sales.filter((s) => !s.canceled);
@@ -67,8 +68,19 @@ const SalesIndex = ({ branch, date, allBranch, sales, flash }: Props) => {
             <PageHeader
                 back={{ label: "Caja", href: route("caja") }}
                 eyebrow={branch?.name}
-                title={allBranch ? "Ventas del día" : "Mis ventas del día"}
-                description={formatDay(date)}
+                title={onlyMine ? "Mis ventas del día" : "Ventas del día"}
+                description={onlyMine ? formatDay(date) : `${formatDay(date)} · todos los cajeros de la sucursal`}
+                actions={
+                    allBranch && (
+                        <SegmentedControl.Root
+                            value={onlyMine ? "mine" : "all"}
+                            onValueChange={(v) => router.get(route("caja.sales"), v === "mine" ? { mias: 1 } : {}, { preserveScroll: true })}
+                        >
+                            <SegmentedControl.Item value="all">Toda la sucursal</SegmentedControl.Item>
+                            <SegmentedControl.Item value="mine">Solo mías</SegmentedControl.Item>
+                        </SegmentedControl.Root>
+                    )
+                }
             />
 
             <div className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-4">
@@ -93,7 +105,7 @@ const SalesIndex = ({ branch, date, allBranch, sales, flash }: Props) => {
                             <Table.ColumnHeaderCell>Hora</Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>Folio</Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>Cliente</Table.ColumnHeaderCell>
-                            {allBranch && <Table.ColumnHeaderCell>Vendió</Table.ColumnHeaderCell>}
+                            {!onlyMine && <Table.ColumnHeaderCell>Vendió</Table.ColumnHeaderCell>}
                             <Table.ColumnHeaderCell>Pago</Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell justify="end">Total</Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell />
@@ -112,7 +124,7 @@ const SalesIndex = ({ branch, date, allBranch, sales, flash }: Props) => {
                                         {s.discount > 0 && ` · desc. ${formatCurrency(s.discount)}`}
                                     </div>
                                 </Table.Cell>
-                                {allBranch && <Table.Cell className="text-steel">{s.seller ?? "—"}</Table.Cell>}
+                                {!onlyMine && <Table.Cell className="text-steel">{s.seller ?? "—"}</Table.Cell>}
                                 <Table.Cell className="text-xs text-steel">{s.canceled ? (
                                         <StatusPill tone="gray">Cancelada</StatusPill>
                                     ) : (

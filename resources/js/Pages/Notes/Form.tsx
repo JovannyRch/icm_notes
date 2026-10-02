@@ -420,6 +420,8 @@ const NoteForm = ({
             requested: requestedByProduct[item.product_id] ?? 0,
             branchName: branch.name,
             counted: stock.counted,
+            // Sin contar pero ya vendido: se muestra el número (desde 0), sin aviso de "excede".
+            moved: !stock.counted && stock.quantity !== null && Number(stock.quantity) !== 0,
         };
     };
 

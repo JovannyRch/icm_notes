@@ -1,3 +1,4 @@
+import { useCan } from "@/hooks/useCan";
 import Container from "@/Components/Container";
 import { useUpdateEffect } from "@/hooks/useUpdateEffect";
 import { PageProps } from "@/types";
@@ -224,6 +225,7 @@ const CorteForm = ({
               ]
     );
 
+    const can = useCan();
     const [saving, setSaving] = useState(false);
     // ref además del estado: dos clics en el mismo tick no alcanzan a ver el re-render.
     const savingRef = useRef(false);
@@ -342,10 +344,12 @@ const CorteForm = ({
                                 <FaDownload />
                                 Descargar PDF
                             </Button>
-                            <Button color="red" variant="soft" onClick={confirmDelete}>
-                                <BiTrash />
-                                Eliminar
-                            </Button>
+                            {can("cortes.manage") && (
+                                <Button color="red" variant="soft" onClick={confirmDelete}>
+                                    <BiTrash />
+                                    Eliminar
+                                </Button>
+                            )}
                             <Button onClick={() => router.visit(route("cortes.new"))}>
                                 Nuevo corte
                                 <CgAdd className="w-5 h-5" />

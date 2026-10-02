@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CorteController;
 use App\Http\Controllers\CorteSemanalController;
@@ -62,6 +63,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/caja/ventas', [CajaController::class, 'store'])->name('caja.store');
         // Cancelar: el controlador exige sales.cancel_own, que sea suya y del día.
         Route::post('/caja/ventas/{note}/cancelar', [CajaController::class, 'cancel'])->name('caja.cancel');
+    });
+
+    // --- Catálogo de consulta (mostrador): sin costos ----------------------------
+    Route::middleware('can:products.view')->group(function () {
+        Route::get('/catalogo', [CatalogController::class, 'index'])->name('catalog');
     });
 
     // --- Ticket (80 mm) ----------------------------------------------------------
@@ -140,16 +146,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/sucursales/{branch}/extra', [BranchController::class, 'updateExtra'])->name('branches.extra.update');
     });
 
-    // --- Cortes ---------------------------------------------------------------
-    Route::middleware('can:cortes.manage')->group(function () {
+    // --- Cortes del día (también el cajero, en su sucursal y sin ver compras) ----
+    Route::middleware('can:cortes.create')->group(function () {
         Route::get('/cortes', [CorteController::class, 'index'])->name('cortes');
         Route::get('/cortes/crear', [CorteController::class, 'create'])->name('cortes.new');
         Route::post('/cortes', [CorteController::class, 'store'])->name('cortes.store');
         Route::get('/corte/{corte}', [CorteController::class, 'show'])->name('cortes.show');
-        Route::delete('/corte/{corte}', [CorteController::class, 'destroy'])->name('cortes.destroy');
         Route::get('/corte/download/{corte}', [PdfController::class, 'exportCorte'])->name('cortes.export');
         Route::get('/api/notes/{branchId}/searchByFolio/{folio}', [NoteController::class, 'searchNoteByFolio']);
         Route::get('/api/notes/{branch}/{date}', [NoteController::class, 'getNotesByDate'])->name('api.notas.corte');
+    });
+
+    // --- Cortes: eliminar y semanales (dueño) ------------------------------------
+    Route::middleware('can:cortes.manage')->group(function () {
+        Route::delete('/corte/{corte}', [CorteController::class, 'destroy'])->name('cortes.destroy');
 
         Route::get('/corte_semanales', [CorteSemanalController::class, 'index'])->name('cortes_semanales.index');
         Route::get('/corte_semanales/crear', [CorteSemanalController::class, 'create'])->name('cortes_semanales.create');

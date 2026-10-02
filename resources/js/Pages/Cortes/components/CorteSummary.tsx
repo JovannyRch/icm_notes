@@ -1,3 +1,4 @@
+import { useCan } from "@/hooks/useCan";
 import { formatCurrency } from "@/helpers/formatters";
 import { ReactNode } from "react";
 
@@ -28,7 +29,9 @@ const Tile = ({ label, value, hint, emphasis = false }: { label: string; value: 
 );
 
 /** Totales del corte: sólo presentación, los importes vienen de calculateSums(). */
-const CorteSummary = ({ total, cashSum, transferSum, cardSum, balanceSum, expensesSum, previousNotesTotal, returnsSum, purchasesSum }: Props) => (
+const CorteSummary = ({ total, cashSum, transferSum, cardSum, balanceSum, expensesSum, previousNotesTotal, returnsSum, purchasesSum }: Props) => {
+    const seeCosts = useCan()("costs.view");
+    return (
     <div className="space-y-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Tile label="Venta total" value={total} emphasis hint="Notas del día, sin canceladas" />
@@ -41,9 +44,10 @@ const CorteSummary = ({ total, cashSum, transferSum, cardSum, balanceSum, expens
             <Tile label="Restan notas" value={balanceSum} hint="Saldo pendiente de las notas" />
             <Tile label="Gastos" value={expensesSum} />
             <Tile label="Devoluciones" value={returnsSum} />
-            <Tile label="Total de compra a pisos Leo" value={purchasesSum} />
+            {seeCosts && <Tile label="Total de compra a pisos Leo" value={purchasesSum} />}
         </div>
     </div>
-);
+    );
+};
 
 export default CorteSummary;

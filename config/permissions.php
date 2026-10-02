@@ -28,12 +28,16 @@ return [
         // Caja (configurables por cajero)
         'sales.create' => ['label' => 'Vender en caja', 'group' => 'Caja', 'cashier' => true, 'default' => true],
         'sales.view_own' => ['label' => 'Ver sus ventas del día y reimprimir tickets', 'group' => 'Caja', 'cashier' => true, 'default' => true],
-        'sales.view_branch' => ['label' => 'Ver las ventas de toda la sucursal', 'group' => 'Caja', 'cashier' => true, 'default' => false],
-        'sales.change_price' => ['label' => 'Cambiar el precio de un producto', 'group' => 'Caja', 'cashier' => true, 'default' => false],
+        'sales.view_branch' => ['label' => 'Ver las ventas de toda la sucursal', 'group' => 'Caja', 'cashier' => true, 'default' => true],
+        'sales.edit_folio' => ['label' => 'Cambiar el folio de la venta', 'group' => 'Caja', 'cashier' => true, 'default' => false],
+        'sales.change_price' => ['label' => 'Cambiar el precio de un producto en la venta', 'group' => 'Caja', 'cashier' => true, 'default' => true],
+        'products.update_price' => ['label' => 'Guardar el precio nuevo en el catálogo desde la caja', 'group' => 'Caja', 'cashier' => true, 'default' => true],
         'sales.discount' => ['label' => 'Aplicar descuentos (hasta su tope)', 'group' => 'Caja', 'cashier' => true, 'default' => false],
         'sales.credit' => ['label' => 'Vender a crédito (el cliente paga después)', 'group' => 'Caja', 'cashier' => true, 'default' => true],
         'sales.cancel_own' => ['label' => 'Cancelar sus ventas del día', 'group' => 'Caja', 'cashier' => true, 'default' => false],
         'stock.view' => ['label' => 'Ver existencias', 'group' => 'Caja', 'cashier' => true, 'default' => true],
+        'products.view' => ['label' => 'Ver el catálogo de productos (sin costos)', 'group' => 'Caja', 'cashier' => true, 'default' => true],
+        'cortes.create' => ['label' => 'Hacer el corte del día de su sucursal (sin ver compras)', 'group' => 'Caja', 'cashier' => true, 'default' => true],
 
         // Operación del negocio (owner)
         'dashboard.view' => ['label' => 'Dashboard y reportes', 'group' => 'Negocio'],
@@ -43,7 +47,7 @@ return [
         'products.manage' => ['label' => 'Administrar productos e importar/exportar', 'group' => 'Negocio'],
         'stock.manage' => ['label' => 'Administrar inventario y notas de entrada', 'group' => 'Negocio'],
         'branches.manage' => ['label' => 'Datos de sucursales y del ticket', 'group' => 'Negocio'],
-        'cortes.manage' => ['label' => 'Cortes diarios y semanales', 'group' => 'Negocio'],
+        'cortes.manage' => ['label' => 'Cortes semanales y eliminar cortes', 'group' => 'Negocio'],
         'billing.notice' => ['label' => 'Ver el aviso de pago del sistema', 'group' => 'Negocio'],
 
         // Sistema (sólo super_admin)

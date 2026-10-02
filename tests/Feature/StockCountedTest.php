@@ -60,6 +60,29 @@ class StockCountedTest extends TestCase
         $this->assertFalse($this->counted()); // la devolución por eliminación no es un conteo
     }
 
+    public function test_selling_without_loaded_stock_discounts_from_zero_and_reports_it(): void
+    {
+        // Sin existencias cargadas cuenta como 0: vender 3 deja -3, y así se reporta.
+        $this->sell(3);
+
+        $this->assertEquals(-3, Stock::where(['branch_id' => $this->branch->id, 'product_id' => $this->product->id])->value('quantity'));
+        $this->assertFalse($this->counted(), 'sigue sin contarse: los avisos de "sólo hay N" no aplican');
+
+        $user = User::factory()->create();
+        $found = $this->actingAs($user)->getJson('/api/products/search?query=X&branch_id='.$this->branch->id)->json();
+        $this->assertEquals(-3, $found[0]['branch_stock']);
+        $this->assertNull($found[0]['branch_counted_at']);
+
+        $stock = $this->actingAs($user)->getJson("/api/products/stock?branch_id={$this->branch->id}&ids[]={$this->product->id}")->json();
+        $this->assertEquals(-3, $stock[$this->product->id]['quantity']);
+        $this->assertFalse($stock[$this->product->id]['counted']);
+
+        // Al cargar el conteo real, se toma ese número.
+        (new StockService)->adjustStock($this->branch->id, $this->product->id, 10, 'ADJUSTMENT');
+        $this->assertEquals(10, Stock::where(['branch_id' => $this->branch->id, 'product_id' => $this->product->id])->value('quantity'));
+        $this->assertTrue($this->counted());
+    }
+
     public function test_adjustment_counts(): void
     {
         (new StockService)->adjustStock($this->branch->id, $this->product->id, 7, 'ADJUSTMENT');

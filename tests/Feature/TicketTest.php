@@ -82,8 +82,9 @@ class TicketTest extends TestCase
 
     public function test_who_can_see_a_ticket(): void
     {
-        // Otro cajero de la misma sucursal: sólo con "ver ventas de la sucursal".
-        $this->actingAs($this->cashier())->get($this->ticketUrl())->assertForbidden();
+        // Otro cajero de la misma sucursal: sólo con "ver ventas de la sucursal" (encendido por omisión).
+        $this->actingAs($this->cashier(['sales.view_branch' => false]))->get($this->ticketUrl())->assertForbidden();
+        $this->actingAs($this->cashier())->get($this->ticketUrl())->assertOk();
         $this->actingAs($this->cashier(['sales.view_branch' => true]))->get($this->ticketUrl())->assertOk();
         // De otra sucursal: nunca, aunque vea las de la suya.
         $this->actingAs($this->cashier(['sales.view_branch' => true], $this->b))->get($this->ticketUrl())->assertForbidden();
@@ -128,7 +129,7 @@ class TicketTest extends TestCase
 
     public function test_ticket_pdf_follows_the_same_access_rules(): void
     {
-        $this->actingAs($this->cashier())->get("/nota/{$this->note->id}/ticket/pdf")->assertForbidden();
+        $this->actingAs($this->cashier(['sales.view_branch' => false]))->get("/nota/{$this->note->id}/ticket/pdf")->assertForbidden();
         $this->actingAs($this->cashier(['sales.view_branch' => true], $this->b))->get("/nota/{$this->note->id}/ticket/pdf")->assertForbidden();
         $this->actingAs(User::factory()->create())->get("/nota/{$this->note->id}/ticket/pdf")->assertOk();
         auth()->logout();

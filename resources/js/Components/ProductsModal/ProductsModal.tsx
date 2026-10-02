@@ -1,3 +1,4 @@
+import { showsStock } from "@/helpers/utils";
 import { formatCurrency } from "@/helpers/formatters";
 import { Product } from "@/types/Product";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -34,7 +35,7 @@ const fetchProducts = async (query: string, branchId?: number) => {
  * nunca se ha contado en la sucursal, "sin inventario" en gris (no es lo mismo que 0).
  */
 const StockCell = ({ value, countedAt }: { value: Product["branch_stock"]; countedAt: Product["branch_counted_at"] }) => {
-    if (!countedAt) {
+    if (!showsStock(value, countedAt)) {
         return (
             <span className="text-xs text-fog" title="Aún no se han cargado existencias de este producto en esta sucursal">
                 sin inventario

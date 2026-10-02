@@ -1,3 +1,4 @@
+import { useCan } from "@/hooks/useCan";
 import { formatCurrency, formatDate } from "@/helpers/formatters";
 import { getPaymentMethods } from "@/helpers/utils";
 import { Note } from "@/types/Note";
@@ -13,6 +14,8 @@ interface Props {
 const isCanceled = (note: Note) => note.status === "canceled" || note.delivery_status === "cancelado";
 
 const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
+    // El cajero no ve compras (el servidor ni siquiera se las manda).
+    const seeCosts = useCan()("costs.view");
     if (notes.length === 0) {
         return <p className="py-8 text-sm text-center text-fog">No hay notas en este día.</p>;
     }
@@ -28,7 +31,7 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                         <th className="py-2 pr-3 font-medium text-right">Resta</th>
                         <th className="py-2 pr-3 font-medium text-right">Total venta</th>
                         <th className="py-2 pr-3 font-medium">Método de pago</th>
-                        <th className="py-2 pr-3 font-medium text-right">Total compra</th>
+                        {seeCosts && <th className="py-2 pr-3 font-medium text-right">Total compra</th>}
                         {isEditable && <th className="w-10 py-2" aria-label="Acciones" />}
                     </tr>
                 </thead>
@@ -62,9 +65,11 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                                     {formatCurrency(note.sale_total)}
                                 </td>
                                 <td className="py-2 pr-3">{getPaymentMethods(note).join(", ") || "-"}</td>
-                                <td className="py-2 pr-3 text-right">
-                                    {note?.purchase_total ? formatCurrency(note.purchase_total) : "-"}
-                                </td>
+                                {seeCosts && (
+                                    <td className="py-2 pr-3 text-right">
+                                        {note?.purchase_total ? formatCurrency(note.purchase_total) : "-"}
+                                    </td>
+                                )}
                                 {isEditable && (
                                     <td className="py-2 text-center clickable">
                                         <IconButton

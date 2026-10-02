@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Corte;
 use App\Services\CortePaymentsService;
+use App\Support\CorteCosts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -77,7 +78,8 @@ class CorteController extends Controller
         $data = $cortePayments->forBranchAndDate((int) $branch->id, $date);
 
         return Inertia::render('Cortes/Form', [
-            'notes' => $data['notes'],
+            // El cajero no ve compras: se quitan aquí y el servidor las repone al guardar.
+            'notes' => $request->user()->can('costs.view') ? $data['notes'] : CorteCosts::strip($data['notes']),
             'previous_payments' => $data['previous_payments'],
             'branch' => $branch,
             'date' => $date,
@@ -106,14 +108,19 @@ class CorteController extends Controller
                 'branch_id' => 'required| integer',
             ]);
 
+            abort_unless($request->user()->canAccessBranch((int) $data['branch_id']), 403, 'No tienes acceso a esa sucursal.');
+
             $data['expenses'] = json_decode($data['expenses'], true);
-            $data['notes'] = json_decode($data['notes'], true);
+            // El total de compra de cada nota sale de la base, no del navegador (el cajero no lo tiene).
+            $data['notes'] = CorteCosts::fill(json_decode($data['notes'], true) ?? []);
             $data['previous_notes'] = json_decode($data['previous_notes'], true);
             $data['returns'] = json_decode($data['returns'], true);
 
             $corte = Corte::create($data);
 
             return redirect()->route('cortes.show', $corte);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException|\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Throwable $th) {
             Log::error('Error al guardar el corte: '.$th->getMessage());
 
@@ -125,14 +132,20 @@ class CorteController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Corte $corte)
+    public function show(Request $request, Corte $corte)
     {
+        abort_unless($request->user()->canAccessBranch((int) $corte->branch_id), 403, 'No tienes acceso a esa sucursal.');
 
         $date = $corte->date;
         $branch = Branch::find($corte->branch_id);
 
+        $payload = $corte->toArray();
+        if (! $request->user()->can('costs.view')) {
+            $payload['notes'] = CorteCosts::strip($corte->notes ?? []);
+        }
+
         return Inertia::render('Cortes/Form', [
-            'corte' => $corte,
+            'corte' => $payload,
             'date' => $date,
             'branch' => $branch,
         ]);

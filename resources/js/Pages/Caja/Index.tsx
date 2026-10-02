@@ -5,20 +5,23 @@ import { downloadTicketPdf, extractNoteCode, getAutoPrint, printTicket, setAutoP
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
+import { showsStock } from "@/helpers/utils";
 import { router } from "@inertiajs/react";
 import { Button, Dialog, IconButton, Switch, Text } from "@radix-ui/themes";
 import axios from "axios";
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { LuBanknote, LuCreditCard, LuFileDown, LuHistory, LuReceipt, LuMinus, LuPlus, LuPrinter, LuSearch, LuShoppingCart, LuTrash2, LuX } from "react-icons/lu";
+import { LuBanknote, LuCreditCard, LuFileDown, LuHistory, LuLock, LuReceipt, LuMinus, LuPlus, LuPrinter, LuSearch, LuShoppingCart, LuTrash2, LuX } from "react-icons/lu";
 
 interface Rules {
     changePrice: boolean;
+    updateCatalogPrice: boolean;
     discount: boolean;
     maxDiscountPercent: number | null;
     viewStock: boolean;
     history: boolean;
     credit: boolean;
+    editFolio: boolean;
 }
 
 interface LastSale {
@@ -29,6 +32,7 @@ interface LastSale {
     cash_received: number | null;
     change: number;
     balance: number;
+    catalog_updated: number;
 }
 
 interface Props extends PageProps {
@@ -36,19 +40,24 @@ interface Props extends PageProps {
     nextFolio: string;
     rules: Rules;
     lastSale: LastSale | null;
+    /** Producto mandado desde el catálogo (?agregar=ID). */
+    preload: Product | null;
 }
 
 type DiscountMode = "$" | "%";
 
 interface CartLine {
     product: Pick<Product, "id" | "brand" | "model" | "measure" | "mc" | "unit" | "price">;
-    stock: number | null; // null = sin inventario cargado o sin permiso para verlo
+    stock: number | null; // null = sin inventario (nunca contado ni vendido) o sin permiso para verlo
+    counted: boolean; // contado: sólo entonces se avisa "sólo hay N"
     quantity: string;
     price: string;
     discountMode: DiscountMode;
     discount: string;
     /** m² que pidió el cliente (pisos): de aquí se calculan las cajas. Vacío = se capturan cajas. */
     m2: string;
+    /** Guardar el precio cambiado como nuevo precio del producto (catálogo). */
+    updateCatalog: boolean;
 }
 
 /** Cajas para cubrir los m² pedidos: siempre hacia arriba, para que no falte material. */
@@ -94,7 +103,7 @@ const DiscountToggle = ({ mode, onChange, label }: { mode: DiscountMode; onChang
     </button>
 );
 
-const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
+const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props) => {
     useAlerts(flash);
 
     const [cart, setCart] = useState<CartLine[]>([]);
@@ -128,6 +137,15 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
     const [autoPrint, setAutoPrintState] = useState(getAutoPrint);
     const printedSale = useRef<number | null>(null);
     const printSale = (id: number) => printTicket(route("tickets.show", { note: id, print: 1 }));
+
+    // "Vender" desde el catálogo: agrega el producto una vez y limpia ?agregar de la URL
+    // (para que recargar la página no lo vuelva a agregar).
+    useEffect(() => {
+        if (preload) {
+            addProduct(preload);
+            window.history.replaceState(window.history.state, "", route("caja"));
+        }
+    }, [preload?.id]);
 
     // Ticket automático al cobrar (una sola vez por venta).
     useEffect(() => {
@@ -201,7 +219,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
     });
 
     const stockOf = (p: Product): number | null =>
-        rules.viewStock && p.branch_counted_at && p.branch_stock !== null && p.branch_stock !== undefined ? Number(p.branch_stock) : null;
+        rules.viewStock && showsStock(p.branch_stock, p.branch_counted_at) ? Number(p.branch_stock ?? 0) : null;
 
     const addProduct = (p: Product) => {
         setServerErrors({});
@@ -215,11 +233,13 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                 {
                     product: { id: p.id, brand: p.brand, model: p.model, measure: p.measure, mc: p.mc, unit: p.unit, price: p.price },
                     stock: stockOf(p),
+                    counted: !!p.branch_counted_at,
                     quantity: "1",
                     price: String(Number(p.price)),
                     discountMode: "$",
                     discount: "",
                     m2: "",
+                    updateCatalog: false,
                 },
             ];
         });
@@ -278,6 +298,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
 
     const overCap = rules.maxDiscountPercent !== null && totals.discountPercent > rules.maxDiscountPercent + 0.001;
     const lineProblem = totals.lines.some((l, i) => l.discount > l.gross || num(cart[i].quantity) < 1 || !Number.isInteger(num(cart[i].quantity)));
+    const missingPrice = cart.some((l) => num(l.price) <= 0);
     const creditProblem = credit && totals.paid > totals.total + 0.001 ? "El abono es mayor que el total." : null;
     const paymentProblem = credit
         ? creditProblem
@@ -289,7 +310,11 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
     const blocker =
         cart.length === 0
             ? "Agrega productos para cobrar."
-            : lineProblem
+            : missingPrice
+              ? rules.changePrice
+                  ? "Hay productos sin precio: escribe su precio."
+                  : "Hay productos sin precio: pide al encargado que se lo ponga."
+              : lineProblem
               ? "Revisa cantidades y descuentos."
               : totals.noteDisc > totals.linesNet
                 ? "El descuento es mayor que la venta."
@@ -325,7 +350,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
         router.post(
             route("caja.store"),
             {
-                folio: folio.trim() || null,
+                folio: rules.editFolio ? folio.trim() || null : null,
                 customer: customer.trim() || null,
                 customer_phone: customerPhone.trim() || null,
                 customer_address: customerAddress.trim() || null,
@@ -335,6 +360,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                     product_id: l.product.id,
                     quantity: num(l.quantity),
                     ...(rules.changePrice ? { price: num(l.price) } : {}),
+                    ...(l.updateCatalog && Math.abs(num(l.price) - Number(l.product.price)) >= 0.005 ? { update_catalog: true } : {}),
                     ...(rules.discount && totals.lines[i].discount > 0 ? { discount: totals.lines[i].discount } : {}),
                 })),
                 discount: totals.noteDisc > 0 ? totals.noteDisc : null,
@@ -479,7 +505,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                             {cart.map((line, i) => {
                                 const t = totals.lines[i];
                                 const priceChanged = Math.abs(num(line.price) - Number(line.product.price)) >= 0.005;
-                                const exceeds = line.stock !== null && num(line.quantity) > line.stock;
+                                const exceeds = line.counted && line.stock !== null && num(line.quantity) > line.stock;
                                 const error = lineError(i) ?? (t.discount > t.gross ? "El descuento es mayor que el importe." : null);
                                 return (
                                     <li key={line.product.id} className="relative px-4 py-3">
@@ -554,13 +580,25 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                                                         inputMode="decimal"
                                                         value={line.price}
                                                         onChange={(e) => updateLine(i, { price: e.target.value })}
-                                                        className={inputCls}
+                                                        className={`${inputCls} ${num(line.price) <= 0 ? "!border-amber-500 bg-amber-tint" : ""}`}
                                                     />
                                                 ) : (
                                                     <span className="text-sm tabular-nums text-charcoal">{formatCurrency(num(line.price))}</span>
                                                 )}
-                                                {priceChanged && (
+                                                {priceChanged && Number(line.product.price) > 0 && (
                                                     <div className="mt-0.5 text-[11px] text-fog line-through tabular-nums">{formatCurrency(Number(line.product.price))}</div>
+                                                )}
+                                                {num(line.price) <= 0 && <div className="mt-0.5 text-[11px] font-medium text-amber-700">Sin precio</div>}
+                                                {priceChanged && num(line.price) > 0 && rules.updateCatalogPrice && (
+                                                    <label className="mt-1 flex items-center gap-1.5 text-[11px] text-steel cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={line.updateCatalog}
+                                                            onChange={(e) => updateLine(i, { updateCatalog: e.target.checked })}
+                                                            className="w-3.5 h-3.5 rounded border-pebble text-electric"
+                                                        />
+                                                        Guardar como precio nuevo
+                                                    </label>
                                                 )}
                                             </div>
                                             <div className="flex gap-1">
@@ -606,7 +644,18 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                         <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-2">
                             <label className="text-xs font-medium text-steel">
                                 Folio
-                                <input value={folio} onChange={(e) => setFolio(e.target.value)} className={`${inputCls} mt-1`} />
+                                {rules.editFolio ? (
+                                    <input value={folio} onChange={(e) => setFolio(e.target.value)} className={`${inputCls} mt-1`} />
+                                ) : (
+                                    // Bloqueado: lo asigna el sistema al cobrar (el número puede avanzar si otra caja cobra antes).
+                                    <span
+                                        className={`${inputCls} mt-1 inline-flex items-center gap-1.5 bg-paper text-steel`}
+                                        title="Folio automático: lo asigna el sistema al cobrar"
+                                    >
+                                        <LuLock className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                                        {folio}
+                                    </span>
+                                )}
                             </label>
                             <label className="text-xs font-medium text-steel">
                                 Cliente
@@ -821,6 +870,11 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                     <Dialog.Description size="2" color="gray">
                         Folio {lastSale?.folio} · Total {formatCurrency(lastSale?.total ?? 0)}
                     </Dialog.Description>
+                    {lastSale && lastSale.catalog_updated > 0 && (
+                        <p className="mt-3 text-sm text-steel">
+                            Se guardó el precio nuevo de {lastSale.catalog_updated} {lastSale.catalog_updated === 1 ? "producto" : "productos"} en el catálogo.
+                        </p>
+                    )}
                     {lastSale && lastSale.balance > 0.009 && (
                         <div className="p-4 mt-4 text-center rounded-card bg-amber-tint">
                             <div className="text-sm font-medium text-amber-900">Venta a crédito · queda a deber</div>

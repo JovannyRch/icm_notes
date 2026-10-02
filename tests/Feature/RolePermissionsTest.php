@@ -61,14 +61,20 @@ class RolePermissionsTest extends TestCase
         }
     }
 
+    /** Lo del negocio que el cajero sí puede hacer: el corte del día de su sucursal. */
+    private const CASHIER_PAGES = ['/cortes', '/cortes/crear'];
+
     public function test_cashier_only_reaches_the_register(): void
     {
         $cashier = $this->cashier();
-        foreach (self::BUSINESS_PAGES as $uri) {
+        foreach (array_diff(self::BUSINESS_PAGES, self::CASHIER_PAGES) as $uri) {
             $this->actingAs($cashier)->get($uri)->assertForbidden();
         }
+        foreach (self::CASHIER_PAGES as $uri) {
+            $this->actingAs($cashier)->withSession(['branch_id' => $this->a->id])->get($uri)->assertOk();
+        }
         $this->actingAs($cashier)->post('/nota', [])->assertForbidden();
-        $this->actingAs($cashier)->post('/cortes', [])->assertForbidden();
+        $this->actingAs($this->cashier(['cortes.create' => false]))->get('/cortes/crear')->assertForbidden();
         $this->actingAs($cashier)->get('/admin/pagos-servicio')->assertNotFound();
 
         // Pantalla inicial: la caja.
@@ -128,7 +134,7 @@ class RolePermissionsTest extends TestCase
     public function test_permissions_are_shared_with_the_frontend(): void
     {
         $this->actingAs($this->cashier())->get('/caja')->assertInertia(fn ($page) => $page
-            ->where('permissions', ['sales.create', 'sales.view_own', 'sales.credit', 'stock.view']));
+            ->where('permissions', ['sales.create', 'sales.view_own', 'sales.view_branch', 'sales.change_price', 'products.update_price', 'sales.credit', 'stock.view', 'products.view', 'cortes.create']));
     }
 
     public function test_inactive_user_cannot_log_in_and_open_sessions_are_closed(): void
