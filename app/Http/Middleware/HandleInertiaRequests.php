@@ -57,6 +57,7 @@ class HandleInertiaRequests extends Middleware
             // Permisos del usuario: el frontend arma la navegación y los botones con ellos.
             // El servidor sigue validando cada ruta (can:); esto sólo es presentación.
             'permissions' => fn() => $request->user()?->grantedPermissions() ?? [],
+            'appVersion' => config('app.version'),
             // "Entrar como": quién es el super_admin que está viendo el sistema como este usuario.
             'impersonator' => fn() => $request->session()->has(ImpersonationController::SESSION_KEY)
                 ? User::find($request->session()->get(ImpersonationController::SESSION_KEY))?->only('id', 'name')

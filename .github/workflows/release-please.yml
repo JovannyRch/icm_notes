@@ -1,0 +1,23 @@
+# Versionado automático (ver CHANGELOG.md y "Versiones y commits" en CLAUDE.md).
+# En cada push a main, release-please lee los commits desde el último release:
+#   fix: → parche (2.0.1) · feat: → menor (2.1.0) · feat!: / BREAKING CHANGE: → mayor (3.0.0)
+# y abre o actualiza un PR "chore(main): release X.Y.Z" con la versión y el CHANGELOG.
+# Al fusionar ese PR se crean el tag vX.Y.Z y el release en GitHub.
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

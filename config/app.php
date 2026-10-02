@@ -65,6 +65,12 @@ return [
     |
     */
 
+    /*
+    | Versión de ICM Notes (semver). La fuente es "version" en package.json, que sube
+    | release-please según los commits (fix: parche, feat: menor); no se edita a mano.
+    */
+    'version' => json_decode((string) @file_get_contents(base_path('package.json')), true)['version'] ?? '0.0.0',
+
     'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     // Zona horaria del negocio: fija el "día" de las ventas de caja (la app corre en UTC

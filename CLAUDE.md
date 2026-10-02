@@ -12,6 +12,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Corte Semanal** (`cortes_semanales`) — weekly roll-up of daily cortes; same snapshot pattern, but **Spanish column names** (`fecha_inicio`, `venta_total`, `gastos_extra`, …), unlike every other table.
 - **Producto / Stock** — a shared product catalog (`products`) with **per-branch** quantities in `stocks` and an append-only `stock_movements` audit trail.
 
+## Versions and commits
+
+The app version is `"version"` in `package.json` (`config('app.version')` reads it; shown in the user menu, the login footer and `php artisan about`). **Don't bump it by hand:** `.github/workflows/release-please.yml` runs release-please on every push to `main`, computes the next version from the commit prefixes and opens a release PR that updates `package.json` and `CHANGELOG.md`; merging it creates the `vX.Y.Z` tag. So every commit message must use Conventional Commits:
+
+- `fix: …` → patch (2.0.1) · `feat: …` → minor (2.1.0) · `feat!: …` or a `BREAKING CHANGE:` footer → major.
+- `refactor:`, `test:`, `docs:`, `chore:` don't release. Write the description in Spanish (it becomes the changelog line), e.g. `fix: el corte toma la fecha de México`.
+
 ## Commands
 
 ```bash
@@ -93,6 +100,7 @@ The active branch lives in the **session** and is read through the global helper
 - Controllers return `Inertia::render(...)` for pages and `redirect()->...->with('success'|'error', ...)`; the frontend surfaces those through `useAlerts()` → react-toastify. Paginated lists are passed as a prop named `pagination`.
 - Mutating a note replaces all its items: `NoteController::update` deletes every `NoteProduct` for the note and recreates them from the request (`createItems`). Stock only moves by the **difference** (`NoteStockService::sync`); cancelling returns the pieces, reactivating discounts them again, deleting returns them. A product counts as "with inventory" in a branch only after it was counted there (`stocks.counted_at`, set by `StockService` on adjustments/entries).
 - The `/api/...` JSON endpoints (product search, stock by ids, pending notes, notes-by-date, weekly export) live in `routes/web.php` with session + permission and are consumed with plain `axios` + `@tanstack/react-query`. The weekly export uses `fetch` and must send the `X-XSRF-TOKEN` header.
+- The products list edits price, cost, IVA, extra and branch stock in place (`Products/components/QuickEditCell.tsx` → `PATCH /productos/{product}/rapido`, JSON, one field per request; stock is an `ADJUSTMENT` in the session branch and needs `stock.manage`). Product list queries must keep `orderBy('id')`: Postgres reorders rows after an UPDATE and edited rows would jump pages.
 - Money is formatted in two places that must stay consistent: `format_currency()` (PHP, for PDFs/Excel) and `formatCurrency()` (TS, `Intl` `es-MX`/`MXN`).
 
 ## Payments (N per note)

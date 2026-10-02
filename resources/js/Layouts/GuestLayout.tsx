@@ -1,5 +1,6 @@
 import ApplicationLogo from "@/Components/ApplicationLogo";
-import { Link } from "@inertiajs/react";
+import { PageProps } from "@/types";
+import { Link, usePage } from "@inertiajs/react";
 import { PropsWithChildren, ReactNode } from "react";
 
 /**
@@ -7,6 +8,8 @@ import { PropsWithChildren, ReactNode } from "react";
  * tarjeta elevada con anillo sutil (Elevated Feature Card).
  */
 export default function Guest({ children, title, description }: PropsWithChildren<{ title?: ReactNode; description?: ReactNode }>) {
+    const { appVersion } = usePage<PageProps>().props;
+
     return (
         <div
             className="flex flex-col items-center justify-center min-h-screen px-4 py-10 bg-canvas"
@@ -29,7 +32,7 @@ export default function Guest({ children, title, description }: PropsWithChildre
                 {children}
             </div>
 
-            <p className="mt-6 text-xs text-fog">ICM Notes · Ideas Modernas de Construcción</p>
+            <p className="mt-6 text-xs text-fog">ICM Notes v{appVersion} · Ideas Modernas de Construcción</p>
         </div>
     );
 }

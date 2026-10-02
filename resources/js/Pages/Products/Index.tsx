@@ -10,9 +10,13 @@ import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
 import { router } from "@inertiajs/react";
 import { Button, Checkbox, DropdownMenu, IconButton, Table } from "@radix-ui/themes";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
+import { useCan } from "@/hooks/useCan";
+import QuickEditCell, { Move } from "./components/QuickEditCell";
 import { confirmAlert } from "react-confirm-alert";
-import { LuDownload, LuEllipsis, LuPlus, LuTag, LuTrash2, LuX } from "react-icons/lu";
+import { LuDownload, LuEllipsis, LuPencil, LuPlus, LuTag, LuTrash2, LuX } from "react-icons/lu";
 import ImportProducts from "./ImportProducts";
 import BranchExtraDialog from "./components/BranchExtraDialog";
 import ProductsSearchInput from "./components/ProductsSearchInput";
@@ -24,8 +28,14 @@ interface Props extends PageProps {
     }[];
 }
 
+type QuickField = "price" | "cost" | "iva" | "extra" | "stock";
+
+const fieldLabels: Record<QuickField, string> = { price: "precio público", cost: "costo", iva: "IVA", extra: "extra", stock: "existencias" };
+
 const Index = ({ pagination, flash, brands }: Props) => {
-    const products: Product[] = pagination.data;
+    // Copia local para la edición rápida: se actualiza al guardar sin recargar la página.
+    const [products, setProducts] = useState<Product[]>(pagination.data);
+    useEffect(() => setProducts(pagination.data), [pagination.data]);
     const brandQuery = route().params.brand as string | undefined;
 
     const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -33,6 +43,98 @@ const Index = ({ pagination, flash, brands }: Props) => {
     useAlerts(flash);
     const { globalExtra } = useBranchExtra();
     const { currentBranchName } = useBranch();
+    const can = useCan();
+
+    // Campos editables en la fila, en el orden en que Tab los recorre. El extra del producto
+    // no se edita aquí cuando la sucursal tiene extra global (ese es el que aplica).
+    const quickFields: QuickField[] = [
+        "price",
+        "cost",
+        "iva",
+        ...(globalExtra === null ? (["extra"] as QuickField[]) : []),
+        ...(can("stock.manage") ? (["stock"] as QuickField[]) : []),
+    ];
+    const [editing, setEditing] = useState<{ id: number; field: QuickField } | null>(null);
+    const [saving, setSaving] = useState<Record<string, boolean>>({});
+    const [saved, setSaved] = useState<Record<string, boolean>>({});
+    const cellKey = (id: number, field: QuickField) => `${id}:${field}`;
+
+    const currentValue = (p: Product, field: QuickField): number | null =>
+        field === "stock" ? (p.stock?.counted_at ? Number(p.stock.quantity) : null) : Number(p[field] ?? 0);
+
+    const target = (id: number, field: QuickField, move: Move) => {
+        const row = products.findIndex((p) => p.id === id);
+        const col = quickFields.indexOf(field);
+        if (move === "down" && row + 1 < products.length) return { id: products[row + 1].id!, field };
+        if (move === "up" && row > 0) return { id: products[row - 1].id!, field };
+        if (move === "next") {
+            if (col + 1 < quickFields.length) return { id, field: quickFields[col + 1] };
+            if (row + 1 < products.length) return { id: products[row + 1].id!, field: quickFields[0] };
+        }
+        if (move === "prev") {
+            if (col > 0) return { id, field: quickFields[col - 1] };
+            if (row > 0) return { id: products[row - 1].id!, field: quickFields[quickFields.length - 1] };
+        }
+        return null;
+    };
+
+    const commit = (p: Product, field: QuickField, raw: string, move: Move) => {
+        setEditing(target(p.id!, field, move));
+
+        const text = raw.trim().replace(/[$,\s%]/g, "");
+        if (text === "") return; // vacío: no se cambia nada
+        const value = Number(text);
+        if (isNaN(value) || value < 0) {
+            toast.error(`El ${fieldLabels[field]} debe ser un número de 0 en adelante.`);
+            return;
+        }
+        const before = currentValue(p, field);
+        if (before !== null && Math.abs(value - before) < 0.0001) return;
+
+        const key = cellKey(p.id!, field);
+        const previous = p;
+        setProducts((rows) =>
+            rows.map((r) =>
+                r.id !== p.id ? r : field === "stock" ? { ...r, stock: { ...(r.stock as any), quantity: value, counted_at: r.stock?.counted_at ?? "ahora" } } : { ...r, [field]: value }
+            )
+        );
+        setSaving((s) => ({ ...s, [key]: true }));
+
+        axios
+            .patch(route("products.quick-update", p.id), { field, value })
+            .then(({ data }) => {
+                setProducts((rows) =>
+                    rows.map((r) =>
+                        r.id !== p.id
+                            ? r
+                            : { ...r, price: data.price, cost: data.cost, iva: data.iva, extra: data.extra, stock: data.stock ? ({ ...(r.stock as any), ...data.stock } as any) : r.stock }
+                    )
+                );
+                setSaved((s) => ({ ...s, [key]: true }));
+                setTimeout(() => setSaved((s) => ({ ...s, [key]: false })), 1500);
+            })
+            .catch((error) => {
+                setProducts((rows) => rows.map((r) => (r.id === p.id ? previous : r)));
+                const errors = error.response?.data?.errors;
+                toast.error((errors && (Object.values(errors)[0] as string[])[0]) ?? error.response?.data?.message ?? "No se pudo guardar. Revisa tu conexión.");
+            })
+            .finally(() => setSaving((s) => ({ ...s, [key]: false })));
+    };
+
+    const quickCell = (p: Product, field: QuickField, display: React.ReactNode, suffix?: string) => (
+        <QuickEditCell
+            value={currentValue(p, field)}
+            display={display}
+            editing={editing?.id === p.id && editing?.field === field}
+            saving={!!saving[cellKey(p.id!, field)]}
+            saved={!!saved[cellKey(p.id!, field)]}
+            label={`${fieldLabels[field]} de ${p.brand} ${p.model}`}
+            suffix={suffix}
+            onStart={() => setEditing({ id: p.id!, field })}
+            onCommit={(raw, move) => commit(p, field, raw, move)}
+            onCancel={() => setEditing(null)}
+        />
+    );
 
     // router (Inertia 2) en lugar del cliente legado: con aquel se recargaba la página
     // completa y el mensaje de "eliminados" se perdía.
@@ -163,6 +265,12 @@ const Index = ({ pagination, flash, brands }: Props) => {
                     </div>
                 )}
 
+                <p className="flex items-center gap-1.5 mb-2 text-xs text-fog">
+                    <LuPencil className="w-3.5 h-3.5" aria-hidden />
+                    Da clic en un precio, costo, IVA{globalExtra === null ? ", extra" : ""}
+                    {can("stock.manage") ? " o existencias" : ""} para cambiarlo. Enter guarda y baja a la siguiente fila, Tab pasa al siguiente
+                    campo y Esc cancela.
+                </p>
                 <div className="overflow-x-auto border border-ash rounded-card">
                     <Table.Root>
                         <Table.Header>
@@ -221,32 +329,35 @@ const Index = ({ pagination, flash, brands }: Props) => {
                                     <Table.Cell className="text-steel">{product.measure}</Table.Cell>
                                     <Table.Cell className="text-steel">{product.mc}</Table.Cell>
                                     <Table.Cell className="text-steel">{product.unit}</Table.Cell>
-                                    <Table.Cell justify="end" className="font-medium tabular-nums">
-                                        {formatCurrency(product.price)}
+                                    <Table.Cell justify="end" className="font-medium clickable">
+                                        {quickCell(product, "price", formatCurrency(product.price))}
                                     </Table.Cell>
-                                    <Table.Cell justify="end" className="tabular-nums text-steel">
-                                        {formatCurrency(product.cost)}
+                                    <Table.Cell justify="end" className="text-steel clickable">
+                                        {quickCell(product, "cost", formatCurrency(product.cost))}
                                     </Table.Cell>
-                                    <Table.Cell justify="end" className="tabular-nums text-steel">
-                                        {product.iva}%
+                                    <Table.Cell justify="end" className="text-steel clickable">
+                                        {quickCell(product, "iva", `${Number(product.iva)}%`, "%")}
                                     </Table.Cell>
-                                    <Table.Cell justify="end" className="tabular-nums">
+                                    <Table.Cell justify="end" className={`tabular-nums ${globalExtra === null ? "clickable" : ""}`}>
                                         {globalExtra === null ? (
-                                            <span className="text-steel">{product.extra ?? 0}%</span>
+                                            <span className="text-steel">{quickCell(product, "extra", `${Number(product.extra ?? 0)}%`, "%")}</span>
                                         ) : (
                                             <span title={`Extra global de la sucursal (el del producto es ${product.extra ?? 0}%)`}>
                                                 {globalExtra}% <span className="text-xs text-lavender">global</span>
                                             </span>
                                         )}
                                     </Table.Cell>
-                                    <Table.Cell justify="end" className="font-semibold tabular-nums">
-                                        {product.stock?.counted_at ? (
-                                            product.stock.quantity
-                                        ) : (
-                                            <span className="text-xs font-normal text-fog" title="Aún no se han cargado existencias en esta sucursal">
-                                                sin inventario
-                                            </span>
-                                        )}
+                                    <Table.Cell justify="end" className={`font-semibold tabular-nums ${can("stock.manage") ? "clickable" : ""}`}>
+                                        {(() => {
+                                            const display = product.stock?.counted_at ? (
+                                                Number(product.stock.quantity)
+                                            ) : (
+                                                <span className="text-xs font-normal text-fog" title="Aún no se han cargado existencias en esta sucursal">
+                                                    sin inventario
+                                                </span>
+                                            );
+                                            return can("stock.manage") ? quickCell(product, "stock", display) : display;
+                                        })()}
                                     </Table.Cell>
                                 </Table.Row>
                             ))}

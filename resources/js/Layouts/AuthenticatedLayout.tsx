@@ -28,7 +28,7 @@ import {
 import { useLocalStorage } from "usehooks-ts";
 
 export default function Authenticated({ header, children }: PropsWithChildren<{ header?: ReactNode }>) {
-    const { auth, canManageBilling } = usePage<PageProps>().props;
+    const { auth, canManageBilling, appVersion } = usePage<PageProps>().props;
     const user = auth.user;
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -110,6 +110,8 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                                 <DropdownMenu.Item onSelect={() => router.post(route("logout"))}>
                                     <LuLogOut /> Cerrar sesión
                                 </DropdownMenu.Item>
+                                <DropdownMenu.Separator />
+                                <DropdownMenu.Label className="text-[11px] text-fog">ICM Notes v{appVersion}</DropdownMenu.Label>
                             </DropdownMenu.Content>
                         </DropdownMenu.Root>
                     </div>
@@ -164,6 +166,7 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                             <ResponsiveNavLink method="post" href={route("logout")} as="button">
                                 <LuLogOut className="w-4 h-4" /> Cerrar sesión
                             </ResponsiveNavLink>
+                            <p className="px-3 pt-2 text-[11px] text-fog">ICM Notes v{appVersion}</p>
                         </div>
                     </div>
                 )}

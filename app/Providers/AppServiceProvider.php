@@ -22,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // `php artisan about` muestra la versión de ICM Notes.
+        \Illuminate\Foundation\Console\AboutCommand::add('ICM Notes', fn () => ['Versión' => config('app.version')]);
+
         Vite::prefetch(concurrency: 3);
 
         // Un gate por permiso de config/permissions.php: las rutas usan can:<permiso>.

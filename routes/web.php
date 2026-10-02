@@ -112,6 +112,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/productos', [ProductController::class, 'store'])->name('products.store');
         Route::get('/productos/{product}', [ProductController::class, 'show'])->name('products.show');
         Route::put('/productos/{product}', [ProductController::class, 'update'])->name('products.update');
+        // Edición rápida desde la lista (precio, costo, IVA, extra, existencias).
+        Route::patch('/productos/{product}/rapido', [ProductController::class, 'quickUpdate'])->name('products.quick-update');
         Route::delete('/productos/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
         Route::post('/productos/destroy/items', [ProductController::class, 'destroyItems'])->name('products.destroy.items');
         Route::post('/productos/destroy/all', [ProductController::class, 'destroyAll'])->name('products.destroy.all');

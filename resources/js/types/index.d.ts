@@ -32,6 +32,8 @@ export type PageProps<
     permissions: string[];
     /** Super admin que está viendo el sistema "como" este usuario. */
     impersonator: { id: number; name: string } | null;
+    /** Versión de la app (config/app.php). */
+    appVersion: string;
 };
 
 export type payment_status = "pending" | "paid" | "canceled";

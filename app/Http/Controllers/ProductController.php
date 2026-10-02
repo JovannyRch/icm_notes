@@ -7,6 +7,7 @@ use App\Models\Stock;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -37,7 +38,7 @@ class ProductController extends Controller
 
         if ($query) {
             // appends() es del paginador, no del query builder: primero paginar.
-            $pagination = $this->getSearchQuery($query, $brand)->paginate(50);
+            $pagination = $this->getSearchQuery($query, $brand)->orderBy('id')->paginate(50);
             $pagination->appends(request()->query());
 
             return Inertia::render(
@@ -52,11 +53,12 @@ class ProductController extends Controller
         $pagination = null;
 
         if ($brand) {
-            $products = Product::where('brand', $brand)->with('stock');
+            // orderBy explícito: Postgres reordena filas tras un UPDATE y la edición rápida las movería de página.
+            $products = Product::where('brand', $brand)->with('stock')->orderBy('id');
             $pagination = $products->paginate(50);
             $pagination->appends(request()->query());
         } else {
-            $pagination = Product::with('stock')->paginate(50);
+            $pagination = Product::with('stock')->orderBy('id')->paginate(50);
             $pagination->appends(request()->query());
         }
 
@@ -149,6 +151,50 @@ class ProductController extends Controller
         }
 
         return redirect()->route('products.show', $product->id)->with('success', 'Producto actualizado correctamente.');
+    }
+
+    /** Campos que se editan directo en la lista de productos (lo que cambia seguido). */
+    public const QUICK_FIELDS = ['price', 'cost', 'iva', 'extra', 'stock'];
+
+    /**
+     * Edición rápida de un campo desde la lista (JSON, sin recargar la página).
+     * Las existencias son de la sucursal activa y quedan como ajuste (conteo) en el historial.
+     */
+    public function quickUpdate(Request $request, Product $product)
+    {
+        $data = $request->validate([
+            'field' => ['required', Rule::in(self::QUICK_FIELDS)],
+            'value' => ['required', 'numeric', 'min:0', $request->input('field') === 'stock' ? 'max:1000000' : 'max:10000000'],
+        ], [
+            'value.required' => 'Escribe un valor.',
+            'value.numeric' => 'Escribe sólo números.',
+            'value.min' => 'No puede ser negativo.',
+        ]);
+
+        $value = (float) $data['value'];
+
+        if ($data['field'] === 'stock') {
+            abort_unless($request->user()->can('stock.manage'), 403, 'No puedes ajustar existencias.');
+            $branchId = currentBranchId();
+            $current = Stock::where(['branch_id' => $branchId, 'product_id' => $product->id])->first();
+            // Mismo número y ya contado: no se agrega un movimiento de más al historial.
+            if (! $current || ! $current->counted_at || abs((float) $current->quantity - $value) >= 0.0001) {
+                (new StockService)->adjustStock($branchId, $product->id, $value, 'ADJUSTMENT', null, 'Ajuste rápido desde la lista de productos');
+            }
+        } else {
+            $product->update([$data['field'] => $value]);
+        }
+
+        $stock = Stock::where(['branch_id' => currentBranchId(), 'product_id' => $product->id])->first();
+
+        return response()->json([
+            'id' => $product->id,
+            'price' => (float) $product->price,
+            'cost' => (float) $product->cost,
+            'iva' => (float) $product->iva,
+            'extra' => (float) $product->extra,
+            'stock' => $stock ? ['quantity' => (float) $stock->quantity, 'counted_at' => $stock->counted_at] : null,
+        ]);
     }
 
     /**
