@@ -15,7 +15,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 const queryClient = new QueryClient();
-const appName = import.meta.env.VITE_APP_NAME || "Laravel";
+// Nombre fijo del producto: VITE_APP_NAME se "hornea" al compilar y, si el build corre sin
+// .env (servidor, CI), la pestaña decía "Laravel".
+const appName = "ICM Notes";
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
