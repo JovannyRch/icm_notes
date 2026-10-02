@@ -67,7 +67,8 @@ class BranchController extends Controller
 
     public function getList()
     {
-        $branches = Branch::all();
+        // Sólo las sucursales del usuario (un cajero ve las asignadas).
+        $branches = Branch::whereIn('id', auth()->user()->accessibleBranchIds())->get();
 
         return response()->json($branches);
     }

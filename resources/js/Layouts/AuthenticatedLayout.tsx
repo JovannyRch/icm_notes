@@ -1,9 +1,11 @@
 import ApplicationLogo from "@/Components/ApplicationLogo";
 import BillingBanner from "@/Components/BillingBanner";
+import ImpersonationBanner from "@/Components/ImpersonationBanner";
 import { BranchSelector } from "@/Components/BranchSelector";
 import NavLink from "@/Components/NavLink";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
 import { useBranch } from "@/hooks/useBranch";
+import { useCan } from "@/hooks/useCan";
 import { PageProps } from "@/types";
 import { Link, router, usePage } from "@inertiajs/react";
 import { DropdownMenu } from "@radix-ui/themes";
@@ -17,7 +19,9 @@ import {
     LuLogOut,
     LuMenu,
     LuPackage,
+    LuShoppingCart,
     LuUser,
+    LuUsers,
     LuX,
 } from "react-icons/lu";
 import { useLocalStorage } from "usehooks-ts";
@@ -30,11 +34,14 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
     const { currentBranchId } = useBranch();
     const [filterDate] = useLocalStorage(`date-filter-${currentBranchId}`, "THIS_WEEK");
 
+    const can = useCan();
+    // Navegación según permisos: un cajero sólo ve su caja.
     const links: { label: string; href: string; active: boolean; icon: IconType }[] = [
-        { label: "Dashboard", href: route("dashboard"), active: route().current("dashboard"), icon: LuLayoutDashboard },
-        { label: "Notas", href: route("notas", { date: filterDate }), active: route().current("notas"), icon: LuFileText },
-        { label: "Productos", href: route("products"), active: route().current("products"), icon: LuPackage },
-    ];
+        can("dashboard.view") && { label: "Dashboard", href: route("dashboard"), active: route().current("dashboard"), icon: LuLayoutDashboard },
+        can("sales.create") && !can("dashboard.view") && { label: "Caja", href: route("caja"), active: route().current("caja"), icon: LuShoppingCart },
+        can("notes.view") && { label: "Notas", href: route("notas", { date: filterDate }), active: route().current("notas"), icon: LuFileText },
+        can("products.manage") && { label: "Productos", href: route("products"), active: route().current("products"), icon: LuPackage },
+    ].filter(Boolean) as { label: string; href: string; active: boolean; icon: IconType }[];
 
     const initials = user.name
         .split(" ")
@@ -45,6 +52,7 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
 
     return (
         <div className="min-h-screen bg-canvas">
+            <ImpersonationBanner />
             <BillingBanner />
 
             <nav className="bg-white border-b border-ash">
@@ -82,6 +90,11 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                                 <DropdownMenu.Item onSelect={() => router.visit(route("profile.edit"))}>
                                     <LuUser /> Perfil
                                 </DropdownMenu.Item>
+                                {can("users.manage") && (
+                                    <DropdownMenu.Item onSelect={() => router.visit(route("users.index"))}>
+                                        <LuUsers /> Usuarios
+                                    </DropdownMenu.Item>
+                                )}
                                 {canManageBilling && (
                                     <DropdownMenu.Item onSelect={() => router.visit(route("service-payments.index"))}>
                                         <LuCreditCard /> Pagos del servicio
@@ -127,6 +140,11 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                             <ResponsiveNavLink href={route("profile.edit")}>
                                 <LuUser className="w-4 h-4" /> Perfil
                             </ResponsiveNavLink>
+                            {can("users.manage") && (
+                                <ResponsiveNavLink href={route("users.index")}>
+                                    <LuUsers className="w-4 h-4" /> Usuarios
+                                </ResponsiveNavLink>
+                            )}
                             {canManageBilling && (
                                 <ResponsiveNavLink href={route("service-payments.index")}>
                                     <LuCreditCard className="w-4 h-4" /> Pagos del servicio

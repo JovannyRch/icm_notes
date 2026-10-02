@@ -65,14 +65,25 @@ App on `http://localhost:8000`, MySQL exposed on host port **33060**. `docker-st
 - **`ILIKE` is Postgres-only**; `ProductController::getSearchQuery()` already branches on `getDriverName() === 'pgsql'` for it.
 - To check generated SQL without a live server, register throwaway `pgsql`/`mysql` connections in `config()` and call `->toSql()`, or `Blueprint::toSql($connection, $connection->useDefaultSchemaGrammar() ?? $connection->getSchemaGrammar())` for DDL.
 
+## Roles, permissions and branch access
+
+Three roles in `users.role`: `super_admin` (the developer), `owner` (the business, all current functionality) and `cashier` (register only). The single source of truth is `config/permissions.php`: an abilities catalog, which ones are configurable per cashier (`users.permissions` JSON overrides the role template) and which are `super_admin_only`. `User::hasPermission()` applies it; `AppServiceProvider` registers one Gate per ability.
+
+- **Every route sits in a `can:<ability>` block in `routes/web.php`** (or `hidden:<ability>`, which answers 404 instead of 403 for system screens). `tests/Feature/RouteAuthorizationTest.php` fails if a route has no `auth` or no permission — add new routes to their block. The `/api/...` endpoints live in `web.php` too (session + permission); `routes/api.php` is intentionally empty.
+- The frontend gets `permissions` (granted abilities) as a shared prop; `useCan()` hides nav/buttons. That is presentation only — the server checks every route.
+- Cashiers never receive costs: `ProductController@search` hides `cost/extra/iva` without `costs.view`. Apply the same rule to any new endpoint that returns products or notes.
+- `role`, `active`, `permissions` and `max_discount_percent` are **not** mass-assignable; set them with `forceFill()`.
+- Inactive users can't log in (`LoginRequest`) and open sessions are closed (`EnsureUserIsActive`).
+- Users are managed by the super admin at `/admin/usuarios` (`UserController`, `hidden:users.manage`). Users are never deleted, only deactivated; nobody can change their own role or deactivate themselves. Admin-created users get `email_verified_at` (every route needs `verified`). A cashier's permissions are stored **explicitly for every configurable ability**, so later changes to a template default don't change existing cashiers.
+- "Entrar como" (`ImpersonationController`) logs in as another (non super admin, active) user and keeps `impersonator_id` in the session; `impersonation.stop` is auth-only and checks that key. The `impersonator` shared prop drives `ImpersonationBanner`. Two concurrent requests around that login race the session id (the second one logs out), so be careful with row `onClick`s: React portal clicks (dropdown menus) bubble to the row — check `e.currentTarget.contains(e.target)`.
+
 ## Branch scoping — the single most important pattern
 
-There is no per-user branch column. The active branch lives in the **session** and is read through the global helper `currentBranchId()` (`app/Helpers/helpers.php`, autoloaded via composer `files`):
+The active branch lives in the **session** and is read through the global helper `currentBranchId()` (`app/Helpers/helpers.php`, autoloaded via composer `files`). With a logged-in user it is constrained to `User::accessibleBranchIds()`: owners/super admins see every branch, cashiers only the ones in `branch_user`.
 
-- Frontend switches branch by POSTing `route("set-branch")` then doing a full `window.location.reload()` (`Components/BranchSelector.tsx`).
-- `HandleInertiaRequests::share()` pushes `currentBranch` + `branches` into every Inertia response; `app.tsx` lifts them out of `initialPage.props` into `BranchContext` *once* at boot — which is why the branch switch needs a hard reload rather than an Inertia visit.
-- React code reads it via `useBranch()` (`hooks/useBranch.ts`), not from page props.
-- Controllers call `currentBranchId()` and filter queries by it manually. **Every new query over notes/cortes/stock must do this** — nothing is scoped automatically.
+- Frontend switches branch by POSTing `route("set-branch")` (which rejects branches the user can't access) then doing a full `window.location.reload()` (`Components/BranchSelector.tsx`).
+- `HandleInertiaRequests::share()` pushes `currentBranch` + `branches` (only the user's) into every Inertia response; React reads them via `useBranch()` (`hooks/useBranch.ts`), which reads the current page props.
+- Controllers call `currentBranchId()` and filter queries by it manually. **Every new query over notes/cortes/stock must do this** — nothing is scoped automatically. Endpoints that receive a branch id (e.g. `NoteController@store`) must also check `canAccessBranch()`.
 - `Product::stock()` and `Product::stockMovements()` bake `currentBranchId()` into the relation definition. Those relations are therefore **session-dependent** and will silently return the wrong branch (or nothing) from a queue job, console command, or test with no session.
 
 ## Request/response conventions
@@ -80,8 +91,8 @@ There is no per-user branch column. The active branch lives in the **session** a
 - Routes: URIs and flash messages are Spanish (`/notas`, `/productos`, `/cortes`), route *names* and PHP/TS identifiers are English. Frontend never hardcodes paths — it uses Ziggy's global `route()` (`@routes` in `app.blade.php`, `ziggy-js` aliased in `tsconfig.json`).
 - Inertia pages resolve from `resources/js/Pages/**/*.tsx`; `app.blade.php` `@vite`s the page component directly alongside `app.tsx`.
 - Controllers return `Inertia::render(...)` for pages and `redirect()->...->with('success'|'error', ...)`; the frontend surfaces those through `useAlerts()` → react-toastify. Paginated lists are passed as a prop named `pagination`.
-- Mutating a note replaces all its items: `NoteController::update` deletes every `NoteProduct` for the note and recreates them from the request (`createItems`), re-issuing stock movements each time.
-- `routes/api.php` endpoints (product search, pending notes, notes-by-date, weekly export) are consumed with plain `axios` + `@tanstack/react-query`. Note they carry **no auth middleware** — a session-authenticated app with unauthenticated JSON read endpoints.
+- Mutating a note replaces all its items: `NoteController::update` deletes every `NoteProduct` for the note and recreates them from the request (`createItems`). Stock only moves by the **difference** (`NoteStockService::sync`); cancelling returns the pieces, reactivating discounts them again, deleting returns them. A product counts as "with inventory" in a branch only after it was counted there (`stocks.counted_at`, set by `StockService` on adjustments/entries).
+- The `/api/...` JSON endpoints (product search, stock by ids, pending notes, notes-by-date, weekly export) live in `routes/web.php` with session + permission and are consumed with plain `axios` + `@tanstack/react-query`. The weekly export uses `fetch` and must send the `X-XSRF-TOKEN` header.
 - Money is formatted in two places that must stay consistent: `format_currency()` (PHP, for PDFs/Excel) and `formatCurrency()` (TS, `Intl` `es-MX`/`MXN`).
 
 ## Payments (N per note)
@@ -93,6 +104,13 @@ One row per payment event in `note_payments` (`note_id`, `branch_id`, `date`, `c
 - Payment row 0 always carries the note's own date (forced in the form's `transform()`); rows 1..N have their own date pickers. Rows with a zero total are dropped, and a cancelled note keeps no payments at all.
 - `notes.cash2/card2/transfer2/second_payment_date` are **legacy columns**, no longer fillable or written. They still exist for one release as a rollback path — the backfill migration derives `note_payments` from them, and its `down()` restores the old meaning from `position = 0`.
 - Saved corte snapshots have no `payments` key; `paymentsOnDate()` falls back to the snapshot's own `cash/card/transfer` for them. Don't remove that fallback or every historical corte re-renders as zero.
+
+## Discounts, folio, seller and document code
+
+- **Discounts are stored as amounts and totals stay net.** `note_product.discount` is the line discount and `sale_subtotal = price × quantity − discount` (`calculateSaleSubtotal`). `notes.discount` is the discount on the whole note and `sale_total = Σ sale_subtotal + flete − discount`. Every downstream consumer (cortes, PDF, Excel, dashboard) reads the net `sale_total`/`sale_subtotal`, so none of them needed changes; notes with discount 0 total exactly as before. `note_product.list_price` keeps the catalog price at the moment of sale.
+- `notes.cash_received` is the cash the customer handed over (change is derived, not stored).
+- **Folio:** `Note::nextFolio($branchId)` = highest *numeric* folio of the branch + 1 (computed in PHP, see the cast caveats above). The create form is prefilled with it and stays editable; a blank folio on store is assigned server-side under a branch row lock; a blank folio on update keeps the current one. Folios are **not** unique-enforced (existing data and tests repeat them).
+- `notes.user_id` (seller, `Note::seller()`) and `notes.code` (unique 10-char code for the ticket QR, generated in `Note::booted`) are set by the server and are not mass-assignable.
 
 ## Business math lives in the frontend
 

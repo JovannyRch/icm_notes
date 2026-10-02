@@ -67,7 +67,7 @@ class NoteStockService
         foreach ($this->expectedQuantities($note) as $key => $quantity) {
             [$branchId, $productId] = array_map('intval', explode(':', $key));
             // note_id null: la nota se borra y el movimiento queda como historial.
-            $this->stock->adjustStock($branchId, $productId, $quantity, 'IN', null, 'Devolución por eliminación de nota #'.$note->folio);
+            $this->stock->adjustStock($branchId, $productId, $quantity, 'IN', null, 'Devolución por eliminación de nota #'.$note->folio, isCount: false);
         }
     }
 }

@@ -15,5 +15,7 @@ export interface Product {
     stock?: Stock;
     /** Existencias en la sucursal pedida a /api/products/search (null = sin registro). */
     branch_stock?: number | string | null;
+    /** null = el producto nunca se ha contado en esa sucursal ("sin inventario cargado"). */
+    branch_counted_at?: string | null;
     stock_movements?: StockMovement[];
 }

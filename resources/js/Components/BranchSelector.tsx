@@ -5,8 +5,8 @@ import { useState } from "react";
 import { LuCheck, LuChevronsUpDown, LuStore } from "react-icons/lu";
 
 /**
- * Cambia la sucursal activa (sesión). Tras el POST se recarga la página completa:
- * BranchContext se carga una sola vez al arrancar (ver app.tsx).
+ * Cambia la sucursal activa (sesión). Tras el POST se recarga la página completa para
+ * que todos los datos de la pantalla se vuelvan a pedir con la sucursal nueva.
  */
 export const BranchSelector = ({ fullWidth = false }: { fullWidth?: boolean }) => {
     const { branches, currentBranch } = useBranch();

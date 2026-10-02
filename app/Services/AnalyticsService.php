@@ -221,8 +221,11 @@ class AnalyticsService
     /** Foto actual del inventario (no depende del rango) + entradas del periodo. */
     public function inventory(int $limit = 15): array
     {
+        // Sólo existencias contadas (counted_at): un producto que nunca se ha contado
+        // "no tiene inventario cargado" y no es lo mismo que "sin existencia".
         $stockByProduct = DB::table('stocks')
             ->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId))
+            ->whereNotNull('counted_at')
             ->select('product_id')
             ->selectRaw('SUM(quantity) as quantity')
             ->groupBy('product_id')
@@ -230,7 +233,9 @@ class AnalyticsService
 
         $products = DB::table('products')->get(['id', 'brand', 'model', 'measure', 'cost']);
 
-        $withStock = $products->map(fn ($p) => (object) [
+        $tracked = $products->filter(fn ($p) => isset($stockByProduct[$p->id]));
+
+        $withStock = $tracked->map(fn ($p) => (object) [
             'id' => $p->id,
             'brand' => $p->brand,
             'model' => $p->model,
@@ -245,6 +250,9 @@ class AnalyticsService
         $entries = DB::table('stock_movements')
             ->join('products', 'products.id', '=', 'stock_movements.product_id')
             ->where('movement_type', 'IN')
+            // Compras/cargas, no devoluciones de notas canceladas o eliminadas.
+            ->whereNull('stock_movements.note_id')
+            ->where(fn ($q) => $q->whereNull('stock_movements.description')->orWhere('stock_movements.description', 'not like', 'Devolución por%'))
             ->when($this->branchId, fn ($q) => $q->where('stock_movements.branch_id', $this->branchId))
             // created_at se guarda en la zona de la app (UTC); el rango es en hora local.
             ->whereBetween('stock_movements.created_at', [
@@ -260,6 +268,7 @@ class AnalyticsService
             'products_total' => $products->count(),
             'products_in_stock' => $inStock->count(),
             'products_out_of_stock' => $withStock->count() - $inStock->count(),
+            'products_untracked' => $products->count() - $tracked->count(),
             'products_low_stock' => $low->count(),
             'low_stock_threshold' => self::LOW_STOCK_THRESHOLD,
             'low_stock' => $low->sortBy('quantity')->take($limit)->values()->all(),

@@ -57,7 +57,8 @@ class ProductSearchTest extends TestCase
         \App\Models\Stock::create(['branch_id' => $a->id, 'product_id' => $p->id, 'quantity' => 1]);
         \App\Models\Stock::create(['branch_id' => $b->id, 'product_id' => $p->id, 'quantity' => 13.5]);
 
-        // La ruta de api.php no tiene sesión: sin branch_id no hay branch_stock.
+        // La búsqueda ya va con sesión (antes era pública); sin branch_id no hay branch_stock.
+        $this->actingAs(User::factory()->create());
         $this->getJson('/api/products/search?query=PIRELLI')->assertOk()->assertJsonMissingPath('0.branch_stock');
 
         $stock = fn ($branch) => collect($this->getJson("/api/products/search?query=PIRELLI&branch_id={$branch}")->json())

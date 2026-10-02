@@ -17,11 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             ForceHttpsMiddleware::class,
             TrustProxies::class,
+            \App\Http\Middleware\EnsureUserIsActive::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        $middleware->alias([
+            'hidden' => \App\Http\Middleware\HiddenUnlessCan::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

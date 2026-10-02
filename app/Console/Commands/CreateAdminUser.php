@@ -19,15 +19,24 @@ class CreateAdminUser extends Command
     protected $signature = 'user:create-admin
                             {--email=jovannyrch@gmail.com : Correo de la cuenta}
                             {--name=Jovanny : Nombre visible}
-                            {--password= : Contraseña (si se omite se pide de forma oculta)}';
+                            {--password= : Contraseña (si se omite se pide de forma oculta)}
+                            {--role=super_admin : super_admin, owner o cashier}
+                            {--branches= : Sucursales del cajero, ids separados por coma (p. ej. 1,2)}';
 
-    protected $description = 'Crea o actualiza un usuario del sistema con correo verificado';
+    protected $description = 'Crea o actualiza un usuario del sistema (rol y sucursales) con correo verificado';
 
     public function handle(): int
     {
         $email = strtolower(trim($this->option('email')));
         if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $this->error("Correo inválido: {$email}");
+
+            return self::FAILURE;
+        }
+
+        $role = $this->option('role');
+        if (! array_key_exists($role, config('permissions.roles'))) {
+            $this->error("Rol inválido: {$role}. Usa: ".implode(', ', array_keys(config('permissions.roles'))));
 
             return self::FAILURE;
         }
@@ -54,9 +63,13 @@ class CreateAdminUser extends Command
         );
 
         // Las rutas exigen 'verified' y la app no tiene flujo de verificación.
-        $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
+        $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now(), 'role' => $role, 'active' => true])->save();
 
-        $this->info(($user->wasRecentlyCreated ? 'Usuario creado: ' : 'Usuario actualizado: ').$email);
+        if ($this->option('branches') !== null) {
+            $user->branches()->sync(array_filter(array_map('intval', explode(',', $this->option('branches')))));
+        }
+
+        $this->info(($user->wasRecentlyCreated ? 'Usuario creado: ' : 'Usuario actualizado: ').$email." ({$role})");
 
         return self::SUCCESS;
     }

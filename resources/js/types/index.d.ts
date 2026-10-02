@@ -1,8 +1,12 @@
+export type Role = "super_admin" | "owner" | "cashier";
+
 export interface User {
     id: number;
     name: string;
     email: string;
     email_verified_at?: string;
+    role: Role;
+    active: boolean;
 }
 
 export interface BillingStatus {
@@ -24,6 +28,10 @@ export type PageProps<
     };
     billing: BillingStatus | null;
     canManageBilling: boolean;
+    /** Permisos concedidos (config/permissions.php). Sólo presentación: el servidor valida. */
+    permissions: string[];
+    /** Super admin que está viendo el sistema "como" este usuario. */
+    impersonator: { id: number; name: string } | null;
 };
 
 export type payment_status = "pending" | "paid" | "canceled";

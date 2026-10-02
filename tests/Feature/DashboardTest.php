@@ -167,20 +167,25 @@ class DashboardTest extends TestCase
         $make = fn ($cost) => Product::create(['brand' => 'X', 'model' => 'M'.$cost, 'measure' => '1', 'mc' => '', 'unit' => 'PZA', 'iva' => 0, 'extra' => 0, 'price' => $cost * 2, 'cost' => $cost]);
         $p1 = $make(100);
         $p2 = $make(50);
-        $make(10); // sin registro en stocks: cuenta como sin existencia
-        Stock::create(['branch_id' => $this->a->id, 'product_id' => $p1->id, 'quantity' => 10]);
-        Stock::create(['branch_id' => $this->b->id, 'product_id' => $p1->id, 'quantity' => 5]);
-        Stock::create(['branch_id' => $this->a->id, 'product_id' => $p2->id, 'quantity' => 2]);
+        $p3 = $make(10); // nunca contado: "sin inventario cargado", no "sin existencia"
+        $counted = now();
+        Stock::create(['branch_id' => $this->a->id, 'product_id' => $p1->id, 'quantity' => 10, 'counted_at' => $counted]);
+        Stock::create(['branch_id' => $this->b->id, 'product_id' => $p1->id, 'quantity' => 5, 'counted_at' => $counted]);
+        Stock::create(['branch_id' => $this->a->id, 'product_id' => $p2->id, 'quantity' => 2, 'counted_at' => $counted]);
+        // Vendido sin contar nunca: queda en negativo pero no cuenta como sin existencia.
+        Stock::create(['branch_id' => $this->a->id, 'product_id' => $p3->id, 'quantity' => -3]);
 
         $all = $this->analytics()->inventory();
         $this->assertSame(1600.0, $all['value_at_cost']);
         $this->assertSame(2, $all['products_in_stock']);
-        $this->assertSame(1, $all['products_out_of_stock']);
+        $this->assertSame(0, $all['products_out_of_stock']);
+        $this->assertSame(1, $all['products_untracked']);
         $this->assertSame(1, $all['products_low_stock']);
 
         $b = $this->analytics($this->b->id)->inventory();
         $this->assertSame(500.0, $b['value_at_cost']);
-        $this->assertSame(2, $b['products_out_of_stock']);
+        $this->assertSame(0, $b['products_out_of_stock']);
+        $this->assertSame(2, $b['products_untracked']);
     }
 
     public function test_any_user_sees_the_dashboard_and_can_export(): void

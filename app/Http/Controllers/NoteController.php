@@ -26,6 +26,8 @@ class NoteController extends Controller
         return Inertia::render('Notes/Form', [
             'branch' => $branch,
             'date' => $date,
+            // Folio sugerido (editable): el mayor de la sucursal + 1.
+            'nextFolio' => $branch ? Note::nextFolio($branch->id) : '1',
         ]);
     }
 
@@ -34,8 +36,18 @@ class NoteController extends Controller
      */
     private function validateRequest($request)
     {
+        // La columna no admite nulos: un descuento vacío es 0.
+        if ($request->has('discount')) {
+            $request->merge(['discount' => (float) ($request->discount ?? 0)]);
+        }
+
         return $request->validate([
-            'folio' => 'required',
+            // Vacío: el servidor asigna el siguiente folio de la sucursal.
+            'folio' => 'nullable|string|max:50',
+            'discount' => 'nullable|numeric|min:0',
+            'cash_received' => 'nullable|numeric|min:0',
+            'items.*.discount' => 'nullable|numeric|min:0',
+            'items.*.list_price' => 'nullable|numeric|min:0',
             'date' => 'required',
             'purchase_total' => 'required',
             'sale_total' => 'required',
@@ -122,6 +134,8 @@ class NoteController extends Controller
                 'extra' => $item['extra'],
                 'purchase_subtotal' => $item['purchase_subtotal'],
                 'sale_subtotal' => $item['sale_subtotal'],
+                'discount' => $item['discount'] ?? 0,
+                'list_price' => $item['list_price'] ?? null,
                 'supplied_status' => $item['supplied_status'],
                 'delivery_status' => $item['delivery_status'],
             ]);
@@ -143,6 +157,7 @@ class NoteController extends Controller
     public function store(Request $request)
     {
         $this->validateRequest($request);
+        abort_unless($request->user()->canAccessBranch((int) $request->branch_id), 403, 'No tienes acceso a esa sucursal.');
 
         if ($request->delivery_status == 'cancelado') {
             $request->merge(['status' => 'canceled']);
@@ -153,7 +168,13 @@ class NoteController extends Controller
         $isCancelled = $request->delivery_status == 'cancelado';
 
         $note = DB::transaction(function () use ($request, $items, $payments, $isCancelled) {
-            $note = Note::create($request->all());
+            if (blank($request->folio)) {
+                // Bloquea la sucursal para que dos ventas simultáneas no tomen el mismo folio.
+                Branch::whereKey($request->branch_id)->lockForUpdate()->first();
+                $request->merge(['folio' => Note::nextFolio((int) $request->branch_id)]);
+            }
+            $note = new Note($request->all());
+            $note->forceFill(['user_id' => $request->user()->id])->save();
             $this->createItems($note, $items, moveStock: ! NoteStockService::isCancelled($note));
             $this->syncPayments($note, $payments, $isCancelled);
             $note->recalculateTotalsFromPayments();
@@ -176,6 +197,7 @@ class NoteController extends Controller
 
         return Inertia::render('Notes/Form', [
             'note' => $note,
+            'seller' => $note->seller?->name,
             'branch' => $branch,
             'items' => $items,
             'payments' => $note->payments()->get(),
@@ -197,6 +219,7 @@ class NoteController extends Controller
     public function update(Request $request, Note $note)
     {
         $this->validateRequest($request);
+        abort_unless($request->user()->canAccessBranch((int) $note->branch_id), 403, 'No tienes acceso a esa sucursal.');
         $items = $request->items;
         $payments = $request->input('payments', []);
 
@@ -211,7 +234,8 @@ class NoteController extends Controller
             $wasCancelled = NoteStockService::isCancelled($note);
             $before = $noteStock->expectedQuantities($note);
 
-            $note->update($request->all());
+            // Un folio vacío al editar conserva el actual.
+            $note->update(blank($request->folio) ? $request->except('folio') : $request->all());
 
             NoteProduct::where('note_id', $note->id)->delete();
             $this->createItems($note, $items, moveStock: false);

@@ -245,14 +245,26 @@ class ProductController extends Controller
                     ->whereColumn('stocks.product_id', 'products.id')
                     ->where('stocks.branch_id', $branchId)
                     ->limit(1),
+                // null = nunca se ha contado en esa sucursal ("sin inventario cargado")
+                'branch_counted_at' => Stock::select('counted_at')
+                    ->whereColumn('stocks.product_id', 'products.id')
+                    ->where('stocks.branch_id', $branchId)
+                    ->limit(1),
             ]);
         }
 
-        return response()->json($products->get());
+        $results = $products->get();
+
+        // Quien no puede ver costos (cajero) no los recibe: ocultarlos sólo en pantalla no basta.
+        if (! $request->user()?->can('costs.view')) {
+            $results->each->makeHidden(['cost', 'extra', 'iva', 'stock']);
+        }
+
+        return response()->json($results);
     }
 
     /**
-     * Existencias de varios productos en una sucursal: { product_id: cantidad|null }.
+     * Existencias de varios productos en una sucursal: { product_id: { quantity, counted } }.
      * La usa la nota al abrirse en edición para avisar si una partida pide más
      * piezas de las disponibles (api.php, sin sesión: la sucursal va explícita).
      */
@@ -266,10 +278,16 @@ class ProductController extends Controller
 
         $stocks = Stock::where('branch_id', $validated['branch_id'])
             ->whereIn('product_id', $validated['ids'])
-            ->pluck('quantity', 'product_id');
+            ->get(['product_id', 'quantity', 'counted_at'])
+            ->keyBy('product_id');
 
+        // counted = false: el producto no tiene inventario cargado en esa sucursal y la
+        // nota no debe avisar de existencias.
         return response()->json(
-            collect($validated['ids'])->mapWithKeys(fn ($id) => [$id => isset($stocks[$id]) ? (float) $stocks[$id] : null])
+            collect($validated['ids'])->mapWithKeys(fn ($id) => [$id => [
+                'quantity' => isset($stocks[$id]) ? (float) $stocks[$id]->quantity : null,
+                'counted' => isset($stocks[$id]) && $stocks[$id]->counted_at !== null,
+            ]])
         );
     }
 }

@@ -28,7 +28,8 @@ class E2eSeeder extends Seeder
                 'password' => bcrypt(self::PASSWORD),
                 'email_verified_at' => now(),
             ]
-        );
+            // super_admin: además de todo lo del dueño, prueba la administración de usuarios.
+        )->forceFill(['role' => User::SUPER_ADMIN, 'active' => true])->save();
 
         foreach (['San Felipe del Progreso', 'Jilotepec'] as $name) {
             Branch::firstOrCreate(['name' => $name]);

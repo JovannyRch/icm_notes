@@ -17,6 +17,11 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        // Pantalla inicial después del login: quien no tiene dashboard (cajero) va a la caja.
+        if (! $request->user()->can('dashboard.view')) {
+            return redirect()->route($request->user()->can('sales.create') ? 'caja' : 'profile.edit');
+        }
+
         return Inertia::render('Dashboard', $this->buildData($request, limit: 10));
     }
 

@@ -24,12 +24,19 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
 
-        // Admin = el desarrollador (BILLING_ADMIN_EMAILS); no hay roles en users.
-        Gate::define('admin', fn (User $user) => in_array(
-            strtolower($user->email),
-            config('billing.admin_emails'),
-            true
-        ));
-        Gate::define('manage-billing', fn (User $user) => Gate::forUser($user)->allows('admin'));
+        // Un gate por permiso de config/permissions.php: las rutas usan can:<permiso>.
+        foreach (array_keys(config('permissions.abilities')) as $ability) {
+            Gate::define($ability, fn (User $user) => $user->hasPermission($ability));
+        }
+
+        // Buscar productos y existencias: lo necesita quien arma notas, ventas o entradas.
+        Gate::define('products.search', fn (User $user) => $user->hasPermission('sales.create')
+            || $user->hasPermission('notes.manage')
+            || $user->hasPermission('stock.manage')
+            || $user->hasPermission('products.manage'));
+
+        // Nombres anteriores, conservados por compatibilidad.
+        Gate::define('admin', fn (User $user) => $user->hasPermission('users.manage'));
+        Gate::define('manage-billing', fn (User $user) => $user->hasPermission('billing.manage'));
     }
 }

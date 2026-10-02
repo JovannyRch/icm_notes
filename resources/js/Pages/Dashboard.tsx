@@ -83,6 +83,7 @@ interface Props extends PageProps {
         products_total: number;
         products_in_stock: number;
         products_out_of_stock: number;
+        products_untracked: number;
         products_low_stock: number;
         low_stock_threshold: number;
         low_stock: { id: number; brand: string; model: string; measure: string; quantity: number; cost: number }[];
@@ -424,8 +425,12 @@ const Dashboard = ({
                 <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
                     <StatTile label="Valor a costo" value={formatCurrency(inventory.value_at_cost)} />
                     <StatTile label="Unidades" value={formatNumber(inventory.units, 2)} />
-                    <StatTile label="Con existencia" value={formatNumber(inventory.products_in_stock)} hint={`de ${formatNumber(inventory.products_total)} productos`} />
-                    <StatTile label="Sin existencia" value={formatNumber(inventory.products_out_of_stock)} />
+                    <StatTile label="Con existencia" value={formatNumber(inventory.products_in_stock)} hint={`de ${formatNumber(inventory.products_total - inventory.products_untracked)} con inventario`} />
+                    <StatTile
+                        label="Sin existencia"
+                        value={formatNumber(inventory.products_out_of_stock)}
+                        hint={inventory.products_untracked > 0 ? `${formatNumber(inventory.products_untracked)} sin inventario cargado` : undefined}
+                    />
                     <StatTile label="Stock bajo" value={formatNumber(inventory.products_low_stock)} hint={`${inventory.low_stock_threshold} unidades o menos`} />
                     <StatTile label="Entradas del periodo" value={formatCurrency(inventory.entries.value_at_cost)}
                         hint={`${formatNumber(inventory.entries.units, 2)} u. en ${inventory.entries.movements} movimientos`} />

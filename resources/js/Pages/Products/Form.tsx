@@ -82,6 +82,8 @@ const Form = ({
     });
 
     const originalStock = isNumber(product?.stock?.quantity) ? Number(product?.stock?.quantity) : null;
+    // Nunca contado en la sucursal: las ventas pudieron moverlo, pero no hay inventario cargado.
+    const isCounted = !!product?.stock?.counted_at;
     // isNumber("") es true (Number("") === 0): un campo vacío no es un número capturado.
     const isFilledNumber = (value: string) => value.trim() !== "" && isNumber(value);
 
@@ -177,7 +179,8 @@ const Form = ({
                         isEdit ? (
                             <>
                                 {[product!.measure, product!.unit].filter(Boolean).join(" · ") || "Sin medida"}
-                                {" · "}Existencias en {currentBranchName}: <b className="text-charcoal">{originalStock ?? "-"}</b>
+                                {" · "}Existencias en {currentBranchName}:{" "}
+                                {isCounted ? <b className="text-charcoal">{originalStock}</b> : <span className="text-fog">sin inventario</span>}
                             </>
                         ) : undefined
                     }
@@ -268,7 +271,9 @@ const Form = ({
                                         {isEdit
                                             ? stockChanged
                                                 ? `Se registrará un ajuste de ${originalStock ?? "-"} a ${data.stock}.`
-                                                : "Si lo cambias se registra un ajuste de inventario."
+                                                : isCounted
+                                                  ? "Si lo cambias se registra un ajuste de inventario."
+                                                  : "Aún sin inventario cargado en esta sucursal. Captura el conteo físico para empezar a llevarlo."
                                             : "Opcional. Déjalo vacío si aún no hay existencias."}
                                     </p>
                                 </div>
@@ -287,7 +292,7 @@ const Form = ({
                         <SectionCard
                             className="mt-5"
                             title={`Movimientos en ${currentBranchName}`}
-                            subtitle={`Existencias actuales: ${originalStock ?? "-"}`}
+                            subtitle={isCounted ? `Existencias actuales: ${originalStock}` : "Aún sin inventario cargado en esta sucursal"}
                             actions={
                                 <Button onClick={() => setShowMovementModal(true)}>
                                     <BiPlus className="w-5 h-5" />

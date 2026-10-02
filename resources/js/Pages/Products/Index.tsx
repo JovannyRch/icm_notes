@@ -240,7 +240,13 @@ const Index = ({ pagination, flash, brands }: Props) => {
                                         )}
                                     </Table.Cell>
                                     <Table.Cell justify="end" className="font-semibold tabular-nums">
-                                        {product.stock?.quantity ?? "-"}
+                                        {product.stock?.counted_at ? (
+                                            product.stock.quantity
+                                        ) : (
+                                            <span className="text-xs font-normal text-fog" title="Aún no se han cargado existencias en esta sucursal">
+                                                sin inventario
+                                            </span>
+                                        )}
                                     </Table.Cell>
                                 </Table.Row>
                             ))}

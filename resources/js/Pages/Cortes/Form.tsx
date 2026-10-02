@@ -321,7 +321,7 @@ const CorteForm = ({
 
     return (
         <Container headTitle={isDetail ? `Corte #${corte.id}` : "Nuevo corte"}>
-            <div className="pb-24">
+            <div className={isDetail ? "" : "pb-28 sm:pb-16"}>
                 <PageHeader
                     back={{ label: "Lista de cortes", href: route("cortes") }}
                     eyebrow={branch.name}

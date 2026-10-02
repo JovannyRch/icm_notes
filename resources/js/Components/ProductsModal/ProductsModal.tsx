@@ -29,8 +29,18 @@ const fetchProducts = async (query: string, branchId?: number) => {
     return data;
 };
 
-/** Existencias para vender: rojo sin existencias, ámbar pocas (≤ 3). */
-const StockCell = ({ value }: { value: Product["branch_stock"] }) => {
+/**
+ * Existencias para vender: rojo sin existencias, ámbar pocas (≤ 3). Si el producto
+ * nunca se ha contado en la sucursal, "sin inventario" en gris (no es lo mismo que 0).
+ */
+const StockCell = ({ value, countedAt }: { value: Product["branch_stock"]; countedAt: Product["branch_counted_at"] }) => {
+    if (!countedAt) {
+        return (
+            <span className="text-xs text-fog" title="Aún no se han cargado existencias de este producto en esta sucursal">
+                sin inventario
+            </span>
+        );
+    }
     const qty = value === null || value === undefined ? 0 : Number(value);
     const tone = qty <= 0 ? "text-red-600" : qty <= 3 ? "text-amber-700" : "text-charcoal";
     return (
@@ -169,7 +179,7 @@ const ProductsModal = ({
                                                     </td>
                                                     {branchId && (
                                                         <td className="p-3 text-right">
-                                                            <StockCell value={product.branch_stock} />
+                                                            <StockCell value={product.branch_stock} countedAt={product.branch_counted_at} />
                                                         </td>
                                                     )}
                                                     {/*    <td className="p-3">

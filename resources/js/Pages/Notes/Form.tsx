@@ -63,6 +63,10 @@ interface Props extends PageProps {
     items?: NoteItemInterface[];
     payments?: NotePayment[];
     date: string;
+    /** Folio sugerido para una nota nueva (el mayor de la sucursal + 1). */
+    nextFolio?: string;
+    /** Quién registró la nota. */
+    seller?: string | null;
 }
 
 const emptyPayment = (date: string): PaymentInput => ({
@@ -91,6 +95,8 @@ interface NoteFormData {
     advance: string;
     balance: string;
     flete: string;
+    /** Descuento sobre el total, en importe. */
+    discount: string;
     branch_id: number;
     date: string;
     delivery_status: string;
@@ -107,6 +113,8 @@ const NoteForm = ({
     items: initialItems = [],
     payments: initialPayments = [],
     date,
+    nextFolio = "",
+    seller,
 }: Props) => {
     useAlerts(flash);
     const isEdit = !!note;
@@ -134,13 +142,14 @@ const NoteForm = ({
     const [selectedProductIndex, setSelectedProductIndex] = useState(0);
 
     const { data, setData, errors, post, put, transform, processing } = useForm<NoteFormData>({
-        folio: isEdit ? note?.folio : "",
+        folio: isEdit ? note?.folio : nextFolio,
         customer: isEdit ? note?.customer : "",
         sale_total: String(isEdit ? note?.sale_total : 0),
         purchase_total: String(isEdit ? note?.purchase_total : 0),
         notes: isEdit ? note?.notes : "",
         advance: String(isEdit ? note?.advance ?? 0 : "0"),
         flete: String(isEdit ? note?.flete ?? 0 : "0"),
+        discount: String(isEdit ? note?.discount ?? 0 : "0"),
         balance: String(isEdit ? note?.balance ?? 0 : "0"),
         branch_id: branch.id,
         status: isEdit ? (note?.status as payment_status) : "pending",
@@ -162,7 +171,7 @@ const NoteForm = ({
         );
     }, [data.items]);
 
-    const { items, flete, delivery_status, payments } = data;
+    const { items, flete, discount, delivery_status, payments } = data;
 
     // Clave estable para las dependencias del efecto: `payments` es un arreglo y
     // usarlo directo como dependencia vuelve a disparar el efecto en cada render.
@@ -220,7 +229,8 @@ const NoteForm = ({
         const saleTotal = isCancelled
             ? 0
             : items.reduce((acc, item) => acc + Number(item.sale_subtotal), 0) +
-              Number(data.flete ?? 0);
+              Number(data.flete ?? 0) -
+              Number(data.discount || 0);
 
         const advance = isCancelled ? 0 : paymentsTotal(data.payments);
 
@@ -325,6 +335,7 @@ const NoteForm = ({
             unit: product.unit,
             cost: product.cost,
             price: product.price,
+            list_price: product.price,
             iva: product.iva,
             // La nota es de `branch` (la activa al crear, la de la nota al editar).
             extra: effectiveExtra(product.extra, branch?.extra_percentage ?? null),
@@ -353,7 +364,7 @@ const NoteForm = ({
 
     useUpdateEffect(() => {
         setCalculatedValues(items);
-    }, [paymentsKey, flete, delivery_status]);
+    }, [paymentsKey, flete, discount, delivery_status]);
 
     const [filterDate] = useLocalStorage(
         `date-filter-${branch.id}`,
@@ -362,7 +373,7 @@ const NoteForm = ({
 
     // --- Aviso de existencias (informativo; no altera partidas ni el envío) ---
     // Existencias actuales en la sucursal de la nota, por producto.
-    const [stockByProduct, setStockByProduct] = useState<Record<number, number | null>>({});
+    const [stockByProduct, setStockByProduct] = useState<Record<number, { quantity: number | null; counted: boolean }>>({});
     // Piezas que esta nota ya tiene guardadas: ya se descontaron del stock, así que
     // al editar también cuentan como disponibles para ella.
     const savedQuantities = useMemo(() => {
@@ -397,10 +408,12 @@ const NoteForm = ({
     }, [items]);
     const stockFor = (item: NoteItemInterface) => {
         if (!item.product_id || !(item.product_id in stockByProduct)) return undefined;
+        const stock = stockByProduct[item.product_id];
         return {
-            available: Number(stockByProduct[item.product_id] ?? 0) + (savedQuantities[item.product_id] ?? 0),
+            available: Number(stock.quantity ?? 0) + (savedQuantities[item.product_id] ?? 0),
             requested: requestedByProduct[item.product_id] ?? 0,
             branchName: branch.name,
+            counted: stock.counted,
         };
     };
 
@@ -410,6 +423,7 @@ const NoteForm = ({
                 <PageHeader
                     back={{ label: "Notas", href: route("notas", { date: filterDate }) }}
                     eyebrow={branch.name}
+                    description={isEdit && seller ? `Registró ${seller}` : undefined}
                     title={
                         isEdit ? (
                             <span className="inline-flex items-center gap-2">
@@ -712,6 +726,21 @@ const NoteForm = ({
                                         }}
                                         leading={<BiDollar />}
                                         error={errors.flete}
+                                    />
+                                    <InlineInput
+                                        label="Descuento"
+                                        name="discount"
+                                        value={data.discount}
+                                        onChange={(e) => {
+                                            setData("discount", e.target.value);
+                                        }}
+                                        leading={<BiDollar />}
+                                        error={
+                                            errors.discount ??
+                                            (Number(data.discount || 0) > productsSubtotal + Number(data.flete || 0)
+                                                ? "El descuento es mayor que la venta"
+                                                : undefined)
+                                        }
                                     />
                                     <LineDivider className="my-4" />
                                     <Flex

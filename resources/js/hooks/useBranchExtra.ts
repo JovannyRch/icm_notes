@@ -2,9 +2,8 @@ import { PageProps } from "@/types";
 import { usePage } from "@inertiajs/react";
 
 /**
- * Extra (%) global de la sucursal activa. Se lee de los props compartidos de
- * cada respuesta (no de BranchContext, que sólo se carga al arrancar), así un
- * cambio se refleja sin recargar la página.
+ * Extra (%) global de la sucursal activa, de los props compartidos de cada
+ * respuesta: un cambio se refleja sin recargar la página.
  */
 export function useBranchExtra() {
     const { branches, currentBranch } = usePage<

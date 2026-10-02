@@ -5,6 +5,21 @@ import { addProduct, login } from "./helpers";
  * Aviso de existencias en la nota: informativo, no impide guardar. Al editar, las
  * piezas que la nota ya tiene guardadas cuentan como disponibles para ella.
  */
+test("producto sin inventario cargado: no hay aviso aunque se pidan muchas piezas", async ({ page }) => {
+    await login(page);
+    await page.goto("/nota/crear");
+    await addProduct(page, "MICHELIN"); // en la base e2e nunca se ha contado
+    await page.locator('input[name="quantity"]').first().fill("50");
+    await expect(page.getByText("Sin inventario cargado")).toBeVisible();
+    await expect(page.getByText(/Disponibles:/)).toHaveCount(0);
+    await expect(page.getByRole("status").filter({ hasText: "disponibles" })).toHaveCount(0);
+
+    // En el buscador también se distingue de "0".
+    await page.getByRole("button", { name: "Agregar producto" }).click();
+    await page.getByPlaceholder("Buscar producto...").fill("MICHELIN");
+    await expect(page.getByRole("row", { name: /MICHELIN/ })).toContainText("sin inventario");
+});
+
 test("la nota avisa cuando se piden más piezas de las disponibles", async ({ page }) => {
     await login(page);
 

@@ -26,7 +26,8 @@ class StockMovementController extends Controller
             $validated['quantity'],
             $validated['movement_type'],
             null,
-            $validated['description'] ?? null
+            $validated['description'] ?? null,
+            isCount: true
         );
 
         return redirect()->back()->with('success', 'Movimiento de stock registrado correctamente.');

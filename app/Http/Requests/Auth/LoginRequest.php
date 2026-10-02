@@ -49,6 +49,15 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Cuenta desactivada desde la administración de usuarios: no entra.
+        if (! Auth::user()->active) {
+            Auth::guard('web')->logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Tu cuenta está desactivada. Pide al administrador que la reactive.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

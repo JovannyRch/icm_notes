@@ -244,6 +244,8 @@ const CorteSemanalForm = ({
             headers: {
                 "Content-Type": "application/json",
                 Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                // La ruta ya va con sesión (routes/web.php): requiere el token CSRF.
+                "X-XSRF-TOKEN": decodeURIComponent(document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/)?.[1] ?? ""),
             },
             body: JSON.stringify(data),
         });

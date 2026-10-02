@@ -19,8 +19,9 @@ export const effectiveExtra = (
     globalExtra: number | null
 ): number => globalExtra ?? Number(productExtra ?? 0);
 
+/** Subtotal de venta NETO de la partida: precio × cantidad − descuento (0 en notas sin descuento). */
 export const calculateSaleSubtotal = (product: NoteItemInterface): number => {
-    return Number(product.price) * Number(product.quantity);
+    return Number(product.price) * Number(product.quantity) - Number(product.discount ?? 0);
 };
 
 export const getPaymentMethods = (note: Note): string[] => {

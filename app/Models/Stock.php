@@ -6,7 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Stock extends Model
 {
-    protected $fillable = ['branch_id', 'product_id', 'quantity'];
+    protected $fillable = ['branch_id', 'product_id', 'quantity', 'counted_at'];
+
+    protected $casts = [
+        'counted_at' => 'datetime',
+    ];
 
     public function branch()
     {

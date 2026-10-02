@@ -21,8 +21,9 @@ const Container = ({ title, children, headTitle }: ContainerProps) => {
         >
             <Head title={headTitle ?? title} />
 
-            {/* Lienzo blanco de 1200px (DESIGN.md): los bloques se separan con bordes, no con sombras. */}
-            <div className="px-4 py-6 mx-auto max-w-[1200px] sm:px-6 text-charcoal">{children}</div>
+            {/* Lienzo blanco de 1200px (DESIGN.md): los bloques se separan con bordes, no con sombras.
+                Abajo, el "section gap" de 64px para que el último bloque no quede pegado al borde. */}
+            <div className="px-4 pt-6 pb-16 mx-auto max-w-[1200px] sm:px-6 sm:pb-20 text-charcoal">{children}</div>
         </AuthenticatedLayout>
     );
 };

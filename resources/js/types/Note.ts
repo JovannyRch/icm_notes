@@ -20,6 +20,12 @@ export interface Note {
     payment_method: string;
     sale_total: number;
     purchase_total: number;
+    /** Descuento sobre el total (importe); sale_total ya es neto. */
+    discount?: number | string;
+    cash_received?: number | string | null;
+    /** Código único del documento (QR del ticket). */
+    code?: string | null;
+    user_id?: number | null;
     // Agregados de todos los pagos (los recalcula el servidor).
     cash: number;
     card: number;

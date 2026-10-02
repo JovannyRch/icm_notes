@@ -5,6 +5,7 @@
   "customer": "Edición",
   "date": "2026-07-21",
   "delivery_status": "pendiente",
+  "discount": "0",
   "flete": "80",
   "folio": "E2E-PAYLOAD-EDIT",
   "items": [
@@ -14,6 +15,7 @@
       "delivery_status": "pendiente",
       "extra": 0,
       "iva": 0,
+      "list_price": 1500,
       "mc": "1",
       "measure": "185/65R14",
       "model": "ASSURANCE",
@@ -31,6 +33,7 @@
       "delivery_status": "pendiente",
       "extra": 0,
       "iva": 0,
+      "list_price": 2500,
       "mc": "1",
       "measure": "205/55R16",
       "model": "PRIMACY 4",

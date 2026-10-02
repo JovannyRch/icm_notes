@@ -27,7 +27,7 @@ interface NoteItemProps {
      * available = piezas que se pueden vender en la sucursal de la nota,
      * requested = piezas de este producto en toda la nota.
      */
-    stock?: { available: number; requested: number; branchName: string };
+    stock?: { available: number; requested: number; branchName: string; counted: boolean };
 }
 
 const CenteredCell = ({ children }: { children: React.ReactNode }) => (
@@ -46,7 +46,8 @@ const NoteItem = ({
     onUpdate,
     stock,
 }: NoteItemProps) => {
-    const exceeds = !!stock && stock.requested > stock.available;
+    // Sin inventario cargado no hay aviso: no se sabe cuántas piezas hay.
+    const exceeds = !!stock && stock.counted && stock.requested > stock.available;
     const calculateSubtotals = (
         product: NoteItemInterface
     ): {
@@ -121,7 +122,12 @@ const NoteItem = ({
                                         });
                                     }}
                                 />
-                                {stock && (
+                                {stock && !stock.counted && (
+                                    <p className="mt-1 text-xs text-fog" title="Aún no se han cargado existencias de este producto en esta sucursal">
+                                        Sin inventario cargado
+                                    </p>
+                                )}
+                                {stock?.counted && (
                                     <p className={`mt-1 text-xs tabular-nums ${exceeds ? "font-medium text-amber-700" : "text-fog"}`}>
                                         Disponibles: {Number.isInteger(stock.available) ? stock.available : stock.available.toFixed(2)}
                                     </p>
@@ -274,12 +280,11 @@ const NoteItem = ({
                                                     const newSubtotal = Number(
                                                         e.target.value
                                                     );
+                                                    // El subtotal es neto: el precio se despeja sumando el descuento de la partida.
                                                     onUpdate(index, {
                                                         ...item,
                                                         price: (
-                                                            Number(
-                                                                newSubtotal
-                                                            ) /
+                                                            (Number(newSubtotal) + Number(item.discount ?? 0)) /
                                                             (Number(
                                                                 item.quantity
                                                             ) || 1.0)
@@ -290,6 +295,14 @@ const NoteItem = ({
                                                 }}
                                             />
                                         </div>
+                                        {Number(item.discount ?? 0) > 0 && (
+                                            <div className="flex items-center justify-between gap-4">
+                                                <span className="text-sm text-steel">Descuento incluido:</span>
+                                                <span className="text-sm font-medium tabular-nums text-red-700">
+                                                    −{formatCurrency(Number(item.discount))}
+                                                </span>
+                                            </div>
+                                        )}
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm text-steel">Subtotal compra:</span>
                                             <span className="text-sm font-semibold tabular-nums text-charcoal">

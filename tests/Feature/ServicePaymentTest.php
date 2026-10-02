@@ -24,6 +24,7 @@ class ServicePaymentTest extends TestCase
 
         Branch::create(['name' => 'Sucursal A']);
         $this->admin = User::factory()->create(['email' => 'dev@example.com']);
+        $this->admin->forceFill(['role' => User::SUPER_ADMIN])->save();
         $this->user = User::factory()->create(['email' => 'cajero@example.com']);
 
         config([

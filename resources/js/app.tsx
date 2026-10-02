@@ -12,7 +12,6 @@ import { createRoot } from "react-dom/client";
 import { Theme } from "@radix-ui/themes";
 import { ToastContainer } from "react-toastify";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import BranchContext from "./Contexts/BranchContext";
 import { useEffect } from "react";
 
 const queryClient = new QueryClient();
@@ -28,15 +27,11 @@ createInertiaApp({
     setup({ el, App, props }) {
         const root = createRoot(el);
 
-        const { currentBranch, branches } = props.initialPage.props as any;
-
         root.render(
             <Theme accentColor="blue" grayColor="gray" radius="medium" panelBackground="solid">
                 <QueryClientProvider client={queryClient}>
-                    <BranchContext.Provider value={{ currentBranch, branches }}>
-                        <App {...props} />
-                        <ToastContainer />
-                    </BranchContext.Provider>
+                    <App {...props} />
+                    <ToastContainer />
                 </QueryClientProvider>
             </Theme>
         );

@@ -6,8 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class NoteProduct extends Model
 {
-    //table name
+    // table name
     protected $table = 'note_product';
+
     protected $fillable = [
         'brand',
         'model',
@@ -26,8 +27,10 @@ class NoteProduct extends Model
         'position',
         'quantity',
         'status',
-        'sale_subtotal',
-        'purchase_subtotal'
+        'sale_subtotal',     // neto: price * quantity - discount
+        'purchase_subtotal',
+        'discount',          // descuento de la partida (importe)
+        'list_price',        // precio de catálogo al vender
     ];
 
     public function note()

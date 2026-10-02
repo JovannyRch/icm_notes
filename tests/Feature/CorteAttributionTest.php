@@ -111,7 +111,8 @@ class CorteAttributionTest extends TestCase
             ['date' => '2026-08-15', 'cash' => 50],
         ]);
 
-        $response = $this->getJson("/api/notes/{$this->branch->id}/2026-08-15");
+        // La ruta va con sesión y permiso de cortes (antes era pública).
+        $response = $this->actingAs(\App\Models\User::factory()->create())->getJson("/api/notes/{$this->branch->id}/2026-08-15");
 
         $response->assertOk()
             ->assertJsonPath('notes.0.folio', '1002')
