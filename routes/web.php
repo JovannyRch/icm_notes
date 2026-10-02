@@ -122,6 +122,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/productos', [ProductController::class, 'index'])->name('products');
         Route::get('/productos/crear', [ProductController::class, 'create'])->name('products.create');
         Route::post('/productos', [ProductController::class, 'store'])->name('products.store');
+        // Ajuste masivo de precio o costo (selección o marca).
+        Route::post('/productos/ajustar-precios', [ProductController::class, 'bulkPrice'])->name('products.bulk-price');
         Route::get('/productos/{product}', [ProductController::class, 'show'])->name('products.show');
         Route::put('/productos/{product}', [ProductController::class, 'update'])->name('products.update');
         // Edición rápida desde la lista (precio, costo, IVA, extra, existencias).

@@ -9,8 +9,8 @@ import { useForm } from "@inertiajs/react";
 import { Button, RadioGroup, SegmentedControl, Switch, Text } from "@radix-ui/themes";
 import { LuExternalLink, LuPrinter } from "react-icons/lu";
 
-type TextField = "business_name" | "rfc" | "address" | "phone" | "header" | "footer" | "register_label" | "seller_label";
-type Toggle = "show_logo" | "show_business_name" | "show_register" | "show_customer" | "show_m2" | "show_amount_in_words" | "show_payment" | "show_qr";
+type TextField = "business_name" | "rfc" | "address" | "phone" | "header" | "footer" | "farewell" | "register_label" | "seller_label";
+type Toggle = "show_logo" | "show_business_name" | "show_register" | "show_customer" | "show_m2" | "show_amount_in_words" | "show_payment" | "show_qr" | "show_farewell";
 type SellerMode = "name" | "generic" | "none";
 
 type TicketFields = Record<TextField, string> &
@@ -43,6 +43,7 @@ const toggles: { key: Toggle; label: string; hint?: string }[] = [
     { key: "show_amount_in_words", label: "Importe con letra" },
     { key: "show_payment", label: "Detalle del pago", hint: "Efectivo, recibido y cambio (el saldo pendiente siempre sale)" },
     { key: "show_qr", label: "Código QR de la venta" },
+    { key: "show_farewell", label: "Despedida al final" },
 ];
 
 const BranchTicketForm = ({ branch }: { branch: BranchRow }) => {
@@ -115,7 +116,11 @@ const BranchTicketForm = ({ branch }: { branch: BranchRow }) => {
                     {field("phone", "Teléfono")}
                     {field("address", "Dirección", { multiline: true })}
                     {field("header", "Leyenda arriba", { multiline: true, hint: "Opcional. Ej.: horario o redes sociales." })}
-                    {field("footer", "Leyenda al final", { multiline: true, hint: "Ej.: política de cambios y garantías." })}
+                    {field("footer", "Términos y condiciones", { multiline: true, hint: "Opcional. Ej.: política de cambios y devoluciones. Sale en letra chica al final." })}
+                    {field("farewell", "Despedida", {
+                        hint: "La última línea del ticket, en negritas. Ej.: ¡Gracias por su compra! Vuelva pronto.",
+                        disabled: !data.show_farewell,
+                    })}
                 </fieldset>
 
                 <fieldset>

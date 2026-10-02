@@ -34,7 +34,8 @@ class BranchController extends Controller
             'address' => 'nullable|string|max:200',
             'phone' => 'nullable|string|max:40',
             'header' => 'nullable|string|max:300',
-            'footer' => 'nullable|string|max:300',
+            'footer' => 'nullable|string|max:600',
+            'farewell' => 'nullable|string|max:120',
             'register_label' => 'nullable|string|max:60',
             'seller_label' => 'nullable|string|max:40',
             // Opcionales: lo que no llega conserva su valor por omisión.

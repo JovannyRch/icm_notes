@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
 use App\Models\Product;
 use App\Models\Stock;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -28,47 +31,157 @@ class ProductController extends Controller
         ]);
     }
 
+    /** Filtros de estado de la lista (?estado=). */
+    public const STATUSES = ['sin_precio', 'sin_costo', 'con_perdida', 'agotados', 'sin_inventario', 'con_existencias'];
+
+    /** Órdenes de la lista (?sort=). */
+    public const SORTS = ['id', 'marca', 'precio_asc', 'precio_desc', 'existencias', 'recientes'];
+
+    /**
+     * Expresiones SQL de la lista sobre `products` + `stocks as s` (la sucursal activa).
+     * El costo real es el de calculatePurchaseSubtotal(): costo × (1 + IVA) × (1 + extra),
+     * y el extra global de la sucursal reemplaza al del producto. Funcionan igual en
+     * SQLite, MySQL y PostgreSQL.
+     */
+    private function listSql(?float $globalExtra): array
+    {
+        $extra = $globalExtra !== null ? (string) (float) $globalExtra : 'COALESCE(products.extra, 0)';
+        $realCost = "COALESCE(products.cost, 0) * (1 + COALESCE(products.iva, 0) / 100.0) * (1 + {$extra} / 100.0)";
+
+        return [
+            'real_cost' => $realCost,
+            'sin_precio' => 'COALESCE(products.price, 0) <= 0',
+            'sin_costo' => 'COALESCE(products.cost, 0) <= 0',
+            'con_perdida' => "COALESCE(products.price, 0) > 0 AND COALESCE(products.cost, 0) > 0 AND products.price < {$realCost}",
+            // Misma regla que showsStock(): se muestra el número si se contó o si ya se movió.
+            'agotados' => '((s.counted_at IS NOT NULL AND s.quantity <= 0) OR s.quantity < 0)',
+            'sin_inventario' => '(s.id IS NULL OR (s.counted_at IS NULL AND s.quantity = 0))',
+            'con_existencias' => 's.quantity > 0',
+        ];
+    }
+
     public function index(Request $request)
     {
-
-        $query = $request->input('query');
+        $branchId = currentBranchId();
+        $search = trim((string) $request->input('query'));
         $brand = $request->input('brand');
+        $status = in_array($request->input('estado'), self::STATUSES, true) ? $request->input('estado') : null;
+        $sort = in_array($request->input('sort'), self::SORTS, true) ? $request->input('sort') : 'id';
+        $sql = $this->listSql(Branch::find($branchId)?->extra_percentage);
 
-        $brands = Product::select('brand')->distinct()->get();
-
-        if ($query) {
-            // appends() es del paginador, no del query builder: primero paginar.
-            $pagination = $this->getSearchQuery($query, $brand)->orderBy('id')->paginate(50);
-            $pagination->appends(request()->query());
-
-            return Inertia::render(
-                'Products/Index',
-                [
-                    'pagination' => $pagination,
-                    'brands' => $brands,
-                ]
-            );
+        $base = Product::query()->leftJoin('stocks as s', function ($join) use ($branchId) {
+            $join->on('s.product_id', '=', 'products.id')->where('s.branch_id', '=', $branchId);
+        });
+        if ($search !== '') {
+            $this->applySearch($base, $search);
         }
-
-        $pagination = null;
-
         if ($brand) {
-            // orderBy explícito: Postgres reordena filas tras un UPDATE y la edición rápida las movería de página.
-            $products = Product::where('brand', $brand)->with('stock')->orderBy('id');
-            $pagination = $products->paginate(50);
-            $pagination->appends(request()->query());
-        } else {
-            $pagination = Product::with('stock')->orderBy('id')->paginate(50);
-            $pagination->appends(request()->query());
+            $base->where('products.brand', $brand);
         }
 
-        return Inertia::render(
-            'Products/Index',
-            [
-                'pagination' => $pagination,
-                'brands' => $brands,
-            ]
-        );
+        // Conteos de cada filtro y valor del inventario, con la búsqueda y la marca actuales.
+        $counts = collect(self::STATUSES)->map(fn ($key) => "SUM(CASE WHEN {$sql[$key]} THEN 1 ELSE 0 END) as {$key}")->implode(', ');
+        $row = (clone $base)->selectRaw("COUNT(*) as total, {$counts},
+            SUM(CASE WHEN s.quantity > 0 THEN s.quantity ELSE 0 END) as stock_units,
+            SUM(CASE WHEN s.quantity > 0 THEN s.quantity * COALESCE(products.price, 0) ELSE 0 END) as stock_price,
+            SUM(CASE WHEN s.quantity > 0 THEN s.quantity * {$sql['real_cost']} ELSE 0 END) as stock_cost")->first();
+
+        $query = (clone $base)->select('products.*')->with('stock');
+        if ($status) {
+            $query->whereRaw($sql[$status]);
+        }
+        match ($sort) {
+            'marca' => $query->orderBy('products.brand')->orderBy('products.model'),
+            'precio_asc' => $query->orderByRaw('COALESCE(products.price, 0) asc'),
+            'precio_desc' => $query->orderByRaw('COALESCE(products.price, 0) desc'),
+            // Sin registro de existencias al final.
+            'existencias' => $query->orderByRaw('CASE WHEN s.id IS NULL THEN 1 ELSE 0 END')->orderByRaw('COALESCE(s.quantity, 0) desc'),
+            'recientes' => $query->orderByDesc('products.updated_at'),
+            default => null,
+        };
+        // orderBy('id') siempre al final: Postgres reordena filas tras un UPDATE y la edición rápida las movería de página.
+        $pagination = $query->orderBy('products.id')->paginate(50)->appends($request->query());
+
+        return Inertia::render('Products/Index', [
+            'pagination' => $pagination,
+            'brands' => Product::whereNotNull('brand')->where('brand', '!=', '')->distinct()->orderBy('brand')->pluck('brand'),
+            'filters' => ['query' => $search, 'brand' => $brand, 'estado' => $status, 'sort' => $sort],
+            'summary' => [
+                'total' => (int) $row->total,
+                ...collect(self::STATUSES)->mapWithKeys(fn ($key) => [$key => (int) $row->{$key}])->all(),
+                'stock_units' => (float) $row->stock_units,
+                'stock_price' => (float) $row->stock_price,
+                'stock_cost' => (float) $row->stock_cost,
+            ],
+        ]);
+    }
+
+    /**
+     * Ajuste masivo del precio público o del costo: a los productos seleccionados o a
+     * toda una marca, en % o en pesos, con redondeo opcional.
+     */
+    public function bulkPrice(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['nullable', 'array', 'max:5000'],
+            'ids.*' => ['integer'],
+            'brand' => ['nullable', 'string', 'max:255'],
+            'field' => ['required', Rule::in(['price', 'cost'])],
+            'mode' => ['required', Rule::in(['percent', 'amount'])],
+            'value' => ['required', 'numeric', 'not_in:0', 'min:-1000000', 'max:1000000'],
+            'round' => ['required', Rule::in(['none', 'peso', 'diez'])],
+        ], [
+            'value.required' => 'Escribe cuánto cambia el precio.',
+            'value.not_in' => 'Escribe un cambio distinto de 0.',
+        ]);
+
+        if (empty($data['ids']) && empty($data['brand'])) {
+            throw ValidationException::withMessages(['ids' => 'Elige productos o una marca.']);
+        }
+        if ($data['mode'] === 'percent' && $data['value'] <= -100) {
+            throw ValidationException::withMessages(['value' => 'No se puede bajar 100% o más.']);
+        }
+
+        $products = Product::query()
+            ->when(! empty($data['ids']), fn ($q) => $q->whereIn('id', $data['ids']))
+            ->when(empty($data['ids']), fn ($q) => $q->where('brand', $data['brand']))
+            ->get(['id', $data['field']]);
+
+        $field = $data['field'];
+        $value = (float) $data['value'];
+        $changed = 0;
+        $skipped = 0;
+
+        DB::transaction(function () use ($products, $field, $value, $data, &$changed, &$skipped) {
+            foreach ($products as $product) {
+                $before = (float) $product->{$field};
+                $after = $data['mode'] === 'percent' ? $before * (1 + $value / 100) : $before + $value;
+                $after = match ($data['round']) {
+                    'peso' => round($after),
+                    'diez' => round($after / 10) * 10,
+                    default => round($after, 2),
+                };
+                // Sin precio (0) en % no cambia, y nada puede quedar negativo.
+                if ($after < 0 || abs($after - $before) < 0.005) {
+                    $skipped++;
+
+                    continue;
+                }
+                $product->update([$field => $after]);
+                $changed++;
+            }
+        });
+
+        Log::info('Ajuste masivo de precios', ['field' => $field, 'mode' => $data['mode'], 'value' => $value, 'round' => $data['round'],
+            'brand' => $data['brand'] ?? null, 'productos' => $changed, 'user_id' => $request->user()->id]);
+
+        $label = $field === 'price' ? 'precio público' : 'costo';
+        $message = $changed === 1 ? "Se actualizó el {$label} de 1 producto." : "Se actualizó el {$label} de {$changed} productos.";
+        if ($skipped > 0) {
+            $message .= " {$skipped} sin cambio (sin precio, o quedaría negativo).";
+        }
+
+        return back()->with($changed > 0 ? 'success' : 'error', $changed > 0 ? $message : 'Ningún producto cambió.');
     }
 
     public function getAll()
@@ -81,9 +194,15 @@ class ProductController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
-        return Inertia::render('Products/Form');
+        // ?duplicar={id}: el formulario llega con los datos de ese producto (sin existencias),
+        // p. ej. el mismo modelo con otro m² por caja.
+        $source = $request->integer('duplicar') ? Product::find($request->integer('duplicar')) : null;
+
+        return Inertia::render('Products/Form', [
+            'duplicate' => $source?->only(['brand', 'model', 'measure', 'mc', 'unit', 'iva', 'extra', 'price', 'cost']),
+        ]);
     }
 
     /**
@@ -241,29 +360,30 @@ class ProductController extends Controller
         }
     }
 
-    public function getSearchQuery($query, $brand = null, bool $matchCost = true)
+    /** Cada palabra debe aparecer en alguna columna (columnas calificadas: la lista une `stocks`). */
+    private function applySearch($products, string $query, bool $matchCost = true)
     {
+        $likeOperator = DB::connection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
 
-        $isPostgreSQL = DB::connection()->getDriverName() === 'pgsql';
-
-        $likeOperator = $isPostgreSQL ? 'ILIKE' : 'LIKE';
-
-        $keywords = explode(' ', $query);
-
-        $products = Product::query();
-
-        foreach ($keywords as $keyword) {
+        foreach (array_filter(explode(' ', $query), fn ($k) => $k !== '') as $keyword) {
             $products->where(function ($q) use ($keyword, $likeOperator, $matchCost) {
-                $q->orWhere('model', $likeOperator, "%{$keyword}%")
-                    ->orWhere('measure', $likeOperator, "%{$keyword}%")
-                    ->orWhere('mc', $likeOperator, "%{$keyword}%")
-                    ->orWhere('unit', $likeOperator, "%{$keyword}%")
-                    ->orWhere('price', $likeOperator, "%{$keyword}%")
+                $q->orWhere('products.model', $likeOperator, "%{$keyword}%")
+                    ->orWhere('products.measure', $likeOperator, "%{$keyword}%")
+                    ->orWhere('products.mc', $likeOperator, "%{$keyword}%")
+                    ->orWhere('products.unit', $likeOperator, "%{$keyword}%")
+                    ->orWhere('products.price', $likeOperator, "%{$keyword}%")
                     // Quien no ve costos tampoco puede deducirlos buscando por número.
-                    ->when($matchCost, fn ($q) => $q->orWhere('cost', $likeOperator, "%{$keyword}%"))
-                    ->orWhere('brand', $likeOperator, "%{$keyword}%");
+                    ->when($matchCost, fn ($q) => $q->orWhere('products.cost', $likeOperator, "%{$keyword}%"))
+                    ->orWhere('products.brand', $likeOperator, "%{$keyword}%");
             });
         }
+
+        return $products;
+    }
+
+    public function getSearchQuery($query, $brand = null, bool $matchCost = true)
+    {
+        $products = $this->applySearch(Product::query(), (string) $query, $matchCost);
 
         if ($brand) {
             $products->where('brand', $brand);

@@ -63,6 +63,7 @@
         .qr { text-align: center; margin: 3mm 0 1mm; }
         .qr img { width: 26mm; height: 26mm; }
         .pre { white-space: pre-line; }
+        .farewell { font-size: 13px; font-weight: 700; margin-top: 2mm; }
     </style>
 </head>
 <body>
@@ -148,9 +149,15 @@
         <div class="qr"><img src="{{ $t['qr'] }}" alt="QR {{ $t['code'] }}"></div>
         <div class="center muted">{{ $t['code'] }}</div>
     @endif
-    @if ($s['footer'])
+    @if ($s['footer'] || ($s['show_farewell'] && $s['farewell']))
         <hr class="rule">
-        <div class="center pre">{{ $s['footer'] }}</div>
+    @endif
+    @if ($s['footer'])
+        {{-- Términos y condiciones: letra chica para no gastar papel. --}}
+        <div class="center pre muted">{{ $s['footer'] }}</div>
+    @endif
+    @if ($s['show_farewell'] && $s['farewell'])
+        <div class="center pre farewell">{{ $s['farewell'] }}</div>
     @endif
 
 @endforeach

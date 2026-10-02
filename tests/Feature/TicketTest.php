@@ -174,6 +174,25 @@ class TicketTest extends TestCase
             ->assertSee('TICKET DE PRUEBA')->assertSee('CAJA JILOTEPEC')->assertSee('Ideas Modernas de Construcción');
     }
 
+    public function test_terms_and_farewell_are_separate(): void
+    {
+        // Por omisión: sin términos y con la despedida.
+        $html = $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent();
+        $this->assertStringContainsString('¡Gracias por su compra! Vuelva pronto.', $html);
+
+        $this->configure(['footer' => 'No hay cambios ni devoluciones.', 'farewell' => '¡Vuelva pronto!']);
+        $html = $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent();
+        $this->assertStringContainsString('No hay cambios ni devoluciones.', $html);
+        $this->assertStringContainsString('¡Vuelva pronto!', $html);
+        $this->assertLessThan(strpos($html, '¡Vuelva pronto!'), strpos($html, 'No hay cambios ni devoluciones.'));
+
+        // Se puede apagar la despedida y dejar sólo los términos.
+        $this->configure(['footer' => 'No hay cambios ni devoluciones.', 'farewell' => '¡Vuelva pronto!', 'show_farewell' => false]);
+        $html = $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent();
+        $this->assertStringContainsString('No hay cambios ni devoluciones.', $html);
+        $this->assertStringNotContainsString('Vuelva pronto', $html);
+    }
+
     private function configure(array $ticket): void
     {
         $this->actingAs(User::factory()->create())->put("/sucursales/{$this->a->id}/ticket", $ticket)->assertSessionHasNoErrors();

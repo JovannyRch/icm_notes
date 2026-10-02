@@ -19,16 +19,16 @@ test("productos: buscar, filtrar por marca, abrir, exportar y eliminar", async (
     await expect(row(page, "MICHELIN")).toBeVisible();
 
     // Buscar.
-    await page.getByPlaceholder("Buscar producto...").fill("PIRELLI");
-    await page.getByRole("button", { name: "Buscar" }).click();
+    // Buscar mientras se escribe.
+    await page.getByLabel("Buscar productos").fill("PIRELLI");
     await expect(page).toHaveURL(/query=PIRELLI/);
     await expect(row(page, "PIRELLI")).toBeVisible();
     await expect(row(page, "MICHELIN")).toHaveCount(0);
 
     // Filtro de marca.
     await page.goto("/productos");
-    await page.getByRole("button", { name: /Marca/ }).click();
-    await page.getByRole("menuitem", { name: "E2EBRAND" }).click();
+    await page.getByRole("combobox", { name: "Marca" }).click();
+    await page.getByRole("option", { name: "E2EBRAND" }).click();
     await expect(page).toHaveURL(/brand=E2EBRAND/);
     await expect(row(page, "BORRAR-1")).toBeVisible();
     await expect(row(page, "MICHELIN")).toHaveCount(0);
@@ -44,6 +44,28 @@ test("productos: buscar, filtrar por marca, abrir, exportar y eliminar", async (
     await page.goto("/productos?brand=E2EBRAND");
     await row(page, "BORRAR-1").getByText("BORRAR-1").click();
     await page.waitForURL(/\/productos\/\d+$/);
+
+    // Filtro de estado: el producto nuevo no tiene precio.
+    await page.goto("/productos?brand=E2EBRAND");
+    await page.getByRole("button", { name: /Sin precio/ }).click();
+    await expect(page).toHaveURL(/estado=sin_precio/);
+    await expect(row(page, "BORRAR-1")).toBeVisible();
+
+    // Ajuste masivo: se le pone costo de 100 y se sube 10% → 110.
+    await page.goto("/productos?brand=E2EBRAND");
+    await row(page, "BORRAR-1").getByRole("button", { name: /Editar costo/ }).click();
+    await page.getByLabel("costo de E2EBRAND BORRAR-1").fill("100");
+    await page.getByLabel("costo de E2EBRAND BORRAR-1").press("Enter");
+    await expect(row(page, "BORRAR-1")).toContainText("$100.00");
+    await page.waitForLoadState("networkidle");
+    await row(page, "BORRAR-1").getByRole("checkbox").click();
+    await page.getByRole("button", { name: "Ajustar precios" }).click();
+    await page.getByRole("dialog").getByRole("radio", { name: "Costo" }).click();
+    await page.getByLabel("Cuánto").fill("10");
+    await expect(page.getByRole("dialog")).toContainText("$110.00");
+    await page.getByRole("button", { name: /Cambiar 1 producto/ }).click();
+    await expectToast(page, /Se actualizó el costo de 1 producto/);
+    await expect(row(page, "BORRAR-1")).toContainText("$110.00");
 
     // Seleccionar y eliminar.
     await page.goto("/productos?brand=E2EBRAND");

@@ -18,6 +18,7 @@ import { confirmAlert } from "react-confirm-alert";
 import { BiArrowBack, BiArrowToRight, BiSave, BiTrash } from "react-icons/bi";
 import { BiDownArrowAlt, BiUpArrowAlt, BiTransfer } from "react-icons/bi";
 import { MdOutlineEdit } from "react-icons/md";
+import { LuCopy } from "react-icons/lu";
 import { BiPlus } from "react-icons/bi";
 import StockMovementForm from "./components/StockMovementForm";
 import { useUpdateEffect } from "@/hooks/useUpdateEffect";
@@ -26,6 +27,8 @@ import { useBranchExtra } from "@/hooks/useBranchExtra";
 interface FormProps extends PageProps {
     product?: Product;
     stockMovements?: any;
+    /** Datos de otro producto para registrar uno parecido (?duplicar={id}). */
+    duplicate?: Partial<Product> | null;
 }
 
 const movementIcons = {
@@ -53,6 +56,7 @@ const movementLabels: Record<string, { label: string; color: "green" | "red" | "
 const Form = ({
     product,
     stockMovements: stockMovementsWithPagination = [],
+    duplicate,
     flash,
 }: FormProps) => {
     const isEdit = !!product;
@@ -64,16 +68,17 @@ const Form = ({
     const { currentBranchName } = useBranch();
     const { globalExtra } = useBranchExtra();
 
+    const source = product ?? duplicate ?? undefined;
     const { data, setData, errors, put, post, processing, transform } = useForm({
-        brand: product ? product.brand : "",
-        model: product ? product.model : "",
-        measure: product ? product.measure : "",
-        mc: product ? product.mc : "",
-        unit: product ? product.unit : "",
-        cost: String(product ? product.cost : 0),
-        iva: String(product ? product.iva : 16),
-        price: String(product ? product.price : 0),
-        extra: String(product ? product.extra : 0),
+        brand: source?.brand ?? "",
+        model: source?.model ?? "",
+        measure: source?.measure ?? "",
+        mc: source?.mc ?? "",
+        unit: source?.unit ?? "",
+        cost: String(source?.cost ?? 0),
+        iva: String(source?.iva ?? 16),
+        price: String(source?.price ?? 0),
+        extra: String(source?.extra ?? 0),
         stock: String(
             isNumber(product?.stock?.quantity)
                 ? Number(product?.stock?.quantity)
@@ -187,10 +192,18 @@ const Form = ({
                     }
                     actions={
                         isEdit ? (
-                            <Button color="red" variant="soft" onClick={handleOnDelete}>
-                                <BiTrash />
-                                Eliminar
-                            </Button>
+                            <>
+                                <Button variant="outline" color="gray" onClick={() => router.visit(route("products.create", { duplicar: product!.id }))}>
+                                    <LuCopy />
+                                    Duplicar
+                                </Button>
+                                <Button color="red" variant="soft" onClick={handleOnDelete}>
+                                    <BiTrash />
+                                    Eliminar
+                                </Button>
+                            </>
+                        ) : duplicate ? (
+                            <span className="text-sm text-steel">Copia de {duplicate.brand} {duplicate.model}: cambia lo necesario y guarda.</span>
                         ) : undefined
                     }
                 />

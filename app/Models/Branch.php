@@ -14,10 +14,10 @@ class Branch extends Model
     ];
 
     /** Textos del ticket por sucursal (vacío = el valor por omisión). */
-    public const TICKET_FIELDS = ['business_name', 'rfc', 'address', 'phone', 'header', 'footer', 'register_label', 'seller_label'];
+    public const TICKET_FIELDS = ['business_name', 'rfc', 'address', 'phone', 'header', 'footer', 'farewell', 'register_label', 'seller_label'];
 
     /** Qué se imprime (interruptores) — todos encendidos por omisión. */
-    public const TICKET_TOGGLES = ['show_logo', 'show_business_name', 'show_register', 'show_customer', 'show_m2', 'show_amount_in_words', 'show_payment', 'show_qr'];
+    public const TICKET_TOGGLES = ['show_logo', 'show_business_name', 'show_register', 'show_customer', 'show_m2', 'show_amount_in_words', 'show_payment', 'show_qr', 'show_farewell'];
 
     /** Cómo aparece quién vendió: su nombre, un texto genérico ("Vendedor") o nada. */
     public const SELLER_MODES = ['name', 'generic', 'none'];
@@ -31,7 +31,9 @@ class Branch extends Model
             'address' => '',
             'phone' => '',
             'header' => '',
-            'footer' => '¡Gracias por su compra!',
+            // footer: términos y condiciones (opcional); farewell: la despedida, al final.
+            'footer' => '',
+            'farewell' => '¡Gracias por su compra! Vuelva pronto.',
             'register_label' => 'CAJA '.mb_strtoupper($this->name),
             'seller_label' => 'Vendedor',
             'seller_mode' => 'name',
