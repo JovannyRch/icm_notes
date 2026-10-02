@@ -336,7 +336,15 @@ class CajaSaleTest extends TestCase
         $this->actingAs($me)->get('/caja/ventas')->assertInertia(fn ($page) => $page
             ->has('sales', 2)
             ->where('onlyMine', false)
-            ->missing('sales.0.purchase_total'));
+            ->missing('sales.0.purchase_total')
+            // Resumen de la venta en la misma lista: partidas y pagos, sin costos.
+            ->has('sales.0.lines', 1)
+            ->where('sales.0.lines.0.amount', 245)
+            ->where('sales.0.lines.0.quantity', 1)
+            ->missing('sales.0.lines.0.cost')
+            ->missing('sales.0.lines.0.purchase_subtotal')
+            ->has('sales.0.payments', 1)
+            ->where('sales.0.payments.0.cash', 245));
         $this->actingAs($me)->get('/caja/ventas?mias=1')->assertInertia(fn ($page) => $page
             ->has('sales', 1)
             ->where('sales.0.seller', $me->name)
