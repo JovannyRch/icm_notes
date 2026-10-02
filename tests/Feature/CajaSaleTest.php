@@ -229,6 +229,10 @@ class CajaSaleTest extends TestCase
         $this->assertSame('712 111 2233', $note->customer_phone);
         $this->assertSame('Calle 1, Centro', $note->customer_address);
         $this->assertEquals(8, $this->stock($this->tire), 'a crédito también sale del inventario');
+
+        // Mis ventas la marca a crédito, con lo que dejó a cuenta y lo que resta.
+        $this->actingAs($cashier)->withSession(['branch_id' => $this->a->id])->get('/caja/ventas')->assertInertia(fn ($page) => $page
+            ->where('sales.0.credit', true)->where('sales.0.balance', 3500)->where('sales.0.cash', 1000)->where('sales.0.card', 500));
     }
 
     public function test_credit_sale_without_payment_has_no_payment_row(): void

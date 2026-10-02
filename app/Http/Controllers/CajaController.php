@@ -132,6 +132,8 @@ class CajaController extends Controller
                 'customer' => $n->customer,
                 'customer_phone' => $n->customer_phone,
                 'balance' => (float) $n->balance,
+                // A crédito: queda saldo, o sigue marcada pendiente (venta con status=pending).
+                'credit' => (float) $n->balance > 0.009 || $n->status === 'pending',
                 'time' => $n->created_at?->timezone(config('app.business_timezone'))->format('H:i'),
                 'items_count' => $n->items_count,
                 'sale_total' => (float) $n->sale_total,

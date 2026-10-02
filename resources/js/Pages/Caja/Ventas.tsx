@@ -17,6 +17,8 @@ interface Sale {
     customer: string;
     customer_phone: string | null;
     balance: number;
+    /** Venta a crédito: le queda saldo o sigue pendiente. */
+    credit: boolean;
     time: string | null;
     items_count: number;
     sale_total: number;
@@ -51,7 +53,11 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
     useAlerts(flash);
 
     const active = sales.filter((s) => !s.canceled);
-    const sum = (key: "sale_total" | "cash" | "card" | "transfer") => active.reduce((acc, s) => acc + s[key], 0);
+    const sum = (key: "sale_total" | "cash" | "card" | "transfer" | "balance", list = active) => list.reduce((acc, s) => acc + s[key], 0);
+    const paid = (s: Sale) => s.cash + s.card + s.transfer;
+    // Ventas a crédito: lo que dejaron a cuenta y lo que resta por cobrar.
+    const credit = active.filter((s) => s.credit);
+    const creditPaid = credit.reduce((acc, s) => acc + paid(s), 0);
 
     const cancel = (sale: Sale) =>
         confirmAlert({
@@ -83,7 +89,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
                 }
             />
 
-            <div className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-4">
+            <div className={`grid grid-cols-2 gap-3 mb-4 ${credit.length > 0 ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-4"}`}>
                 {[
                     ["Vendido", sum("sale_total"), `${active.length} ${active.length === 1 ? "venta" : "ventas"}`],
                     ["Efectivo", sum("cash"), null],
@@ -96,6 +102,17 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
                         {hint && <div className="text-xs text-fog">{hint}</div>}
                     </div>
                 ))}
+                {credit.length > 0 && (
+                    <div className="col-span-2 p-3 border border-transparent sm:col-span-1 bg-amber-tint rounded-card" data-testid="ventas-credito">
+                        <div className="text-xs font-medium text-amber-900">
+                            A crédito · {credit.length} {credit.length === 1 ? "venta" : "ventas"}
+                        </div>
+                        <div className="mt-1 text-xl font-semibold tabular-nums text-amber-900">Resta {formatCurrency(sum("balance", credit))}</div>
+                        <div className="text-xs text-amber-900/80">
+                            A cuenta {formatCurrency(creditPaid)} de {formatCurrency(sum("sale_total", credit))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="overflow-x-auto border border-ash rounded-card">
@@ -127,15 +144,20 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
                                 {!onlyMine && <Table.Cell className="text-steel">{s.seller ?? "—"}</Table.Cell>}
                                 <Table.Cell className="text-xs text-steel">{s.canceled ? (
                                         <StatusPill tone="gray">Cancelada</StatusPill>
+                                    ) : s.credit ? (
+                                        // A crédito: lo que dejó a cuenta (y con qué) y lo que resta.
+                                        <div className="space-y-0.5">
+                                            <StatusPill tone="amber">A crédito</StatusPill>
+                                            <div>
+                                                A cuenta: <b className="font-medium tabular-nums text-charcoal">{formatCurrency(paid(s))}</b>
+                                                {paid(s) > 0 && <span className="text-fog"> ({methods(s)})</span>}
+                                            </div>
+                                            <div className="font-semibold text-amber-800">
+                                                Resta: <span className="tabular-nums">{formatCurrency(s.balance)}</span>
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <>
-                                            {methods(s) || "Sin abono"}
-                                            {s.balance > 0.009 && (
-                                                <div className="mt-1">
-                                                    <StatusPill tone="amber">Debe {formatCurrency(s.balance)}</StatusPill>
-                                                </div>
-                                            )}
-                                        </>
+                                        methods(s) || "—"
                                     )}</Table.Cell>
                                 <Table.Cell justify="end" className={`font-semibold tabular-nums ${s.canceled ? "line-through text-fog" : "text-charcoal"}`}>
                                     {formatCurrency(s.sale_total)}

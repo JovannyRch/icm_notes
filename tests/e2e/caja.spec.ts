@@ -105,7 +105,9 @@ test("venta a crédito con abono y cobro del resto desde el dashboard", async ({
     await dialog.getByRole("button", { name: "Nueva venta" }).click();
 
     await page.getByRole("button", { name: "Mis ventas" }).click();
-    await expect(page.getByRole("row", { name: /Cliente Crédito E2E/ })).toContainText("Debe $1,000.00");
+    await expect(page.getByRole("row", { name: /Cliente Crédito E2E/ })).toContainText("Resta: $1,000.00");
+    await expect(page.getByRole("row", { name: /Cliente Crédito E2E/ })).toContainText("A cuenta: $500.00");
+    await expect(page.getByTestId("ventas-credito")).toContainText("Resta $1,000.00");
 
     // El dueño la ve en "Notas por cobrar" y cobra el resto.
     const owner = await (await browser.newContext()).newPage();
