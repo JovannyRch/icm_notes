@@ -13,6 +13,9 @@ interface Props {
 
 const isCanceled = (note: Note) => note.status === "canceled" || note.delivery_status === "cancelado";
 
+/** Venta a crédito: le queda saldo (misma regla que Ventas del día). El status no sirve: las notas a mano quedan "pending" aunque estén pagadas. */
+export const isCreditNote = (note: Note) => !isCanceled(note) && Number(note.balance ?? 0) > 0.009;
+
 const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
     // El cajero no ve compras (el servidor ni siquiera se las manda).
     const seeCosts = useCan()("costs.view");
@@ -38,6 +41,7 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                 <tbody className="tabular-nums">
                     {notes.map((note) => {
                         const canceled = isCanceled(note);
+                        const onCredit = isCreditNote(note);
                         return (
                             <tr
                                 key={note.id}
@@ -57,10 +61,17 @@ const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
                                             Cancelada
                                         </Badge>
                                     )}
+                                    {onCredit && (
+                                        <Badge color="amber" variant="soft" size="1" className="ml-2">
+                                            A crédito
+                                        </Badge>
+                                    )}
                                 </td>
                                 <td className="py-2 pr-3 whitespace-nowrap">{formatDate(note.date)}</td>
                                 <td className="py-2 pr-3 text-right">{formatCurrency(note.advance)}</td>
-                                <td className="py-2 pr-3 text-right">{formatCurrency(note.balance)}</td>
+                                <td className={`py-2 pr-3 text-right ${onCredit && Number(note.balance) > 0.009 ? "font-semibold text-amber-800" : ""}`}>
+                                    {formatCurrency(note.balance)}
+                                </td>
                                 <td className={`py-2 pr-3 text-right font-medium ${canceled ? "line-through" : ""}`}>
                                     {formatCurrency(note.sale_total)}
                                 </td>

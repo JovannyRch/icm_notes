@@ -17,7 +17,7 @@ interface Sale {
     customer: string;
     customer_phone: string | null;
     balance: number;
-    /** Venta a crédito: le queda saldo o sigue pendiente. */
+    /** Venta a crédito: le queda saldo. */
     credit: boolean;
     time: string | null;
     items_count: number;

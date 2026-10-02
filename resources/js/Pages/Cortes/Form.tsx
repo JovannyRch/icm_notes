@@ -13,6 +13,7 @@ import { BiRefresh, BiSave, BiTrash } from "react-icons/bi";
 import NotesTable from "./components/NotesTable";
 import PendingNotesTable from "./components/PendingNotesTable";
 import CashSummary from "./components/CashSummary";
+import { isCreditNote } from "./components/NotesTable";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import SectionCard from "@/Components/SectionCard";
 import PageHeader from "@/Components/ui/PageHeader";
@@ -308,6 +309,14 @@ const CorteForm = ({
 
     const selectedDate = new Date(date + "T00:00");
     const activeNotes = notes.filter((n) => n.status !== "canceled" && n.delivery_status !== "cancelado").length;
+    // Ventas a crédito del día (sólo se presentan; no cambian lo que se guarda).
+    const creditNotes = cleanNotes(notes).filter(isCreditNote);
+    const credit = {
+        count: creditNotes.length,
+        total: creditNotes.reduce((acc, n) => acc + Number(n.sale_total ?? 0), 0),
+        paid: creditNotes.reduce((acc, n) => acc + Number(n.advance ?? 0), 0),
+        balance: creditNotes.reduce((acc, n) => acc + Number(n.balance ?? 0), 0),
+    };
 
     useEffect(() => {
         const sums = calculateSums(
@@ -425,6 +434,7 @@ const CorteForm = ({
                             returnsSum={sums.returnsSum}
                             previousNotesSum={sums.previousNotesSum}
                             purchasesSum={sums.purchasesSum}
+                            credit={credit}
                         >
                             {!isDetail && <div className="hidden lg:block">{saveButton}</div>}
                         </CashSummary>

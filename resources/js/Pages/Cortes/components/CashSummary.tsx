@@ -14,6 +14,8 @@ interface Props {
     returnsSum: number;
     previousNotesSum: number;
     purchasesSum: number;
+    /** Ventas a crédito del día: lo que dejaron a cuenta y lo que resta. */
+    credit?: { count: number; total: number; paid: number; balance: number };
     children?: ReactNode;
 }
 
@@ -34,7 +36,7 @@ const Line = ({ label, value, hint, sign, strong = false }: { label: string; val
  * Cuadre de caja del corte: presenta paso a paso las mismas sumas de calculateSums()
  * (no calcula nada distinto): cobrado hoy por método y cómo queda el efectivo.
  */
-const CashSummary = ({ total, notesCount, balanceSum, cashSum, cardSum, transferSum, expensesSum, returnsSum, previousNotesSum, purchasesSum, children }: Props) => {
+const CashSummary = ({ total, notesCount, balanceSum, cashSum, cardSum, transferSum, expensesSum, returnsSum, previousNotesSum, purchasesSum, credit, children }: Props) => {
     const seeCosts = useCan()("costs.view");
     const cashCollected = cashSum + expensesSum + returnsSum; // efectivo antes de gastos y devoluciones
 
@@ -55,6 +57,20 @@ const CashSummary = ({ total, notesCount, balanceSum, cashSum, cardSum, transfer
                     )}
                 </div>
             </div>
+
+            {credit && credit.count > 0 && (
+                <div className="p-4 text-sm border-b border-ash bg-amber-tint/60" data-testid="corte-credit">
+                    <div className="mb-1 text-xs font-medium tracking-wide uppercase text-amber-900">
+                        A crédito · {credit.count} {credit.count === 1 ? "venta" : "ventas"}
+                    </div>
+                    <Line label="Vendido a crédito" value={credit.total} />
+                    <Line label="Dejaron a cuenta" value={credit.paid} />
+                    <div className="flex items-baseline justify-between gap-3 py-1">
+                        <span className="font-medium text-amber-900">Resta por cobrar</span>
+                        <span className="font-semibold tabular-nums text-amber-900">{formatCurrency(credit.balance)}</span>
+                    </div>
+                </div>
+            )}
 
             <div className="p-4 text-sm border-b border-ash">
                 <div className="mb-1 text-xs font-medium tracking-wide uppercase text-fog">Cobrado hoy</div>

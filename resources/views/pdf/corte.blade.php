@@ -1,6 +1,8 @@
 <?php
 
 // Filtrar notas canceladas (igual que en el frontend)
+// Funciones globales: se declaran una sola vez aunque la vista se genere varias veces en el mismo proceso.
+if (! function_exists('cleanNotes')) {
 function cleanNotes($notes)
 {
     return array_filter($notes, function ($note) {
@@ -75,6 +77,7 @@ function getPurchaseTotal($corte)
     }
 
     return format_currency($sum, 2);
+}
 }
 
 ?>
@@ -188,6 +191,15 @@ function getPurchaseTotal($corte)
         <p>Tarjeta: {{ format_currency($corte->card_total, 2) }}</p>
         <p>Entradas: {{ format_currency($corte->previous_notes_total, 2) }}</p>
         <p>Restan notas: {{ getBalance($corte) }}</p>
+        @php
+            // Ventas a crédito del día: les queda saldo (misma regla que la pantalla).
+            $creditNotes = array_filter(cleanNotes($corte->notes), fn ($n) => (float) ($n['balance'] ?? 0) > 0.009);
+            $creditSum = fn ($key) => array_sum(array_map(fn ($n) => (float) ($n[$key] ?? 0), $creditNotes));
+        @endphp
+        @if (count($creditNotes) > 0)
+            <p><strong>Ventas a crédito: {{ count($creditNotes) }}</strong> · Vendido {{ format_currency($creditSum('sale_total'), 2) }}
+                · A cuenta {{ format_currency($creditSum('advance'), 2) }} · <strong>Restan {{ format_currency($creditSum('balance'), 2) }}</strong></p>
+        @endif
         <p>Gastos: {{ getExpenses($corte) }}</p>
         <p>Devoluciones: {{ getReturns($corte) }}</p>
         @unless ($hideCosts ?? false)<p>Total de compra a pisos Leo: {{ getPurchaseTotal($corte) }}</p>@endunless
@@ -214,7 +226,7 @@ function getPurchaseTotal($corte)
         <tbody>
             @foreach (cleanNotes($corte->notes) as $note)
                 <tr>
-                    <td>{{ $note['folio'] }}</td>
+                    <td>{{ $note['folio'] }}@if ((float) ($note['balance'] ?? 0) > 0.009) <strong>(CRÉDITO)</strong>@endif</td>
                     <td>{{ $note['date'] }}</td>
                     <td>{{ format_currency($note['advance'], 2) }}</td>
                     <td>{{ format_currency($note['balance'], 2) }}</td>

@@ -50,4 +50,20 @@ class CorteIndexTest extends TestCase
         $this->actingAs(User::factory()->create())->withSession(['branch_id' => $this->a->id])->get('/cortes?filter=ALL_TIME')
             ->assertInertia(fn ($page) => $page->where('totals.count', 4));
     }
+
+    public function test_corte_pdf_summarizes_credit_sales(): void
+    {
+        $note = fn ($folio, $total, $advance, $status) => ['id' => $folio, 'folio' => $folio, 'date' => businessToday(), 'advance' => $advance, 'balance' => $total - $advance,
+            'sale_total' => $total, 'cash' => $advance, 'card' => 0, 'transfer' => 0, 'purchase_total' => 0, 'status' => $status, 'delivery_status' => 'entregado_a_cliente'];
+        $corte = $this->corte(businessToday(), 3500);
+        $corte->update(['notes' => [$note('10', 1500, 1500, 'pending'), $note('11', 2000, 500, 'pending'), $note('12', 999, 0, 'canceled')]]);
+
+        $html = view('pdf.corte', ['corte' => $corte->fresh()->load('branch'), 'branch_name' => 'A', 'hideCosts' => true])->render();
+
+        $this->assertStringContainsString('Ventas a crédito: 1', $html);
+        $this->assertStringContainsString('A cuenta $500.00', $html);
+        $this->assertStringContainsString('Restan $1,500.00', $html);
+        $this->assertStringContainsString('11 <strong>(CRÉDITO)</strong>', $html);
+        $this->assertStringNotContainsString('10 <strong>(CRÉDITO)</strong>', $html);
+    }
 }
