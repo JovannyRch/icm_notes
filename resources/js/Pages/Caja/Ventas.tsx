@@ -34,8 +34,10 @@ interface Props extends PageProps {
     sales: Sale[];
 }
 
-const formatDay = (date: string) =>
-    new Intl.DateTimeFormat("es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
+const formatDay = (date: string) => {
+    const text = new Intl.DateTimeFormat("es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
+    return text.charAt(0).toUpperCase() + text.slice(1); // "Jueves, 1 de octubre"
+};
 
 const methods = (s: Sale) =>
     [s.cash > 0 && `Efectivo ${formatCurrency(s.cash)}`, s.card > 0 && `Tarjeta ${formatCurrency(s.card)}`, s.transfer > 0 && `Transf. ${formatCurrency(s.transfer)}`]
@@ -64,7 +66,7 @@ const SalesIndex = ({ branch, date, allBranch, sales, flash }: Props) => {
                 back={{ label: "Caja", href: route("caja") }}
                 eyebrow={branch?.name}
                 title={allBranch ? "Ventas del día" : "Mis ventas del día"}
-                description={<span className="capitalize">{formatDay(date)}</span>}
+                description={formatDay(date)}
             />
 
             <div className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-4">

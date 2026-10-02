@@ -58,7 +58,7 @@ class TicketTest extends TestCase
 
         foreach (['CAJA SAN FELIPE', 'Folio: <b>1</b>', 'Atendió: Ana Caja', 'Cliente: Juan Pérez', 'MICHELIN PRIMACY 4 205/55R16',
             '2 x $2,500.00', '$4,900.00', '-$100.00', '-$250.00', '$4,750.00', 'Recibido', '$5,000.00', '$250.00',
-            'CUATRO MIL SETECIENTOS CINCUENTA PESOS 00/100 M.N.', $this->note->code, '<svg', 'Ideas Modernas de Construcción', '¡Gracias por su compra!'] as $text) {
+            'CUATRO MIL SETECIENTOS CINCUENTA PESOS 00/100 M.N.', $this->note->code, '<svg', 'Ideas Modernas de Construcción', '¡Gracias por su compra!', 'img/ticket-logo.png'] as $text) {
             $this->assertStringContainsString($text, $html, "Falta en el ticket: {$text}");
         }
         $this->assertStringNotContainsString('1,777', $html, 'el ticket no muestra costos');
@@ -109,7 +109,7 @@ class TicketTest extends TestCase
         foreach (['Llantera ICM', 'RFC: ICM010101AAA', 'Av. Juárez 10', 'Tel. 712 123 4567', 'Garantía de 30 días'] as $text) {
             $this->assertStringContainsString($text, $html);
         }
-        $this->assertStringNotContainsString('img/logo.png', $html);
+        $this->assertStringNotContainsString('img/ticket-logo.png', $html);
 
         // La otra sucursal no se ve afectada.
         $this->assertNull($this->b->fresh()->ticket);

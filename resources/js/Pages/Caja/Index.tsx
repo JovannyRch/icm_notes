@@ -688,7 +688,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                         </div>
                     )}
                     <div className="flex flex-wrap items-center justify-between gap-2 mt-5">
-                        <Text as="label" size="1" color="gray" className="inline-flex items-center gap-2">
+                        <Text as="label" size="1" className="inline-flex items-center gap-2 text-steel">
                             <Switch
                                 size="1"
                                 checked={autoPrint}

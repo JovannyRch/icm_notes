@@ -32,7 +32,7 @@
         .center { text-align: center; }
         .right { text-align: right; }
         .bold { font-weight: 700; }
-        .logo { display: block; max-width: 44mm; max-height: 22mm; margin: 0 auto 2mm; filter: grayscale(1) contrast(1.4); }
+        .logo { display: block; width: 38mm; height: auto; margin: 0 auto 2mm; image-rendering: pixelated; }
         .name { font-size: 15px; font-weight: 700; text-transform: uppercase; }
         .muted { font-size: 11px; }
         .rule { border: 0; border-top: 1px dashed #000; margin: 2mm 0; }
@@ -52,7 +52,8 @@
 </head>
 <body>
     @if ($s['show_logo'])
-        <img class="logo" src="{{ asset('img/logo.png') }}" alt="">
+        {{-- Versión en negro puro para papel térmico (public/img/ticket-logo.png). --}}
+        <img class="logo" src="{{ asset('img/ticket-logo.png') }}" alt="">
     @endif
     <div class="center">
         <div class="name">{{ $s['business_name'] }}</div>

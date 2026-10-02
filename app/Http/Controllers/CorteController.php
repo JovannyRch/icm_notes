@@ -72,7 +72,7 @@ class CorteController extends Controller
     {
         $branch_id = currentBranchId();
         $branch = Branch::find($branch_id);
-        $date = $request->input('date') ?? date('Y-m-d');
+        $date = $request->input('date') ?? businessToday();
 
         $data = $cortePayments->forBranchAndDate((int) $branch->id, $date);
 

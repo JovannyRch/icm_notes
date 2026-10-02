@@ -21,7 +21,7 @@ class NoteController extends Controller
     {
         $branch_id = currentBranchId();
         $branch = Branch::find($branch_id);
-        $date = date('Y-m-d');
+        $date = businessToday();
 
         return Inertia::render('Notes/Form', [
             'branch' => $branch,
@@ -191,7 +191,7 @@ class NoteController extends Controller
     public function show(Note $note)
     {
         $branch = $note->branch;
-        $date = date('Y-m-d');
+        $date = businessToday();
 
         $items = NoteProduct::where('note_id', $note->id)->get();
 
