@@ -50,7 +50,7 @@ test("listado: buscar, filtrar, abrir, archivar, desarchivar y eliminar", async 
     await expect(row(page, "E2E-LIST-2")).toBeVisible();
 
     // Búsqueda por folio desde el buscador.
-    await page.getByPlaceholder("Buscar nota...").fill("E2E-LIST-2");
+    await page.getByPlaceholder("Folio o código del ticket...").fill("E2E-LIST-2");
     await page.getByRole("button", { name: "Buscar" }).click();
     await expect(page).toHaveURL(/query=E2E-LIST-2/);
     await expect(row(page, "E2E-LIST-1")).toHaveCount(0);

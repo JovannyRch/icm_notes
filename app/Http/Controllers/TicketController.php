@@ -38,6 +38,32 @@ class TicketController extends Controller
             ->header('Cache-Control', 'no-store');
     }
 
+    /**
+     * Destino del QR del ticket. Dueño: abre la nota. Cajero: el ticket, si la venta es suya
+     * o puede ver las de su sucursal. Si no existe o no le toca, regresa con un aviso.
+     */
+    public function verify(Request $request, string $code)
+    {
+        $user = $request->user();
+        $home = $user->can('notes.view') ? 'notas' : ($user->can('sales.create') ? 'caja' : 'profile.edit');
+        $note = Note::where('code', strtoupper($code))->first();
+
+        if (! $note) {
+            return redirect()->route($home)->with('error', 'No encontré ninguna venta con el código '.strtoupper($code).'.');
+        }
+        if (! $user->canAccessBranch($note->branch_id)) {
+            return redirect()->route($home)->with('error', "La venta {$note->folio} es de otra sucursal.");
+        }
+        if ($user->can('notes.view')) {
+            return redirect()->route('notes.show', $note);
+        }
+        if ($this->canView($request, $note)) {
+            return redirect()->route('tickets.show', $note);
+        }
+
+        return redirect()->route($home)->with('error', "No tienes permiso para ver la venta {$note->folio}.");
+    }
+
     /** Ticket de ejemplo para revisar los datos de la sucursal y probar la impresora. */
     public function sample(Request $request, Branch $branch)
     {
@@ -120,7 +146,9 @@ class TicketController extends Controller
             'balance' => round((float) $note->balance, 2),
             'canceled' => $canceled,
             'amount_in_words' => AmountInWords::pesos($total),
-            'qr' => $note->code ? $this->qr($note->code) : null,
+            // El QR lleva el enlace a la venta (/v/CODIGO): al escanearlo con el celular abre
+            // la nota o el ticket según quién sea; sin sesión pide iniciarla. Sin datos públicos.
+            'qr' => $note->code ? $this->qr(route('notes.verify', $note->code)) : null,
         ];
     }
 

@@ -410,6 +410,15 @@ class NoteController extends Controller
         $notes = null;
 
         $query = request('query');
+
+        // Escanear o teclear el código del ticket (o pegar su enlace) abre esa nota directo,
+        // sin importar los filtros de fecha. Si no existe, se busca como folio normal.
+        if ($code = Note::extractCode($query)) {
+            $found = Note::where('code', $code)->first();
+            if ($found && request()->user()->canAccessBranch($found->branch_id)) {
+                return redirect()->route('notes.show', $found);
+            }
+        }
         $date = request('date') ?? 'THIS_WEEK';
 
         $status = request('status');

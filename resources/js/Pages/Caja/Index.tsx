@@ -1,7 +1,7 @@
 import Container from "@/Components/Container";
 import PageHeader from "@/Components/ui/PageHeader";
 import { formatCurrency } from "@/helpers/formatters";
-import { downloadTicketPdf, getAutoPrint, printTicket, setAutoPrint } from "@/helpers/printTicket";
+import { downloadTicketPdf, extractNoteCode, getAutoPrint, printTicket, setAutoPrint } from "@/helpers/printTicket";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
@@ -10,7 +10,7 @@ import { Button, Dialog, IconButton, Switch, Text } from "@radix-ui/themes";
 import axios from "axios";
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { LuBanknote, LuCreditCard, LuFileDown, LuHistory, LuMinus, LuPlus, LuPrinter, LuSearch, LuShoppingCart, LuTrash2, LuX } from "react-icons/lu";
+import { LuBanknote, LuCreditCard, LuFileDown, LuHistory, LuReceipt, LuMinus, LuPlus, LuPrinter, LuSearch, LuShoppingCart, LuTrash2, LuX } from "react-icons/lu";
 
 interface Rules {
     changePrice: boolean;
@@ -120,10 +120,19 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
         if (cart.length === 0) setFolio(nextFolio);
     }, [nextFolio]);
 
+    // ¿Escanearon el QR de un ticket (o teclearon su código)? Entonces no es un producto.
+    const scannedCode = extractNoteCode(query);
+    const openSale = (code: string) => {
+        // Pestaña nueva: la venta en curso no se pierde.
+        window.open(route("notes.verify", code), "_blank");
+        setQuery("");
+        setResults([]);
+    };
+
     // Búsqueda con espera corta: el lector de códigos y el tecleo rápido no disparan una petición por letra.
     useEffect(() => {
         const q = query.trim();
-        if (q.length < 2) {
+        if (q.length < 2 || extractNoteCode(q)) {
             setResults([]);
             return;
         }
@@ -214,7 +223,8 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
             setHighlight((h) => Math.max(h - 1, 0));
         } else if (e.key === "Enter") {
             e.preventDefault();
-            if (results[highlight]) addProduct(results[highlight]);
+            if (scannedCode) openSale(scannedCode);
+            else if (results[highlight]) addProduct(results[highlight]);
         } else if (e.key === "Escape") {
             setQuery("");
             setResults([]);
@@ -368,7 +378,19 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, flash }: Props) => {
                                 role="listbox"
                                 className="absolute z-30 overflow-hidden bg-white border shadow-lg left-3 right-3 top-full -mt-1 rounded-card border-ash"
                             >
-                                {results.length === 0 ? (
+                                {scannedCode ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => openSale(scannedCode)}
+                                        className="flex items-center w-full gap-3 px-4 py-3 text-sm text-left bg-sky-tint"
+                                    >
+                                        <LuReceipt className="w-4 h-4 text-electric" aria-hidden />
+                                        <span className="flex-1">
+                                            <span className="block font-medium text-charcoal">Ticket {scannedCode}</span>
+                                            <span className="block text-xs text-steel">Enter para abrir la venta en otra pestaña</span>
+                                        </span>
+                                    </button>
+                                ) : results.length === 0 ? (
                                     <div className="px-4 py-3 text-sm text-fog">{searching ? "Buscando…" : "Sin resultados"}</div>
                                 ) : (
                                     results.map((p, i) => {

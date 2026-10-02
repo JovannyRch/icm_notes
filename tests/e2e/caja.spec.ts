@@ -46,13 +46,25 @@ test("el cajero cobra una venta con descuento y cambio", async ({ page }) => {
     await expect(dialog).toContainText("$205.00");
     const ticketUrl = (await ticketRequest).url();
     const ticket = await page.request.get(ticketUrl.replace("?print=1", ""));
-    expect(await ticket.text()).toContain("$5,795.00");
+    const ticketHtml = await ticket.text();
+    expect(ticketHtml).toContain("$5,795.00");
+    const saleCode = ticketHtml.match(/alt="QR ([2-9A-HJKMNP-Z]{10})"/)![1];
     // El ticket también se descarga en PDF desde el mismo diálogo.
     const [download] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "PDF" }).click()]);
     expect(download.suggestedFilename()).toMatch(/^ticket-.+\.pdf$/);
     await dialog.getByRole("button", { name: "Nueva venta" }).click();
     await expect(total).toHaveText("$0.00");
     await expect(search).toBeFocused();
+
+    // Escanear el QR del ticket en el buscador (el lector "teclea" el enlace + Enter)
+    // abre esa venta en otra pestaña, sin perder la caja.
+    await search.fill(`${new URL(ticketUrl).origin}/v/${saleCode}`);
+    await expect(page.getByText(`Ticket ${saleCode}`)).toBeVisible();
+    const [saleTab] = await Promise.all([page.context().waitForEvent("page"), search.press("Enter")]);
+    await saleTab.waitForLoadState();
+    expect(saleTab.url()).toMatch(/\/nota\/\d+\/ticket$/);
+    await expect(saleTab.locator("body")).toContainText("$5,795.00");
+    await saleTab.close();
 
     // Mis ventas: aparece, y se puede cancelar (es suya y del día).
     await page.getByRole("button", { name: "Mis ventas" }).click();

@@ -19,6 +19,7 @@ class RouteAuthorizationTest extends TestCase
         'set-branch',         // valida en el cierre que la sucursal sea del usuario
         'api/branches',       // devuelve sólo las sucursales del usuario
         'impersonation.stop', // quien está "dentro" es el otro usuario; valida impersonator_id
+        'notes.verify',       // QR del ticket: el controlador revisa sucursal y permisos por nota
         'logout', 'password.update', 'password.confirm', 'verification.send', 'verification.verify',
     ];
 

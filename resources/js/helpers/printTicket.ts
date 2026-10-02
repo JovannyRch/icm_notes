@@ -14,6 +14,18 @@ export function printTicket(url: string) {
     window.setTimeout(() => frame.remove(), 120_000);
 }
 
+/**
+ * Código de venta en lo escaneado o tecleado: el enlace del QR (…/v/CODIGO) o el código
+ * solo (con al menos una letra, para no confundirlo con un folio). Igual que Note::extractCode().
+ */
+export function extractNoteCode(text: string): string | null {
+    const value = text.trim();
+    const link = value.match(/\/v\/([2-9A-HJKMNP-Z]{10})(?:[/?#]|$)/i);
+    if (link) return link[1].toUpperCase();
+    if (/^[2-9A-HJKMNP-Z]{10}$/i.test(value) && /[A-Z]/i.test(value)) return value.toUpperCase();
+    return null;
+}
+
 /** Descarga el ticket en PDF (80 mm). Es una descarga normal: la pantalla no cambia. */
 export function downloadTicketPdf(noteId: number) {
     window.location.href = route("tickets.pdf", noteId);

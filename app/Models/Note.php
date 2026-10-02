@@ -58,6 +58,24 @@ class Note extends Model
         return $code;
     }
 
+    /**
+     * Código de nota dentro de lo que se escaneó o tecleó: el enlace del QR (…/v/CODIGO)
+     * o el código solo. Un código suelto debe traer al menos una letra, para no confundirlo
+     * con un folio numérico. null si no parece código.
+     */
+    public static function extractCode(?string $text): ?string
+    {
+        $text = trim((string) $text);
+        if (preg_match('#/v/([2-9A-HJKMNP-Z]{10})(?:[/?\#]|$)#i', $text, $m)) {
+            return strtoupper($m[1]);
+        }
+        if (preg_match('/^[2-9A-HJKMNP-Z]{10}$/i', $text) && preg_match('/[A-Z]/i', $text)) {
+            return strtoupper($text);
+        }
+
+        return null;
+    }
+
     /** Siguiente folio de la sucursal: el mayor folio numérico + 1 (los no numéricos se ignoran). */
     public static function nextFolio(int $branchId): string
     {

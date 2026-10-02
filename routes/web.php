@@ -49,6 +49,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/api/branches', [BranchController::class, 'getList']);
 
+    // Destino del QR del ticket (/v/CODIGO): sólo con sesión; el controlador decide a dónde
+    // mandar según el usuario y si la venta es de una sucursal suya.
+    Route::get('/v/{code}', [TicketController::class, 'verify'])->name('notes.verify')->where('code', '[A-Za-z0-9]{10}');
+
     // Volver a la cuenta del super_admin tras "entrar como" (el controlador valida la sesión).
     Route::post('/admin/volver-a-mi-cuenta', [ImpersonationController::class, 'stop'])->name('impersonation.stop');
 
