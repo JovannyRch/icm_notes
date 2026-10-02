@@ -3,6 +3,8 @@
     $money = fn ($v) => '$' . number_format((float) $v, 2);
     $qty = fn ($v) => rtrim(rtrim(number_format((float) $v, 2), '0'), '.');
     $pdf = $pdf ?? false;
+    // Copias sólo al imprimir: la 2.ª sale marcada "COPIA" en su propia hoja (corte).
+    $copies = $printing && ! $pdf ? max(1, min(2, (int) $s['copies'])) : 1;
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -64,12 +66,14 @@
     </style>
 </head>
 <body>
+@foreach (range(1, $copies) as $copy)
+    @if ($copy > 1)<div style="page-break-before: always; break-before: page;"></div>@endif
     @if ($s['show_logo'])
         {{-- Versión en negro puro para papel térmico (public/img/ticket-logo.png). --}}
         <div class="logo-wrap"><img class="logo" src="{{ $pdf ? 'data:image/png;base64,'.base64_encode(file_get_contents(public_path('img/ticket-logo.png'))) : asset('img/ticket-logo.png') }}" alt=""></div>
     @endif
     <div class="center">
-        <div class="name">{{ $s['business_name'] }}</div>
+        @if ($s['show_business_name'])<div class="name">{{ $s['business_name'] }}</div>@endif
         @if ($s['rfc'])<div class="muted">RFC: {{ $s['rfc'] }}</div>@endif
         @if ($s['address'])<div class="muted pre">{{ $s['address'] }}</div>@endif
         @if ($s['phone'])<div class="muted">Tel. {{ $s['phone'] }}</div>@endif
@@ -77,13 +81,16 @@
     </div>
 
     <hr class="rule">
-    <div class="center bold">{{ $t['register'] }}</div>
+    @if ($s['show_register'] && $t['register'])<div class="center bold">{{ $t['register'] }}</div>@endif
     <div class="row"><span>Folio: <b>{{ $t['folio'] }}</b></span><span>{{ $t['datetime'] }}</span></div>
     @if ($t['seller'])<div>Atendió: {{ $t['seller'] }}</div>@endif
-    <div>Cliente: {{ $t['customer'] ?: 'Público en general' }}</div>
-    @if ($t['customer_phone'])<div>Tel.: {{ $t['customer_phone'] }}</div>@endif
-    @if ($t['customer_address'])<div>Dirección: {{ $t['customer_address'] }}</div>@endif
+    @if ($s['show_customer'])
+        <div>Cliente: {{ $t['customer'] ?: 'Público en general' }}</div>
+        @if ($t['customer_phone'])<div>Tel.: {{ $t['customer_phone'] }}</div>@endif
+        @if ($t['customer_address'])<div>Dirección: {{ $t['customer_address'] }}</div>@endif
+    @endif
 
+    @if ($copy > 1)<div class="banner">COPIA</div>@endif
     @if ($sample)<div class="banner">TICKET DE PRUEBA</div>@endif
     @if ($reprint)<div class="banner">REIMPRESIÓN</div>@endif
     @if ($t['canceled'])<div class="banner">VENTA CANCELADA</div>@endif
@@ -98,7 +105,7 @@
                 <span>{{ $qty($line['quantity']) }} x {{ $money($line['price']) }}</span>
                 <span class="bold">{{ $money($line['amount']) }}</span>
             </div>
-            @if ($line['m2'])
+            @if ($s['show_m2'] && $line['m2'])
                 <div class="detail"><span>{{ $qty($line['m2_per_box']) }} m²/caja</span><span>{{ $qty($line['m2']) }} m²</span></div>
             @endif
             @if ($line['discount'] > 0)
@@ -109,16 +116,17 @@
 
     <hr class="rule">
     <div class="row"><span>Artículos</span><span>{{ $qty($t['units']) }}</span></div>
-    @if ($t['m2'] > 0)<div class="row"><span>Total m²</span><span>{{ $qty($t['m2']) }} m²</span></div>@endif
+    @if ($s['show_m2'] && $t['m2'] > 0)<div class="row"><span>Total m²</span><span>{{ $qty($t['m2']) }} m²</span></div>@endif
     <div class="row"><span>Subtotal</span><span>{{ $money($t['gross']) }}</span></div>
     @if ($t['discount'] > 0)<div class="row"><span>Descuento</span><span>-{{ $money($t['discount']) }}</span></div>@endif
     @if ($t['flete'] > 0)<div class="row"><span>Flete</span><span>{{ $money($t['flete']) }}</span></div>@endif
     <hr class="rule-solid">
     <div class="row total"><span>TOTAL</span><span>{{ $money($t['total']) }}</span></div>
-    <div class="words">Son: {{ $t['amount_in_words'] }}</div>
+    @if ($s['show_amount_in_words'])<div class="words">Son: {{ $t['amount_in_words'] }}</div>@endif
 
     @unless ($t['canceled'])
         <hr class="rule">
+        @if ($s['show_payment'])
         @if ($t['cash'] > 0)<div class="row"><span>Efectivo</span><span>{{ $money($t['cash']) }}</span></div>@endif
         @if ($t['card'] > 0)<div class="row"><span>Tarjeta</span><span>{{ $money($t['card']) }}</span></div>@endif
         @if ($t['transfer'] > 0)<div class="row"><span>Transferencia</span><span>{{ $money($t['transfer']) }}</span></div>@endif
@@ -126,15 +134,17 @@
             <div class="row"><span>Recibido</span><span>{{ $money($t['cash_received']) }}</span></div>
             <div class="row bold"><span>Cambio</span><span>{{ $money($t['change']) }}</span></div>
         @endif
+        @if ($t['balance'] > 0.009 && $t['cash'] + $t['card'] + $t['transfer'] > 0.009)
+            <div class="row"><span>Abonado</span><span>{{ $money($t['cash'] + $t['card'] + $t['transfer']) }}</span></div>
+        @endif
+        @endif
+        {{-- El saldo pendiente se imprime siempre: es lo que el cliente debe. --}}
         @if ($t['balance'] > 0.009)
-            @if ($t['cash'] + $t['card'] + $t['transfer'] > 0.009)
-                <div class="row"><span>Abonado</span><span>{{ $money($t['cash'] + $t['card'] + $t['transfer']) }}</span></div>
-            @endif
             <div class="row bold"><span>Saldo pendiente</span><span>{{ $money($t['balance']) }}</span></div>
         @endif
     @endunless
 
-    @if ($t['qr'])
+    @if ($s['show_qr'] && $t['qr'])
         <div class="qr"><img src="{{ $t['qr'] }}" alt="QR {{ $t['code'] }}"></div>
         <div class="center muted">{{ $t['code'] }}</div>
     @endif
@@ -142,6 +152,8 @@
         <hr class="rule">
         <div class="center pre">{{ $s['footer'] }}</div>
     @endif
+
+@endforeach
 
     {{-- Marca del final: el PDF mide hasta aquí para recortar la página al largo del ticket. --}}
     <div id="ticket-end" style="height: 1px; font-size: 1px; line-height: 1px;">&nbsp;</div>

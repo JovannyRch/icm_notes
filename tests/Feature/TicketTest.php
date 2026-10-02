@@ -173,6 +173,59 @@ class TicketTest extends TestCase
             ->assertSee('TICKET DE PRUEBA')->assertSee('CAJA JILOTEPEC')->assertSee('Ideas Modernas de Construcción');
     }
 
+    private function configure(array $ticket): void
+    {
+        $this->actingAs(User::factory()->create())->put("/sucursales/{$this->a->id}/ticket", $ticket)->assertSessionHasNoErrors();
+    }
+
+    public function test_register_label_business_name_and_seller_are_configurable(): void
+    {
+        $this->configure(['register_label' => 'MOSTRADOR 1', 'show_business_name' => false, 'seller_mode' => 'generic', 'seller_label' => '']);
+
+        $html = $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent();
+        $this->assertStringContainsString('MOSTRADOR 1', $html);
+        $this->assertStringNotContainsString('CAJA SAN FELIPE', $html);
+        $this->assertStringNotContainsString('Ideas Modernas de Construcción', $html);
+        $this->assertStringContainsString('Atendió: Vendedor', $html, 'texto genérico por omisión');
+        $this->assertStringNotContainsString('Ana Caja', $html);
+
+        $this->configure(['seller_mode' => 'generic', 'seller_label' => 'Asesor de ventas', 'show_register' => false]);
+        $html = $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent();
+        $this->assertStringContainsString('Atendió: Asesor de ventas', $html);
+        $this->assertStringNotContainsString('MOSTRADOR 1', $html);
+
+        $this->configure(['seller_mode' => 'none']);
+        $this->assertStringNotContainsString('Atendió:', $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent());
+        // Lo que se guarda no cambia: la nota sigue sabiendo quién vendió.
+        $this->assertSame($this->cashier->id, $this->note->fresh()->user_id);
+    }
+
+    public function test_sections_can_be_hidden(): void
+    {
+        $this->configure(['show_customer' => false, 'show_amount_in_words' => false, 'show_payment' => false, 'show_qr' => false, 'show_logo' => false]);
+
+        $html = $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent();
+        foreach (['Cliente: Juan Pérez', 'SON:', 'Son:', 'Recibido', 'Cambio', 'data:image/svg+xml', 'img/ticket-logo.png'] as $hidden) {
+            $this->assertStringNotContainsString($hidden, $html, "No debería imprimirse: {$hidden}");
+        }
+        $this->assertStringContainsString('$4,750.00', $html, 'el total siempre sale');
+    }
+
+    public function test_two_copies_when_printing_and_one_in_pdf(): void
+    {
+        $this->configure(['copies' => 2]);
+
+        $printed = $this->actingAs($this->cashier)->get($this->ticketUrl(print: true))->getContent();
+        $this->assertSame(2, substr_count($printed, 'Folio: <b>1</b>'));
+        $this->assertSame(1, substr_count($printed, '>COPIA<'));
+        $this->assertSame(1, TicketPrint::count(), 'dos copias son una sola impresión');
+
+        $preview = $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent();
+        $this->assertSame(1, substr_count($preview, 'Folio: <b>1</b>'), 'en pantalla, un solo ticket');
+        [, $height] = $this->pdfSize($this->actingAs($this->cashier)->get("/nota/{$this->note->id}/ticket/pdf")->getContent());
+        $this->assertLessThan(260, $height, 'el PDF trae una sola copia');
+    }
+
     public function test_cashier_cannot_manage_branches(): void
     {
         $this->actingAs($this->cashier)->get('/sucursales')->assertForbidden();

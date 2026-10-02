@@ -16,8 +16,12 @@ class BranchController extends Controller
                 'id' => $b->id,
                 'name' => $b->name,
                 // Lo guardado (para editar) y lo que se imprime (con valores por omisión).
-                'ticket' => array_merge(array_fill_keys(Branch::TICKET_FIELDS, ''), ['show_logo' => true], $b->ticket ?? []),
-                'defaults' => $b->ticketSettings(),
+                'ticket' => array_merge(
+                    array_fill_keys(Branch::TICKET_FIELDS, ''),
+                    array_intersect_key($b->ticketDefaults(), array_flip([...Branch::TICKET_TOGGLES, 'seller_mode', 'copies'])),
+                    $b->ticket ?? [],
+                ),
+                'defaults' => $b->ticketDefaults(),
             ]),
         ]);
     }
@@ -31,7 +35,12 @@ class BranchController extends Controller
             'phone' => 'nullable|string|max:40',
             'header' => 'nullable|string|max:300',
             'footer' => 'nullable|string|max:300',
-            'show_logo' => 'boolean',
+            'register_label' => 'nullable|string|max:60',
+            'seller_label' => 'nullable|string|max:40',
+            // Opcionales: lo que no llega conserva su valor por omisión.
+            'seller_mode' => 'nullable|in:'.implode(',', Branch::SELLER_MODES),
+            'copies' => 'nullable|integer|min:1|max:2',
+            ...array_fill_keys(Branch::TICKET_TOGGLES, 'boolean'),
         ]);
 
         $branch->update(['ticket' => array_map(fn ($v) => is_string($v) ? trim($v) : $v, $validated)]);

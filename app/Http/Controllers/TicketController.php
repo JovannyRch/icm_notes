@@ -134,11 +134,16 @@ class TicketController extends Controller
 
         return [
             'settings' => $settings,
-            'register' => 'CAJA '.mb_strtoupper($branch->name),
+            'register' => $settings['register_label'],
             'folio' => $note->folio,
             'code' => $note->code,
             'datetime' => ($note->created_at ?? now())->timezone($tz)->format('d/m/Y H:i'),
-            'seller' => $note->seller?->name,
+            // Vendedor: su nombre, un texto genérico ("Vendedor") o nada, según la sucursal.
+            'seller' => match ($settings['seller_mode']) {
+                'generic' => $settings['seller_label'],
+                'none' => null,
+                default => $note->seller?->name,
+            },
             'customer' => $note->customer,
             'customer_phone' => $note->customer_phone,
             'customer_address' => $note->customer_address,

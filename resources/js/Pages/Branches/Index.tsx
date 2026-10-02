@@ -6,18 +6,18 @@ import { printTicket } from "@/helpers/printTicket";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { useForm } from "@inertiajs/react";
-import { Button, Switch, Text } from "@radix-ui/themes";
+import { Button, RadioGroup, SegmentedControl, Switch, Text } from "@radix-ui/themes";
 import { LuExternalLink, LuPrinter } from "react-icons/lu";
 
-type TicketFields = {
-    business_name: string;
-    rfc: string;
-    address: string;
-    phone: string;
-    header: string;
-    footer: string;
-    show_logo: boolean;
-};
+type TextField = "business_name" | "rfc" | "address" | "phone" | "header" | "footer" | "register_label" | "seller_label";
+type Toggle = "show_logo" | "show_business_name" | "show_register" | "show_customer" | "show_m2" | "show_amount_in_words" | "show_payment" | "show_qr";
+type SellerMode = "name" | "generic" | "none";
+
+type TicketFields = Record<TextField, string> &
+    Record<Toggle, boolean> & {
+        seller_mode: SellerMode;
+        copies: number;
+    };
 
 interface BranchRow {
     id: number;
@@ -33,25 +33,50 @@ interface Props extends PageProps {
 const fieldCls =
     "w-full px-2.5 py-1.5 mt-1 text-sm bg-white border rounded-input border-pebble text-charcoal placeholder:text-fog focus:border-electric focus:ring-2 focus:ring-electric/20";
 
-const BranchTicketForm = ({ branch }: { branch: BranchRow }) => {
-    const { data, setData, put, processing, errors, isDirty } = useForm<TicketFields>({ ...branch.ticket, show_logo: !!branch.ticket.show_logo });
+/** Interruptores de "qué se imprime", en el orden en que salen en el ticket. */
+const toggles: { key: Toggle; label: string; hint?: string }[] = [
+    { key: "show_logo", label: "Logo" },
+    { key: "show_business_name", label: "Nombre del negocio" },
+    { key: "show_register", label: "Encabezado de caja" },
+    { key: "show_customer", label: "Datos del cliente", hint: "Nombre, teléfono y dirección" },
+    { key: "show_m2", label: "m² de los pisos", hint: "m² por caja y total de m²" },
+    { key: "show_amount_in_words", label: "Importe con letra" },
+    { key: "show_payment", label: "Detalle del pago", hint: "Efectivo, recibido y cambio (el saldo pendiente siempre sale)" },
+    { key: "show_qr", label: "Código QR de la venta" },
+];
 
-    const field = (key: Exclude<keyof TicketFields, "show_logo">, label: string, opts: { multiline?: boolean; hint?: string } = {}) => (
-        <label className="block text-sm font-medium text-charcoal">
+const BranchTicketForm = ({ branch }: { branch: BranchRow }) => {
+    const { data, setData, put, processing, errors, isDirty } = useForm<TicketFields>({
+        ...branch.ticket,
+        ...Object.fromEntries(toggles.map((t) => [t.key, branch.ticket[t.key] !== false])),
+        seller_mode: branch.ticket.seller_mode ?? "name",
+        copies: Number(branch.ticket.copies ?? 1),
+    } as TicketFields);
+    const fieldErrors = errors as Partial<Record<keyof TicketFields, string>>;
+
+    const field = (key: TextField, label: string, opts: { multiline?: boolean; hint?: string; disabled?: boolean } = {}) => (
+        <label className={`block text-sm font-medium ${opts.disabled ? "text-fog" : "text-charcoal"}`}>
             {label}
             {opts.multiline ? (
                 <textarea
                     rows={2}
                     value={data[key]}
+                    disabled={opts.disabled}
                     placeholder={branch.defaults[key] || undefined}
                     onChange={(e) => setData(key, e.target.value)}
                     className={fieldCls}
                 />
             ) : (
-                <input value={data[key]} placeholder={branch.defaults[key] || undefined} onChange={(e) => setData(key, e.target.value)} className={`${fieldCls} h-8`} />
+                <input
+                    value={data[key]}
+                    disabled={opts.disabled}
+                    placeholder={branch.defaults[key] || undefined}
+                    onChange={(e) => setData(key, e.target.value)}
+                    className={`${fieldCls} h-8 disabled:bg-paper`}
+                />
             )}
             {opts.hint && <span className="block mt-0.5 text-xs font-normal text-fog">{opts.hint}</span>}
-            <InputError message={errors[key]} className="mt-1" />
+            <InputError message={fieldErrors[key]} className="mt-1" />
         </label>
     );
 
@@ -60,7 +85,7 @@ const BranchTicketForm = ({ branch }: { branch: BranchRow }) => {
     return (
         <SectionCard
             title={branch.name}
-            subtitle={`El ticket dice "CAJA ${branch.name.toUpperCase()}".`}
+            subtitle={isDirty ? "Hay cambios sin guardar: la prueba imprime lo guardado." : "Lo vacío usa el texto gris."}
             actions={
                 <div className="flex gap-2">
                     <Button size="1" variant="soft" color="gray" onClick={() => window.open(sampleUrl, "_blank")}>
@@ -77,19 +102,70 @@ const BranchTicketForm = ({ branch }: { branch: BranchRow }) => {
                     e.preventDefault();
                     put(route("branches.ticket.update", branch.id), { preserveScroll: true });
                 }}
-                className="grid gap-3 sm:grid-cols-2"
+                className="space-y-5"
             >
-                {field("business_name", "Nombre del negocio")}
-                {field("rfc", "RFC")}
-                {field("address", "Dirección", { multiline: true })}
-                {field("phone", "Teléfono")}
-                {field("header", "Leyenda arriba", { multiline: true, hint: "Opcional. Ej.: horario o redes sociales." })}
-                {field("footer", "Leyenda al final", { multiline: true, hint: "Ej.: política de cambios y garantías." })}
-                <Text as="label" size="2" className="flex items-center gap-2 sm:col-span-2">
-                    <Switch checked={data.show_logo} onCheckedChange={(v) => setData("show_logo", v)} />
-                    Imprimir el logo
-                </Text>
-                <div className="flex justify-end sm:col-span-2">
+                <fieldset className="grid gap-3 sm:grid-cols-2">
+                    <legend className="mb-2 text-xs font-semibold tracking-wide uppercase text-fog">Textos</legend>
+                    {field("business_name", "Nombre del negocio", { disabled: !data.show_business_name })}
+                    {field("rfc", "RFC")}
+                    {field("register_label", "Encabezado de caja", {
+                        hint: "Lo que sale arriba del folio.",
+                        disabled: !data.show_register,
+                    })}
+                    {field("phone", "Teléfono")}
+                    {field("address", "Dirección", { multiline: true })}
+                    {field("header", "Leyenda arriba", { multiline: true, hint: "Opcional. Ej.: horario o redes sociales." })}
+                    {field("footer", "Leyenda al final", { multiline: true, hint: "Ej.: política de cambios y garantías." })}
+                </fieldset>
+
+                <fieldset>
+                    <legend className="mb-2 text-xs font-semibold tracking-wide uppercase text-fog">Quién atendió</legend>
+                    <div className="grid gap-3">
+                        <RadioGroup.Root
+                            value={data.seller_mode}
+                            onValueChange={(v) => setData("seller_mode", v as SellerMode)}
+                            className="flex flex-wrap gap-x-5 gap-y-2"
+                        >
+                            <RadioGroup.Item value="name">Nombre del usuario</RadioGroup.Item>
+                            <RadioGroup.Item value="generic">Texto genérico</RadioGroup.Item>
+                            <RadioGroup.Item value="none">No mostrar</RadioGroup.Item>
+                        </RadioGroup.Root>
+                        {data.seller_mode === "generic" && <div className="sm:max-w-[50%]">{field("seller_label", "Texto en todos los tickets")}</div>}
+                    </div>
+                    <p className="mt-1.5 text-xs text-fog">
+                        {data.seller_mode === "name"
+                            ? "El ticket dice “Atendió: Ana Cajera”."
+                            : data.seller_mode === "generic"
+                              ? `El ticket dice “Atendió: ${data.seller_label || branch.defaults.seller_label}”, sin importar quién vendió. El sistema sigue guardando quién fue.`
+                              : "El ticket no dice quién atendió. El sistema sigue guardando quién fue."}
+                    </p>
+                </fieldset>
+
+                <fieldset>
+                    <legend className="mb-2 text-xs font-semibold tracking-wide uppercase text-fog">Qué se imprime</legend>
+                    <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                        {toggles.map((t) => (
+                            <Text as="label" size="2" key={t.key} className="flex items-start gap-2.5">
+                                <Switch className="mt-0.5" checked={data[t.key]} onCheckedChange={(v) => setData(t.key, v)} />
+                                <span>
+                                    <span className="block text-charcoal">{t.label}</span>
+                                    {t.hint && <span className="block text-xs text-fog">{t.hint}</span>}
+                                </span>
+                            </Text>
+                        ))}
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend className="mb-2 text-xs font-semibold tracking-wide uppercase text-fog">Copias al imprimir</legend>
+                    <SegmentedControl.Root value={String(data.copies)} onValueChange={(v) => setData("copies", Number(v))}>
+                        <SegmentedControl.Item value="1">1 ticket</SegmentedControl.Item>
+                        <SegmentedControl.Item value="2">2 (cliente y copia)</SegmentedControl.Item>
+                    </SegmentedControl.Root>
+                    <p className="mt-1.5 text-xs text-fog">La segunda sale marcada “COPIA”, en su propio corte. El PDF siempre es uno.</p>
+                </fieldset>
+
+                <div className="flex justify-end">
                     <Button type="submit" disabled={processing || !isDirty}>
                         {processing ? "Guardando…" : "Guardar"}
                     </Button>
