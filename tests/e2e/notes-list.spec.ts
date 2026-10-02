@@ -49,12 +49,37 @@ test("listado: buscar, filtrar, abrir, archivar, desarchivar y eliminar", async 
     await expect(row(page, "E2E-LIST-1")).toBeVisible();
     await expect(row(page, "E2E-LIST-2")).toBeVisible();
 
+    // Rango propio de fechas: incluye el día de las notas.
+    await page.getByRole("button", { name: /Fecha/ }).click();
+    await page.getByRole("menuitem", { name: /Elegir fechas/ }).click();
+    await page.getByLabel("Desde").fill("2026-06-01");
+    await page.getByLabel("Hasta").fill("2026-06-30");
+    await page.getByRole("button", { name: "Ver notas" }).click();
+    await expect(page).toHaveURL(/date=CUSTOM/);
+    await expect(page.getByRole("button", { name: /Fecha/ })).toContainText("1 jun – 30 jun");
+    await expect(row(page, "E2E-LIST-1")).toBeVisible();
+
+    // "Hoy": las notas de junio no aparecen.
+    await page.getByRole("button", { name: /Fecha/ }).click();
+    await page.getByRole("menuitem", { name: "Hoy" }).click();
+    await expect(page).toHaveURL(/date=TODAY/);
+    await expect(page).not.toHaveURL(/desde=/);
+    await expect(row(page, "E2E-LIST-1")).toHaveCount(0);
+
     // Búsqueda por folio desde el buscador.
-    await page.getByPlaceholder("Folio o código del ticket...").fill("E2E-LIST-2");
+    await page.goto("/notas?date=ALL_TIME&query=E2E-LIST");
+    await page.getByPlaceholder("Folio, cliente, teléfono o código...").fill("E2E-LIST-2");
     await page.getByRole("button", { name: "Buscar" }).click();
     await expect(page).toHaveURL(/query=E2E-LIST-2/);
     await expect(row(page, "E2E-LIST-1")).toHaveCount(0);
     await expect(row(page, "E2E-LIST-2")).toBeVisible();
+
+    // La flecha despliega el resumen en la misma lista, sin abrir la nota.
+    await row(page, "E2E-LIST-2").getByRole("button", { name: "Resumen de la nota E2E-LIST-2" }).click();
+    const summary = page.getByTestId("detalle-E2E-LIST-2").filter({ visible: true });
+    await expect(summary).toContainText("GOODYEAR");
+    await expect(summary).toContainText("Total");
+    await expect(page).toHaveURL(/\/notas/);
 
     // Clic en la fila abre la nota.
     await row(page, "E2E-LIST-2").getByText("E2E-LIST-2").click();

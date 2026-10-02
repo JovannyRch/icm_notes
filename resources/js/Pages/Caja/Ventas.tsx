@@ -1,4 +1,5 @@
 import Container from "@/Components/Container";
+import SaleSummary, { SummaryLine, SummaryPayment } from "@/Components/SaleSummary";
 import StatusPill from "@/Components/StatusPill";
 import PageHeader from "@/Components/ui/PageHeader";
 import { formatCurrency } from "@/helpers/formatters";
@@ -11,28 +12,12 @@ import { confirmAlert } from "react-confirm-alert";
 import { Fragment, MouseEvent, useState } from "react";
 import { LuBan, LuChevronDown, LuChevronRight, LuFileDown, LuPrinter } from "react-icons/lu";
 
-interface SaleLine {
-    quantity: number;
-    description: string;
-    mc: string | null;
-    price: number;
-    discount: number;
-    amount: number;
-}
-
-interface SalePayment {
-    date: string;
-    cash: number;
-    card: number;
-    transfer: number;
-}
-
 interface Sale {
     customer_address: string | null;
     flete: number;
     cash_received: number | null;
-    lines: SaleLine[];
-    payments: SalePayment[];
+    lines: SummaryLine[];
+    payments: SummaryPayment[];
     id: number;
     folio: string;
     code: string | null;
@@ -70,100 +55,6 @@ const methods = (s: { cash: number; card: number; transfer: number }) =>
     [s.cash > 0 && `Efectivo ${formatCurrency(s.cash)}`, s.card > 0 && `Tarjeta ${formatCurrency(s.card)}`, s.transfer > 0 && `Transf. ${formatCurrency(s.transfer)}`]
         .filter(Boolean)
         .join(" · ");
-
-const qty = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
-
-const Row = ({ label, value, strong, tone }: { label: string; value: string; strong?: boolean; tone?: "amber" }) => (
-    <div className={`flex justify-between gap-3 py-0.5 ${strong ? "font-semibold text-charcoal" : "text-steel"} ${tone === "amber" ? "!text-amber-800 font-semibold" : ""}`}>
-        <span>{label}</span>
-        <span className="tabular-nums">{value}</span>
-    </div>
-);
-
-/** Resumen de la venta dentro de la lista: lo mismo que el ticket, sin abrir otra pantalla. */
-const SaleDetail = ({ sale, date }: { sale: Sale; date: string }) => {
-    const gross = sale.lines.reduce((acc, l) => acc + l.price * l.quantity, 0);
-    const lineDiscounts = sale.lines.reduce((acc, l) => acc + l.discount, 0);
-    const change = sale.cash_received !== null ? sale.cash_received - sale.cash : null;
-    const m2 = (l: SaleLine) => {
-        const mc = Number(String(l.mc ?? "").replace(",", "."));
-        return l.mc && mc > 0 ? mc : null;
-    };
-
-    return (
-        <div className="grid gap-4 p-4 text-sm lg:grid-cols-[minmax(0,1fr)_300px]" data-testid={`detalle-${sale.folio}`}>
-            <table className="w-full">
-                <thead className="text-xs text-left text-fog">
-                    <tr>
-                        <th className="pb-1 pr-3 font-medium">Cant.</th>
-                        <th className="pb-1 pr-3 font-medium">Producto</th>
-                        <th className="pb-1 pr-3 font-medium text-right">Precio</th>
-                        <th className="pb-1 font-medium text-right">Importe</th>
-                    </tr>
-                </thead>
-                <tbody className="tabular-nums">
-                    {sale.lines.map((l, i) => (
-                        <tr key={i} className="border-t border-ash/70">
-                            <td className="py-1.5 pr-3 align-top whitespace-nowrap text-charcoal">{qty(l.quantity)}</td>
-                            <td className="py-1.5 pr-3 align-top text-charcoal">
-                                {l.description}
-                                {m2(l) && (
-                                    <span className="block text-xs text-fog">
-                                        {qty(m2(l)!)} m²/caja · {qty(Math.round(m2(l)! * l.quantity * 100) / 100)} m²
-                                    </span>
-                                )}
-                            </td>
-                            <td className="py-1.5 pr-3 text-right align-top text-steel whitespace-nowrap">
-                                {formatCurrency(l.price)}
-                                {l.discount > 0 && <span className="block text-xs text-fog">desc. {formatCurrency(l.discount)}</span>}
-                            </td>
-                            <td className="py-1.5 text-right align-top font-medium text-charcoal whitespace-nowrap">{formatCurrency(l.amount)}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-
-            <div className="space-y-3">
-                <div>
-                    {(lineDiscounts + sale.discount > 0 || sale.flete > 0) && <Row label="Subtotal" value={formatCurrency(gross)} />}
-                    {lineDiscounts + sale.discount > 0 && <Row label="Descuento" value={`-${formatCurrency(lineDiscounts + sale.discount)}`} />}
-                    {sale.flete > 0 && <Row label="Flete" value={formatCurrency(sale.flete)} />}
-                    <Row label="Total" value={formatCurrency(sale.sale_total)} strong />
-                </div>
-
-                {!sale.canceled && (
-                    <div className="pt-2 border-t border-ash">
-                        <div className="mb-0.5 text-xs font-medium tracking-wide uppercase text-fog">Pagos</div>
-                        {sale.payments.length === 0 && <div className="text-steel">Sin pagos todavía</div>}
-                        {sale.payments.map((p, i) => (
-                            <Row
-                                key={i}
-                                label={`${p.date === date ? "Hoy" : p.date.split("-").reverse().join("/")} · ${methods(p) ? methods(p).replace(/ \$[\d,.]+/g, "") : "—"}`}
-                                value={formatCurrency(p.cash + p.card + p.transfer)}
-                            />
-                        ))}
-                        {change !== null && change > 0.009 && (
-                            <>
-                                <Row label="Recibió" value={formatCurrency(sale.cash_received!)} />
-                                <Row label="Cambio" value={formatCurrency(change)} />
-                            </>
-                        )}
-                        {sale.balance > 0.009 && <Row label="Resta" value={formatCurrency(sale.balance)} tone="amber" />}
-                    </div>
-                )}
-
-                {(sale.customer_phone || sale.customer_address) && (
-                    <div className="pt-2 text-xs border-t border-ash text-steel">
-                        <div className="mb-0.5 font-medium tracking-wide uppercase text-fog">Cliente</div>
-                        <div className="text-sm text-charcoal">{sale.customer}</div>
-                        {sale.customer_phone && <div>Tel. {sale.customer_phone}</div>}
-                        {sale.customer_address && <div className="whitespace-pre-line">{sale.customer_address}</div>}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
 
 const Tile = ({ label, value, hint, tone, testId }: { label: string; value: number; hint?: string; tone?: "amber"; testId?: string }) => (
     <div className={`p-3 border rounded-card ${tone === "amber" ? "bg-amber-tint border-transparent" : "bg-white border-ash"}`} data-testid={testId}>
@@ -355,7 +246,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
                             {open.has(s.id) && (
                                 <Table.Row className="bg-paper/40">
                                     <Table.Cell colSpan={columns} className="!p-0">
-                                        <SaleDetail sale={s} date={date} />
+                                        <SaleSummary sale={s} today={date} />
                                     </Table.Cell>
                                 </Table.Row>
                             )}
@@ -396,7 +287,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
                         </button>
                         {open.has(s.id) && (
                             <div className="border-t border-ash bg-paper/40">
-                                <SaleDetail sale={s} date={date} />
+                                <SaleSummary sale={s} today={date} />
                             </div>
                         )}
                         <div className="px-3 pb-3">{actions(s)}</div>

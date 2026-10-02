@@ -35,7 +35,7 @@ const NoteSearchInput = () => {
             <SearchInput
                 onChange={(value) => setInputValue(value)}
                 value={inputValue}
-                placeholder="Folio o código del ticket..."
+                placeholder="Folio, cliente, teléfono o código..."
                 className="flex-1"
             />
             <Button type="submit" variant="outline" color="gray">

@@ -376,80 +376,94 @@ class NoteController extends Controller
         return redirect()->route('notas', ['branch' => $branch_id])->with('success', 'Nota eliminada');
     }
 
-    private function applyFilters($branch_id, $archived, $query, $date, $status, $purchase_status, $delivery_status)
+    /** Órdenes de la lista (?sort=). Por omisión, por folio como siempre. */
+    public const SORTS = ['folio', 'folio_desc', 'recientes', 'venta_desc', 'saldo_desc'];
+
+    /**
+     * Notas de la sucursal con los filtros de la lista, sin orden ni paginación (los totales
+     * del periodo usan la misma consulta). Las fechas son las del negocio (México).
+     */
+    private function filteredNotes($branch_id, $archived, $query, $date, $status, $purchase_status, $delivery_status, bool $withBalance = false)
     {
-        $now = now()->timezone('America/Mexico_City');
+        $like = DB::getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
 
         return Note::where('branch_id', $branch_id)
             ->where('archived', $archived)
-            ->where(function ($q) use ($query, $date, $status, $now, $purchase_status, $delivery_status) {
-                if ($query) {
-                    $q->where('folio', 'like', '%'.$query.'%');
-                }
+            // Folio, nombre o teléfono del cliente.
+            ->when($query, fn ($q) => $q->where(fn ($w) => $w->where('folio', $like, '%'.$query.'%')
+                ->orWhere('customer', $like, '%'.$query.'%')
+                ->orWhere('customer_phone', $like, '%'.$query.'%')))
+            ->when($status, fn ($q) => $q->where('status', $status))
+            ->when($purchase_status, fn ($q) => $q->where('purchase_status', $purchase_status))
+            ->when($delivery_status, fn ($q) => $q->where('delivery_status', $delivery_status))
+            ->when($withBalance, fn ($q) => $q->where('balance', '>', 0.009)->whereNot('status', 'canceled')->whereNot('delivery_status', 'cancelado'))
+            // Rangos sobre la columna `date` (no whereDate/whereMonth: no usan índice en Postgres).
+            ->when($this->dateRange($date), fn ($q, $between) => $q->whereBetween('date', $between));
+    }
 
-                if ($status) {
-                    $q->where('status', $status);
-                }
+    /**
+     * [desde, hasta] del periodo de la lista en fechas del negocio (México); null = todo el tiempo.
+     * CUSTOM toma ?desde= y ?hasta= (si falta una, es un solo día; si vienen al revés, se voltean).
+     */
+    private function dateRange(?string $date): ?array
+    {
+        $now = now(config('app.business_timezone'));
+        $range = fn ($from, $to) => [$from->toDateString(), $to->toDateString()];
 
-                if ($purchase_status) {
-                    $q->where('purchase_status', $purchase_status);
+        if ($date === 'CUSTOM') {
+            $parse = function ($value) {
+                try {
+                    return $value ? \Carbon\Carbon::createFromFormat('Y-m-d', $value)->startOfDay() : null;
+                } catch (\Throwable) {
+                    return null;
                 }
+            };
+            $from = $parse(request('desde'));
+            $to = $parse(request('hasta'));
+            if (! $from && ! $to) {
+                return null;
+            }
+            $from ??= $to;
+            $to ??= $from;
 
-                if ($delivery_status) {
-                    $q->where('delivery_status', $delivery_status);
-                }
+            return $from->gt($to) ? $range($to, $from) : $range($from, $to);
+        }
 
-                if ($date) {
-                    switch ($date) {
-                        case 'TODAY':
-                            $q->whereDate('date', $now->toDateString());
-                            break;
-                        case 'YESTERDAY':
-                            $q->whereDate('date', $now->clone()->subDay()->toDateString());
-                            break;
-                        case 'THIS_WEEK':
-                            $q->whereBetween('date', [
-                                $now->clone()->startOfWeek()->toDateString(),
-                                $now->clone()->endOfWeek()->toDateString(),
-                            ]);
-                            break;
-                        case 'LAST_WEEK':
-                            $q->whereBetween('date', [
-                                $now->clone()->subWeek()->startOfWeek()->toDateString(),
-                                $now->clone()->subWeek()->endOfWeek()->toDateString(),
-                            ]);
-                            break;
-                        case 'THIS_MONTH':
-                            $q->whereMonth('date', $now->month)
-                                ->whereYear('date', $now->year);
-                            break;
-                        case 'LAST_MONTH':
-                            $q->whereMonth('date', $now->clone()->subMonth()->month)
-                                ->whereYear('date', $now->clone()->subMonth()->year);
-                            break;
-                        case 'THIS_YEAR':
-                            $q->whereYear('date', $now->year);
-                            break;
-                        case 'LAST_YEAR':
-                            $q->whereYear('date', $now->clone()->subYear()->year);
-                            break;
-                    }
-                }
-            })
-            // El folio es texto y puede no ser numérico. MySQL y SQLite castean sin
-            // fallar (dan 0), pero en PostgreSQL `folio::integer` LANZA ERROR con
-            // cualquier folio no numérico, así que ahí se filtra antes de castear.
-            ->orderByRaw(match (DB::getDriverName()) {
-                'mysql', 'mariadb' => 'CAST(folio AS UNSIGNED) ASC',
-                // ELSE 0 y no NULL: con NULL, PostgreSQL manda los folios no
-                // numéricos al final y MySQL al principio. Con 0 los tres motores
-                // dan el mismo orden (verificado contra pgsql 16 y mysql 8).
-                'pgsql' => 'CASE WHEN folio ~ \'^[0-9]+$\' THEN CAST(folio AS BIGINT) ELSE 0 END ASC',
-                default => 'CAST(folio AS INTEGER) ASC',
-            })
+        return match ($date) {
+            'TODAY' => $range($now, $now),
+            'YESTERDAY' => $range($now->copy()->subDay(), $now->copy()->subDay()),
+            'THIS_WEEK' => $range($now->copy()->startOfWeek(), $now->copy()->endOfWeek()),
+            'LAST_WEEK' => $range($now->copy()->subWeek()->startOfWeek(), $now->copy()->subWeek()->endOfWeek()),
+            'THIS_MONTH' => $range($now->copy()->startOfMonth(), $now->copy()->endOfMonth()),
+            'LAST_MONTH' => $range($now->copy()->subMonthNoOverflow()->startOfMonth(), $now->copy()->subMonthNoOverflow()->endOfMonth()),
+            'THIS_YEAR' => $range($now->copy()->startOfYear(), $now->copy()->endOfYear()),
+            'LAST_YEAR' => $range($now->copy()->subYear()->startOfYear(), $now->copy()->subYear()->endOfYear()),
+            default => null,
+        };
+    }
+
+    private function sortNotes($notes, string $sort)
+    {
+        // El folio es texto y puede no ser numérico. MySQL y SQLite castean sin
+        // fallar (dan 0), pero en PostgreSQL `folio::integer` LANZA ERROR con
+        // cualquier folio no numérico, así que ahí se filtra antes de castear.
+        $folio = match (DB::getDriverName()) {
+            'mysql', 'mariadb' => 'CAST(folio AS UNSIGNED)',
+            // ELSE 0 y no NULL: con NULL, PostgreSQL manda los folios no
+            // numéricos al final y MySQL al principio. Con 0 los tres motores
+            // dan el mismo orden (verificado contra pgsql 16 y mysql 8).
+            'pgsql' => 'CASE WHEN folio ~ \'^[0-9]+$\' THEN CAST(folio AS BIGINT) ELSE 0 END',
+            default => 'CAST(folio AS INTEGER)',
+        };
+
+        return match ($sort) {
+            'folio_desc' => $notes->orderByRaw("{$folio} DESC")->orderByDesc('folio'),
+            'recientes' => $notes->orderByDesc('date')->orderByDesc('id'),
+            'venta_desc' => $notes->orderByDesc('sale_total')->orderByDesc('id'),
+            'saldo_desc' => $notes->orderByDesc('balance')->orderByDesc('id'),
             // Desempate estable entre folios que castean al mismo número.
-            ->orderBy('folio')
-            ->paginate(50);
+            default => $notes->orderByRaw("{$folio} ASC")->orderBy('folio'),
+        };
     }
 
     /**
@@ -457,12 +471,8 @@ class NoteController extends Controller
      */
     public function index()
     {
-
         $branch_id = currentBranchId();
-        $archived = request('archived') == '1' ? true : false;
-
-        $notes = null;
-
+        $archived = request('archived') == '1';
         $query = request('query');
 
         // Escanear o teclear el código del ticket (o pegar su enlace) abre esa nota directo,
@@ -474,17 +484,58 @@ class NoteController extends Controller
             }
         }
         $date = request('date') ?? 'THIS_WEEK';
+        $sort = in_array(request('sort'), self::SORTS, true) ? request('sort') : 'folio';
+        $withBalance = request()->boolean('saldo');
 
-        $status = request('status');
-        $purchase_status = request('purchase_status');
-        $delivery_status = request('delivery_status');
+        $filtered = $this->filteredNotes($branch_id, $archived, $query, $date, request('status'), request('purchase_status'), request('delivery_status'), $withBalance);
 
-        $notes = $this->applyFilters($branch_id, $archived, $query, $date, $status, $purchase_status, $delivery_status);
+        // Totales de TODO el periodo filtrado (no sólo de la página); las canceladas no suman.
+        $totals = (clone $filtered)->selectRaw("COUNT(*) as count,
+            SUM(CASE WHEN status = 'canceled' OR delivery_status = 'cancelado' THEN 1 ELSE 0 END) as canceled,
+            SUM(CASE WHEN status = 'canceled' OR delivery_status = 'cancelado' THEN 0 ELSE sale_total END) as sale,
+            SUM(CASE WHEN status = 'canceled' OR delivery_status = 'cancelado' THEN 0 ELSE advance END) as collected,
+            SUM(CASE WHEN status = 'canceled' OR delivery_status = 'cancelado' THEN 0 ELSE balance END) as balance,
+            SUM(CASE WHEN (status = 'canceled' OR delivery_status = 'cancelado') OR balance <= 0.009 THEN 0 ELSE 1 END) as with_balance,
+            SUM(CASE WHEN status = 'canceled' OR delivery_status = 'cancelado' THEN 0 ELSE purchase_total END) as purchase,
+            SUM(CASE WHEN (status = 'canceled' OR delivery_status = 'cancelado') OR purchase_status <> 'pending' THEN 0 ELSE purchase_total END) as purchase_pending")->first();
 
-        $notes->appends(request()->query());
+        $seeCosts = request()->user()->can('costs.view');
+
+        // Partidas, pagos y vendedor: el resumen de cada nota se despliega en la misma lista.
+        $notes = $this->sortNotes($filtered, $sort)
+            ->with([
+                'seller:id,name',
+                'items' => fn ($q) => $q->orderBy('id')->select(['id', 'note_id', 'brand', 'model', 'measure', 'mc', 'unit', 'quantity', 'price', 'discount', 'sale_subtotal', 'purchase_subtotal']),
+                'payments',
+            ])
+            ->paginate(50)
+            ->appends(request()->query());
+
+        if (! $seeCosts) {
+            $notes->getCollection()->each(function (Note $n) {
+                $n->makeHidden(['purchase_total', 'purchase_status']);
+                $n->items->each->makeHidden(['purchase_subtotal']);
+            });
+        }
+
+        $f = fn ($v) => round((float) $v, 2);
 
         return Inertia::render('Notes/Index', [
             'pagination' => $notes,
+            'sort' => $sort,
+            'withBalance' => $withBalance,
+            'today' => businessToday(),
+            // Fechas exactas del periodo, para mostrarlas en el filtro.
+            'dateRange' => $this->dateRange($date),
+            'totals' => [
+                'count' => (int) $totals->count,
+                'canceled' => (int) $totals->canceled,
+                'sale' => $f($totals->sale),
+                'collected' => $f($totals->collected),
+                'balance' => $f($totals->balance),
+                'with_balance' => (int) $totals->with_balance,
+                ...($seeCosts ? ['purchase' => $f($totals->purchase), 'purchase_pending' => $f($totals->purchase_pending)] : []),
+            ],
         ]);
     }
 
