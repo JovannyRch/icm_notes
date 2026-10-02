@@ -67,6 +67,10 @@ return [
 
     'timezone' => env('APP_TIMEZONE', 'UTC'),
 
+    // Zona horaria del negocio: fija el "día" de las ventas de caja (la app corre en UTC
+    // y a partir de las 18:00 en México ya sería el día siguiente).
+    'business_timezone' => env('BUSINESS_TIMEZONE', 'America/Mexico_City'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

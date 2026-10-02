@@ -195,7 +195,7 @@ class ProductController extends Controller
         }
     }
 
-    public function getSearchQuery($query, $brand = null)
+    public function getSearchQuery($query, $brand = null, bool $matchCost = true)
     {
 
         $isPostgreSQL = DB::connection()->getDriverName() === 'pgsql';
@@ -207,13 +207,14 @@ class ProductController extends Controller
         $products = Product::query();
 
         foreach ($keywords as $keyword) {
-            $products->where(function ($q) use ($keyword, $likeOperator) {
+            $products->where(function ($q) use ($keyword, $likeOperator, $matchCost) {
                 $q->orWhere('model', $likeOperator, "%{$keyword}%")
                     ->orWhere('measure', $likeOperator, "%{$keyword}%")
                     ->orWhere('mc', $likeOperator, "%{$keyword}%")
                     ->orWhere('unit', $likeOperator, "%{$keyword}%")
                     ->orWhere('price', $likeOperator, "%{$keyword}%")
-                    ->orWhere('cost', $likeOperator, "%{$keyword}%")
+                    // Quien no ve costos tampoco puede deducirlos buscando por número.
+                    ->when($matchCost, fn ($q) => $q->orWhere('cost', $likeOperator, "%{$keyword}%"))
                     ->orWhere('brand', $likeOperator, "%{$keyword}%");
             });
         }
@@ -232,13 +233,18 @@ class ProductController extends Controller
 
         $query = $request->input('query');
 
-        $products = $this->getSearchQuery($query);
+        $products = $this->getSearchQuery($query, null, (bool) $request->user()?->can('costs.view'));
 
         // Esta ruta es de api.php (sin sesión): currentBranchId() cae a la primera
         // sucursal y la relación `stock` no sirve aquí. Quien busca indica la sucursal
         // y se devuelve `branch_stock` = existencias de esa sucursal (null si nunca
         // ha tenido registro en `stocks`).
         $branchId = $request->integer('branch_id') ?: null;
+        $user = $request->user();
+        // Existencias sólo de una sucursal del usuario, y sólo si puede verlas.
+        if ($branchId && (! $user->canAccessBranch($branchId) || ! ($user->can('stock.view') || $user->can('costs.view')))) {
+            $branchId = null;
+        }
         if ($branchId) {
             $products->select('products.*')->addSelect([
                 'branch_stock' => Stock::select('quantity')

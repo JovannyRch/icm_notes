@@ -1,0 +1,202 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Branch;
+use App\Models\Note;
+use App\Models\NoteProduct;
+use App\Models\Product;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * Venta de caja. A diferencia de la nota del dueño (donde el navegador manda los
+ * importes), aquí el SERVIDOR calcula todo desde el catálogo: precio, costo,
+ * subtotales, descuentos y pago. El navegador sólo propone cantidades, y precio y
+ * descuentos si el usuario tiene permiso; nada se confía sin validar.
+ *
+ * Los totales se guardan netos igual que en la nota (ver CLAUDE.md, descuentos),
+ * así la venta entra al corte, al dashboard y a /notas sin tratamiento especial.
+ */
+class SaleService
+{
+    public const DELIVERED = 'entregado_a_cliente';
+
+    public function __construct(private StockService $stock = new StockService) {}
+
+    /**
+     * @param  array{folio?: ?string, customer?: ?string, items: array, discount?: ?float, cash_received?: ?float, card?: ?float, transfer?: ?float}  $data
+     */
+    public function create(User $user, Branch $branch, array $data): Note
+    {
+        $sale = $this->calculate($user, $branch, $data);
+
+        return DB::transaction(function () use ($user, $branch, $data, $sale) {
+            $folio = trim((string) ($data['folio'] ?? ''));
+            if ($folio === '') {
+                // Bloquea la sucursal: dos ventas simultáneas no toman el mismo folio.
+                Branch::whereKey($branch->id)->lockForUpdate()->first();
+                $folio = Note::nextFolio($branch->id);
+            }
+
+            $today = businessToday();
+            $note = new Note([
+                'folio' => $folio,
+                'customer' => trim((string) ($data['customer'] ?? '')) ?: 'Público en general',
+                'date' => $today,
+                'branch_id' => $branch->id,
+                'purchase_total' => $sale['purchase_total'],
+                'sale_total' => $sale['sale_total'],
+                'discount' => $sale['discount'],
+                'cash_received' => $sale['cash_received'],
+                'flete' => 0,
+                'notes' => '',
+                'status' => 'paid',
+                'purchase_status' => 'pending',
+                'delivery_status' => self::DELIVERED,
+            ]);
+            $note->forceFill(['user_id' => $user->id])->save();
+
+            foreach ($sale['lines'] as $line) {
+                NoteProduct::create($line + ['note_id' => $note->id]);
+                $this->stock->adjustStock($branch->id, $line['product_id'], $line['quantity'], 'OUT', $note->id, 'Salida por venta en caja #'.$note->folio);
+            }
+
+            $note->payments()->create([
+                'branch_id' => $branch->id,
+                'date' => $today,
+                'cash' => $sale['cash'],
+                'card' => $sale['card'],
+                'transfer' => $sale['transfer'],
+                'position' => 0,
+            ]);
+            $note->recalculateTotalsFromPayments();
+
+            return $note;
+        });
+    }
+
+    /** Cancela una venta: sin pagos, y las piezas regresan al inventario. */
+    public function cancel(Note $note): void
+    {
+        DB::transaction(function () use ($note) {
+            $noteStock = new NoteStockService($this->stock);
+            $before = $noteStock->expectedQuantities($note);
+
+            $note->update(['delivery_status' => 'cancelado', 'status' => 'canceled']);
+            $note->payments()->delete();
+            $note->recalculateTotalsFromPayments();
+
+            $noteStock->sync($note, $before, [], 'Devolución por cancelación de venta #'.$note->folio);
+        });
+    }
+
+    /** Calcula y valida la venta sin guardar nada. */
+    public function calculate(User $user, Branch $branch, array $data): array
+    {
+        $errors = [];
+        $canChangePrice = $user->can('sales.change_price');
+        $canDiscount = $user->can('sales.discount');
+
+        $products = Product::whereIn('id', collect($data['items'])->pluck('product_id'))->get()->keyBy('id');
+        $extra = $branch->extra_percentage; // el extra global de la sucursal manda
+
+        $lines = [];
+        $gross = 0.0;
+        $lineDiscounts = 0.0;
+        $purchaseTotal = 0.0;
+
+        foreach ($data['items'] as $i => $item) {
+            $product = $products->get($item['product_id']);
+            $quantity = (int) $item['quantity'];
+            $listPrice = round((float) $product->price, 2);
+            $price = isset($item['price']) ? round((float) $item['price'], 2) : $listPrice;
+            $discount = round((float) ($item['discount'] ?? 0), 2);
+
+            if (abs($price - $listPrice) >= 0.005 && ! $canChangePrice) {
+                $errors["items.{$i}.price"] = 'No tienes permiso para cambiar precios.';
+            }
+            if ($discount > 0 && ! $canDiscount) {
+                $errors["items.{$i}.discount"] = 'No tienes permiso para aplicar descuentos.';
+            }
+            if ($discount > $price * $quantity + 0.001) {
+                $errors["items.{$i}.discount"] = 'El descuento de '.$product->brand.' '.$product->model.' es mayor que su importe.';
+            }
+
+            $lineExtra = $extra ?? (float) $product->extra;
+            // Misma fórmula que calculatePurchaseSubtotal() del frontend.
+            $purchase = (float) $product->cost * $quantity * (1 + (float) $product->iva / 100) * (1 + $lineExtra / 100);
+
+            $lines[] = [
+                'product_id' => $product->id,
+                'brand' => $product->brand,
+                'model' => $product->model,
+                'measure' => $product->measure,
+                'mc' => $product->mc,
+                'unit' => $product->unit,
+                'quantity' => $quantity,
+                'cost' => $product->cost,
+                'iva' => $product->iva,
+                'extra' => $lineExtra,
+                'price' => $price,
+                'list_price' => $listPrice,
+                'discount' => $discount,
+                'sale_subtotal' => round($price * $quantity - $discount, 2),
+                'purchase_subtotal' => round($purchase, 2),
+                'supplied_status' => 'no_enviado',
+                'delivery_status' => self::DELIVERED,
+            ];
+
+            $gross += $price * $quantity;
+            $lineDiscounts += $discount;
+            $purchaseTotal += $purchase;
+        }
+
+        $noteDiscount = round((float) ($data['discount'] ?? 0), 2);
+        $linesNet = array_sum(array_column($lines, 'sale_subtotal'));
+        if ($noteDiscount > 0 && ! $canDiscount) {
+            $errors['discount'] = 'No tienes permiso para aplicar descuentos.';
+        }
+        if ($noteDiscount > $linesNet + 0.001) {
+            $errors['discount'] = 'El descuento es mayor que la venta.';
+        }
+
+        // Tope del cajero: todos los descuentos juntos, en % del importe antes de descuentos.
+        $max = $user->isCashier() ? $user->max_discount_percent : null;
+        $totalDiscount = $lineDiscounts + $noteDiscount;
+        if ($max !== null && $gross > 0 && $totalDiscount / $gross * 100 > $max + 0.001) {
+            $errors['discount'] = sprintf('Tu tope de descuento es %s%% (esta venta lleva %s%%).', rtrim(rtrim(number_format($max, 2), '0'), '.'), number_format($totalDiscount / $gross * 100, 1));
+        }
+
+        $saleTotal = round($linesNet - $noteDiscount, 2);
+
+        // Pago completo: tarjeta y transferencia por su importe, el efectivo cubre el resto.
+        $card = round((float) ($data['card'] ?? 0), 2);
+        $transfer = round((float) ($data['transfer'] ?? 0), 2);
+        $cash = round($saleTotal - $card - $transfer, 2);
+        $cashReceived = isset($data['cash_received']) ? round((float) $data['cash_received'], 2) : null;
+
+        if ($cash < -0.001) {
+            $errors['card'] = 'Tarjeta y transferencia suman más que el total.';
+        } elseif ($cash > 0.001 && ($cashReceived ?? 0) < $cash - 0.001) {
+            $errors['cash_received'] = 'Falta efectivo: el cliente debe entregar al menos $'.number_format($cash, 2).'.';
+        }
+
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        return [
+            'lines' => $lines,
+            'discount' => $noteDiscount,
+            'sale_total' => $saleTotal,
+            'purchase_total' => round($purchaseTotal, 2),
+            'cash' => max($cash, 0),
+            'card' => $card,
+            'transfer' => $transfer,
+            'cash_received' => $cash > 0 ? $cashReceived : null,
+            'change' => $cash > 0 ? round($cashReceived - $cash, 2) : 0.0,
+        ];
+    }
+}

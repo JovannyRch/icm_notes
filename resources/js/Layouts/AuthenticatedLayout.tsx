@@ -20,6 +20,7 @@ import {
     LuMenu,
     LuPackage,
     LuShoppingCart,
+    LuStore,
     LuUser,
     LuUsers,
     LuX,
@@ -38,7 +39,7 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
     // Navegación según permisos: un cajero sólo ve su caja.
     const links: { label: string; href: string; active: boolean; icon: IconType }[] = [
         can("dashboard.view") && { label: "Dashboard", href: route("dashboard"), active: route().current("dashboard"), icon: LuLayoutDashboard },
-        can("sales.create") && !can("dashboard.view") && { label: "Caja", href: route("caja"), active: route().current("caja"), icon: LuShoppingCart },
+        can("sales.create") && { label: "Caja", href: route("caja"), active: route().current("caja*"), icon: LuShoppingCart },
         can("notes.view") && { label: "Notas", href: route("notas", { date: filterDate }), active: route().current("notas"), icon: LuFileText },
         can("products.manage") && { label: "Productos", href: route("products"), active: route().current("products"), icon: LuPackage },
     ].filter(Boolean) as { label: string; href: string; active: boolean; icon: IconType }[];
@@ -90,6 +91,11 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                                 <DropdownMenu.Item onSelect={() => router.visit(route("profile.edit"))}>
                                     <LuUser /> Perfil
                                 </DropdownMenu.Item>
+                                {can("branches.manage") && (
+                                    <DropdownMenu.Item onSelect={() => router.visit(route("branches.index"))}>
+                                        <LuStore /> Sucursales y ticket
+                                    </DropdownMenu.Item>
+                                )}
                                 {can("users.manage") && (
                                     <DropdownMenu.Item onSelect={() => router.visit(route("users.index"))}>
                                         <LuUsers /> Usuarios
@@ -140,6 +146,11 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                             <ResponsiveNavLink href={route("profile.edit")}>
                                 <LuUser className="w-4 h-4" /> Perfil
                             </ResponsiveNavLink>
+                            {can("branches.manage") && (
+                                <ResponsiveNavLink href={route("branches.index")}>
+                                    <LuStore className="w-4 h-4" /> Sucursales y ticket
+                                </ResponsiveNavLink>
+                            )}
                             {can("users.manage") && (
                                 <ResponsiveNavLink href={route("users.index")}>
                                     <LuUsers className="w-4 h-4" /> Usuarios

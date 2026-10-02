@@ -35,6 +35,16 @@ class AppServiceProvider extends ServiceProvider
             || $user->hasPermission('stock.manage')
             || $user->hasPermission('products.manage'));
 
+        // "Mis ventas" de la caja: con ver las propias o las de la sucursal.
+        Gate::define('sales.history', fn (User $user) => $user->hasPermission('sales.view_own')
+            || $user->hasPermission('sales.view_branch'));
+
+        // Ticket de una nota: el controlador revisa además de quién es la nota.
+        Gate::define('tickets.view', fn (User $user) => $user->hasPermission('notes.view')
+            || $user->hasPermission('sales.create')
+            || $user->hasPermission('sales.view_own')
+            || $user->hasPermission('sales.view_branch'));
+
         // Nombres anteriores, conservados por compatibilidad.
         Gate::define('admin', fn (User $user) => $user->hasPermission('users.manage'));
         Gate::define('manage-billing', fn (User $user) => $user->hasPermission('billing.manage'));

@@ -8,16 +8,35 @@ use Inertia\Inertia;
 
 class BranchController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    /** Sucursales y los datos que imprime cada una en el ticket. */
     public function index()
     {
-        $branches = Branch::all();
-
         return Inertia::render('Branches/Index', [
-            'branches' => $branches,
+            'branches' => Branch::orderBy('id')->get()->map(fn (Branch $b) => [
+                'id' => $b->id,
+                'name' => $b->name,
+                // Lo guardado (para editar) y lo que se imprime (con valores por omisión).
+                'ticket' => array_merge(array_fill_keys(Branch::TICKET_FIELDS, ''), ['show_logo' => true], $b->ticket ?? []),
+                'defaults' => $b->ticketSettings(),
+            ]),
         ]);
+    }
+
+    public function updateTicket(Request $request, Branch $branch)
+    {
+        $validated = $request->validate([
+            'business_name' => 'nullable|string|max:80',
+            'rfc' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:200',
+            'phone' => 'nullable|string|max:40',
+            'header' => 'nullable|string|max:300',
+            'footer' => 'nullable|string|max:300',
+            'show_logo' => 'boolean',
+        ]);
+
+        $branch->update(['ticket' => array_map(fn ($v) => is_string($v) ? trim($v) : $v, $validated)]);
+
+        return redirect()->back()->with('success', "Ticket de {$branch->name} actualizado.");
     }
 
     /**

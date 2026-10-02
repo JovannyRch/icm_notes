@@ -1,22 +1,21 @@
 <?php
 
 use App\Models\Branch;
-use Illuminate\Support\Facades\Log;
 
-if (!function_exists('format_currency')) {
+if (! function_exists('format_currency')) {
     /**
      * Formatea un número como moneda con el símbolo de peso y dos decimales.
      *
-     * @param float $amount
+     * @param  float  $amount
      * @return string
      */
     function format_currency($amount)
     {
-        if (!is_numeric($amount)) {
-            return "-";
+        if (! is_numeric($amount)) {
+            return '-';
         }
 
-        return '$' . number_format($amount, 2, '.', ',');
+        return '$'.number_format($amount, 2, '.', ',');
     }
 
     function currentBranchId(): ?int
@@ -36,7 +35,7 @@ if (!function_exists('format_currency')) {
             return $branchId ? (int) $branchId : null;
         }
 
-        if (!$branchId) {
+        if (! $branchId) {
             $firstBranch = Branch::select('id')->orderBy('id', 'asc')->first();
 
             if ($firstBranch) {
@@ -46,5 +45,13 @@ if (!function_exists('format_currency')) {
         }
 
         return $branchId;
+    }
+}
+
+if (! function_exists('businessToday')) {
+    /** Fecha de hoy (Y-m-d) en la zona horaria del negocio, no la del servidor. */
+    function businessToday(): string
+    {
+        return now(config('app.business_timezone'))->toDateString();
     }
 }

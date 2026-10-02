@@ -41,6 +41,7 @@ return [
         'costs.view' => ['label' => 'Ver costos, compras y utilidades', 'group' => 'Negocio'],
         'products.manage' => ['label' => 'Administrar productos e importar/exportar', 'group' => 'Negocio'],
         'stock.manage' => ['label' => 'Administrar inventario y notas de entrada', 'group' => 'Negocio'],
+        'branches.manage' => ['label' => 'Datos de sucursales y del ticket', 'group' => 'Negocio'],
         'cortes.manage' => ['label' => 'Cortes diarios y semanales', 'group' => 'Negocio'],
         'billing.notice' => ['label' => 'Ver el aviso de pago del sistema', 'group' => 'Negocio'],
 

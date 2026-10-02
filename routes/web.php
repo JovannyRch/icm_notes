@@ -15,6 +15,7 @@ use App\Http\Controllers\ServicePaymentController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockEntryController;
 use App\Http\Controllers\StockMovementController;
+use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -54,6 +55,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // --- Caja ---------------------------------------------------------------
     Route::middleware('can:sales.create')->group(function () {
         Route::get('/caja', [CajaController::class, 'index'])->name('caja');
+        Route::post('/caja/ventas', [CajaController::class, 'store'])->name('caja.store');
+        // Cancelar: el controlador exige sales.cancel_own, que sea suya y del día.
+        Route::post('/caja/ventas/{note}/cancelar', [CajaController::class, 'cancel'])->name('caja.cancel');
+    });
+
+    // --- Ticket (80 mm) ----------------------------------------------------------
+    Route::middleware('can:tickets.view')->group(function () {
+        Route::get('/nota/{note}/ticket', [TicketController::class, 'show'])->name('tickets.show');
+    });
+
+    // --- Sucursales y datos del ticket ---------------------------------------------
+    Route::middleware('can:branches.manage')->group(function () {
+        Route::get('/sucursales', [BranchController::class, 'index'])->name('branches.index');
+        Route::put('/sucursales/{branch}/ticket', [BranchController::class, 'updateTicket'])->name('branches.ticket.update');
+        Route::get('/sucursales/{branch}/ticket-prueba', [TicketController::class, 'sample'])->name('branches.ticket.sample');
+    });
+
+    Route::middleware('can:sales.history')->group(function () {
+        Route::get('/caja/ventas', [CajaController::class, 'sales'])->name('caja.sales');
     });
 
     // --- Dashboard -----------------------------------------------------------

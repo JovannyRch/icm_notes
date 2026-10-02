@@ -47,7 +47,8 @@ import {
 import { TbCashRegister, TbTrash } from "react-icons/tb";
 import { toast } from "react-toastify";
 import PageHeader from "@/Components/ui/PageHeader";
-import { LuArchive, LuArchiveRestore, LuCalculator, LuChevronDown, LuFilePlus, LuTrash2 } from "react-icons/lu";
+import { LuArchive, LuArchiveRestore, LuCalculator, LuChevronDown, LuFilePlus, LuPrinter, LuTrash2 } from "react-icons/lu";
+import { printTicket } from "@/helpers/printTicket";
 import { SuppliedStatusSelect } from "@/Components/SuppliedStatusSelect";
 import { DeliveryStatusSelect } from "@/Components/DeliveryStatusSelect";
 import StatusPaidBadge from "@/Components/StatusPaidBadge";
@@ -458,6 +459,10 @@ const NoteForm = ({
                                             onSelect={() => router.visit(route("cortes.new", { branch: branch.id }))}
                                         >
                                             <LuCalculator /> Generar corte
+                                        </DropdownMenu.Item>
+                                        {/* Imprime lo guardado: los cambios sin guardar no salen en el ticket. */}
+                                        <DropdownMenu.Item onSelect={() => printTicket(route("tickets.show", { note: note.id, print: 1 }))}>
+                                            <LuPrinter /> Imprimir ticket
                                         </DropdownMenu.Item>
                                         <DropdownMenu.Separator />
                                         <DropdownMenu.Item onSelect={handleArchive}>
