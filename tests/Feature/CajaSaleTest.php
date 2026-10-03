@@ -372,9 +372,20 @@ class CajaSaleTest extends TestCase
         $this->actingAs($cashier)->post("/caja/ventas/{$note->id}/cancelar")->assertForbidden();
         $cashier->forceFill(['permissions' => ['sales.cancel_own' => true]])->save();
 
-        $this->actingAs($cashier)->post("/caja/ventas/{$note->id}/cancelar")->assertSessionHas('success');
+        // Sin motivo no se cancela.
+        $this->actingAs($cashier)->post("/caja/ventas/{$note->id}/cancelar")->assertSessionHasErrors('reason');
+        $this->actingAs($cashier)->post("/caja/ventas/{$note->id}/cancelar", ['reason' => '  '])->assertSessionHasErrors('reason');
+        $this->assertSame('paid', $note->fresh()->status);
+
+        $note->update(['notes' => 'Entregar en la tarde']);
+        $this->actingAs($cashier)->post("/caja/ventas/{$note->id}/cancelar", ['reason' => 'El cliente se arrepintió'])->assertSessionHas('success');
 
         $note->refresh();
+        // El motivo queda al final del comentario, con quién lo canceló; lo anterior se conserva.
+        $this->assertStringStartsWith("Entregar en la tarde\nCANCELADA ", $note->notes);
+        $this->assertStringEndsWith("por {$cashier->name}. Motivo: El cliente se arrepintió", $note->notes);
+        $this->actingAs($cashier)->get('/caja/ventas')->assertInertia(fn ($page) => $page
+            ->where('sales.0.cancel_reason', fn ($r) => str_ends_with($r, 'Motivo: El cliente se arrepintió')));
         $this->assertSame('cancelado', $note->delivery_status);
         $this->assertSame('canceled', $note->status);
         $this->assertSame(0, $note->payments()->count());
@@ -382,7 +393,7 @@ class CajaSaleTest extends TestCase
         $this->assertEquals(10, $this->stock($this->tire));
 
         // Dos veces no: no vuelve a sumar inventario.
-        $this->actingAs($cashier)->post("/caja/ventas/{$note->id}/cancelar")->assertForbidden();
+        $this->actingAs($cashier)->post("/caja/ventas/{$note->id}/cancelar", ['reason' => 'otra vez'])->assertForbidden();
         $this->assertEquals(10, $this->stock($this->tire));
     }
 

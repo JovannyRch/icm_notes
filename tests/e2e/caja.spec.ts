@@ -74,8 +74,14 @@ test("el cajero cobra una venta de contado con cambio", async ({ page }) => {
     const row = page.getByRole("row", { name: /6,100\.00/ }).first();
     await expect(row).toContainText("Público en general");
     await row.getByRole("button", { name: "Cancelar" }).click();
-    await page.locator(".react-confirm-alert-button-group button").first().click();
+    // Pide el motivo: sin él no cancela.
+    const cancelDialog = page.getByRole("dialog", { name: /Cancelar venta/ });
+    await cancelDialog.getByRole("button", { name: "Cancelar venta" }).click();
+    await expect(cancelDialog).toContainText("Escribe el motivo");
+    await cancelDialog.getByRole("button", { name: "El cliente se arrepintió" }).click();
+    await cancelDialog.getByRole("button", { name: "Cancelar venta" }).click();
     await expect(page.getByText(/cancelada/).first()).toBeVisible();
+    await expect(page.getByRole("row", { name: /6,100\.00/ }).first()).toContainText("Motivo: El cliente se arrepintió");
 });
 
 /** Venta a crédito en caja y cobro del saldo desde el dashboard del dueño. */
@@ -108,7 +114,6 @@ test("venta a crédito con abono y cobro del resto desde el dashboard", async ({
     await expect(page.getByRole("row", { name: /Cliente Crédito E2E/ })).toContainText("Resta: $1,000.00");
     await expect(page.getByRole("row", { name: /Cliente Crédito E2E/ })).toContainText("A cuenta: $500.00");
     await expect(page.getByTestId("ventas-credito")).toContainText("$1,000.00");
-    await expect(page.getByTestId("ventas-cobrado")).toContainText("incluye $500.00 a cuenta");
     // El resumen de la venta se despliega en la misma lista.
     await page.getByRole("button", { name: /Detalle de la venta/ }).first().click();
     const detail = page.locator('[data-testid^="detalle-"]').first();

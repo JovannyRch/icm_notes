@@ -8,7 +8,7 @@ import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { router } from "@inertiajs/react";
 import { Button, SegmentedControl, Table } from "@radix-ui/themes";
-import { confirmAlert } from "react-confirm-alert";
+import CancelSaleDialog from "./components/CancelSaleDialog";
 import { Fragment, MouseEvent, useState } from "react";
 import { LuBan, LuChevronDown, LuChevronRight, LuFileDown, LuPrinter } from "react-icons/lu";
 
@@ -36,6 +36,8 @@ interface Sale {
     seller: string | null;
     canceled: boolean;
     can_cancel: boolean;
+    /** "CANCELADA 02/10/2026 14:20 por Ana. Motivo: …" (del comentario de la nota). */
+    cancel_reason: string | null;
 }
 
 interface Props extends PageProps {
@@ -83,7 +85,10 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
     const payment = (s: Sale) => (
         <>
             {s.canceled ? (
-                <StatusPill tone="gray">Cancelada</StatusPill>
+                <div className="space-y-0.5">
+                    <StatusPill tone="gray">Cancelada</StatusPill>
+                    {s.cancel_reason && <div className="max-w-xs text-fog">{s.cancel_reason.replace(/^CANCELADA\s*/, "")}</div>}
+                </div>
             ) : s.credit ? (
                 // A crédito: lo que dejó a cuenta (y con qué) y lo que resta.
                 <div className="space-y-0.5">
@@ -127,15 +132,9 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
     const credit = active.filter((s) => s.credit);
     const creditPaid = credit.reduce((acc, s) => acc + paid(s), 0);
 
-    const cancel = (sale: Sale) =>
-        confirmAlert({
-            title: `Cancelar venta ${sale.folio}`,
-            message: `Se cancela la venta de ${formatCurrency(sale.sale_total)}, se quita su pago y las piezas regresan al inventario. No se puede deshacer.`,
-            buttons: [
-                { label: "Cancelar venta", onClick: () => router.post(route("caja.cancel", sale.id), {}, { preserveScroll: true }) },
-                { label: "No" },
-            ],
-        });
+    // Venta que se está cancelando (el diálogo pide el motivo).
+    const [canceling, setCanceling] = useState<Sale | null>(null);
+    const cancel = (sale: Sale) => setCanceling(sale);
 
     return (
         <Container headTitle="Mis ventas">
@@ -295,6 +294,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
                     <p className="mt-1 text-sm text-fog">Las ventas cobradas en caja aparecen aquí.</p>
                 </div>
             )}
+            <CancelSaleDialog sale={canceling} onClose={() => setCanceling(null)} />
         </Container>
     );
 };

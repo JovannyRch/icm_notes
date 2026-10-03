@@ -97,13 +97,28 @@ class SaleService
     }
 
     /** Cancela una venta: sin pagos, y las piezas regresan al inventario. */
-    public function cancel(Note $note): void
+    /** Prefijo de la línea que deja la cancelación en el comentario de la nota. */
+    public const CANCEL_PREFIX = 'CANCELADA';
+
+    /**
+     * Cancela la venta: quita sus pagos, regresa las piezas y deja el motivo (con fecha, hora
+     * y quién) al final del comentario de la nota, sin borrar lo que ya tenía.
+     */
+    public function cancel(Note $note, string $reason, User $by): void
     {
-        DB::transaction(function () use ($note) {
+        DB::transaction(function () use ($note, $reason, $by) {
             $noteStock = new NoteStockService($this->stock);
             $before = $noteStock->expectedQuantities($note);
 
-            $note->update(['delivery_status' => 'cancelado', 'status' => 'canceled']);
+            $when = now(config('app.business_timezone'))->format('d/m/Y H:i');
+            $line = self::CANCEL_PREFIX." {$when} por {$by->name}. Motivo: ".trim($reason);
+            $comments = trim((string) $note->notes);
+
+            $note->update([
+                'delivery_status' => 'cancelado',
+                'status' => 'canceled',
+                'notes' => $comments === '' ? $line : $comments."\n".$line,
+            ]);
             $note->payments()->delete();
             $note->recalculateTotalsFromPayments();
 

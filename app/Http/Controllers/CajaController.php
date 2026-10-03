@@ -163,6 +163,9 @@ class CajaController extends Controller
                 'seller' => $n->seller?->name,
                 'is_mine' => $n->user_id === $user->id,
                 'canceled' => $n->delivery_status === 'cancelado' || $n->status === 'canceled',
+                // La última línea de cancelación del comentario (motivo, quién y cuándo).
+                'cancel_reason' => collect(preg_split('/\R/', (string) $n->notes))
+                    ->last(fn ($l) => str_starts_with(trim($l), SaleService::CANCEL_PREFIX)),
                 'can_cancel' => $this->canCancel($request, $n),
             ]),
         ]);
@@ -172,7 +175,12 @@ class CajaController extends Controller
     {
         abort_unless($this->canCancel($request, $note), 403, 'No puedes cancelar esta venta.');
 
-        $sales->cancel($note);
+        $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:300']], [
+            'reason.required' => 'Escribe el motivo de la cancelación.',
+            'reason.min' => 'Escribe el motivo de la cancelación.',
+        ]);
+
+        $sales->cancel($note, $data['reason'], $request->user());
 
         return back()->with('success', "Venta {$note->folio} cancelada. Las piezas regresaron al inventario.");
     }

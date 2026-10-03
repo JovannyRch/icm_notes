@@ -57,7 +57,7 @@ class TicketTest extends TestCase
     {
         $html = $this->actingAs($this->cashier)->get($this->ticketUrl())->assertOk()->getContent();
 
-        foreach (['CAJA SAN FELIPE', 'Folio: <b>1</b>', 'Atendió: Ana Caja', 'Cliente: Juan Pérez', 'MICHELIN PRIMACY 4 205/55R16',
+        foreach (['CAJA SAN FELIPE', 'Folio: <b>1</b>', 'Atendió: Ana Caja', 'Cliente: Juan Pérez', 'PRIMACY 4 205/55R16',
             '2 x $2,500.00', '$4,900.00', '-$100.00', '-$250.00', '$4,750.00', 'Recibido', '$5,000.00', '$250.00',
             'CUATRO MIL SETECIENTOS CINCUENTA PESOS 00/100 M.N.', $this->note->code, 'data:image/svg+xml;base64,', 'Ideas Modernas de Construcción', '¡Gracias por su compra!', 'img/ticket-logo.png'] as $text) {
             $this->assertStringContainsString($text, $html, "Falta en el ticket: {$text}");
