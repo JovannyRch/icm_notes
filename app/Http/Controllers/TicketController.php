@@ -116,7 +116,7 @@ class TicketController extends Controller
 
             return [
                 'quantity' => (float) $i->quantity,
-                'description' => trim(implode(' ', array_filter([$i->brand, $i->model, $i->measure]))),
+                'description' => trim(implode(' ', array_filter([$i->model, $i->measure]))),
                 'price' => (float) $i->price,
                 'discount' => (float) ($i->discount ?? 0),
                 'amount' => (float) $i->sale_subtotal,

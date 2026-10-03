@@ -159,15 +159,9 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
 
             {/* Totales del día: lo vendido = lo cobrado + lo que queda por cobrar (ventas a crédito). */}
             <div className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-3 lg:grid-cols-6">
-                <Tile label="Vendido" value={sum("sale_total")} hint={`${active.length} ${active.length === 1 ? "venta" : "ventas"}`} />
+                <Tile label="Venta total" value={sum("sale_total")} hint={`${active.length} ${active.length === 1 ? "venta" : "ventas"}`} />
                 <Tile
-                    label="Cobrado"
-                    value={sum("cash") + sum("card") + sum("transfer")}
-                    hint={creditPaid > 0 ? `incluye ${formatCurrency(creditPaid)} a cuenta` : "efectivo, tarjeta y transferencia"}
-                    testId="ventas-cobrado"
-                />
-                <Tile
-                    label="Por cobrar"
+                    label="Resta"
                     value={sum("balance", credit)}
                     hint={credit.length > 0 ? `${credit.length} ${credit.length === 1 ? "venta" : "ventas"} a crédito` : "sin ventas a crédito"}
                     tone={credit.length > 0 ? "amber" : undefined}

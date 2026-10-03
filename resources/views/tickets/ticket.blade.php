@@ -116,14 +116,13 @@
     @endforeach
 
     <hr class="rule">
-    <div class="row"><span>Artículos</span><span>{{ $qty($t['units']) }}</span></div>
     @if ($s['show_m2'] && $t['m2'] > 0)<div class="row"><span>Total m²</span><span>{{ $qty($t['m2']) }} m²</span></div>@endif
     <div class="row"><span>Subtotal</span><span>{{ $money($t['gross']) }}</span></div>
     @if ($t['discount'] > 0)<div class="row"><span>Descuento</span><span>-{{ $money($t['discount']) }}</span></div>@endif
     @if ($t['flete'] > 0)<div class="row"><span>Flete</span><span>{{ $money($t['flete']) }}</span></div>@endif
     <hr class="rule-solid">
     <div class="row total"><span>TOTAL</span><span>{{ $money($t['total']) }}</span></div>
-    @if ($s['show_amount_in_words'])<div class="words">Son: {{ $t['amount_in_words'] }}</div>@endif
+    @if ($s['show_amount_in_words'])<div class="words">{{ $t['amount_in_words'] }}</div>@endif
 
     @unless ($t['canceled'])
         <hr class="rule">
