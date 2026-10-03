@@ -116,6 +116,8 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
     const [folio, setFolio] = useState(nextFolio);
     const [noteDiscountMode, setNoteDiscountMode] = useState<DiscountMode>("$");
     const [noteDiscount, setNoteDiscount] = useState("");
+    // Flete: se cobra aparte y cambia en cada venta.
+    const [flete, setFlete] = useState("");
     const [cashReceived, setCashReceived] = useState("");
     const [card, setCard] = useState("");
     const [transfer, setTransfer] = useState("");
@@ -285,7 +287,8 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
         const lineDiscounts = round2(lines.reduce((a, l) => a + l.discount, 0));
         const linesNet = round2(lines.reduce((a, l) => a + l.net, 0));
         const noteDisc = rules.discount ? discountAmount(linesNet, noteDiscountMode, noteDiscount) : 0;
-        const total = round2(linesNet - noteDisc);
+        const fleteAmount = round2(Math.max(num(flete), 0));
+        const total = round2(linesNet - noteDisc + fleteAmount);
         const totalDiscount = round2(lineDiscounts + noteDisc);
         const discountPercent = gross > 0 ? (totalDiscount / gross) * 100 : 0;
         const cashDue = round2(total - num(card) - num(transfer));
@@ -293,8 +296,8 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
         const change = !credit && cashDue > 0 && received !== null ? round2(received - cashDue) : 0;
         const paid = round2(num(downPayment) + num(card) + num(transfer));
         const balance = credit ? round2(total - paid) : 0;
-        return { lines, gross, lineDiscounts, linesNet, noteDisc, total, totalDiscount, discountPercent, cashDue, received, change, paid, balance };
-    }, [cart, noteDiscountMode, noteDiscount, card, transfer, cashReceived, rules.discount, credit, downPayment]);
+        return { lines, gross, lineDiscounts, linesNet, noteDisc, flete: fleteAmount, total, totalDiscount, discountPercent, cashDue, received, change, paid, balance };
+    }, [cart, noteDiscountMode, noteDiscount, flete, card, transfer, cashReceived, rules.discount, credit, downPayment]);
 
     const overCap = rules.maxDiscountPercent !== null && totals.discountPercent > rules.maxDiscountPercent + 0.001;
     const lineProblem = totals.lines.some((l, i) => l.discount > l.gross || num(cart[i].quantity) < 1 || !Number.isInteger(num(cart[i].quantity)));
@@ -331,6 +334,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
         setDownPayment("");
         setNoteDiscount("");
         setNoteDiscountMode("$");
+        setFlete("");
         setCashReceived("");
         setCard("");
         setTransfer("");
@@ -364,6 +368,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                     ...(rules.discount && totals.lines[i].discount > 0 ? { discount: totals.lines[i].discount } : {}),
                 })),
                 discount: totals.noteDisc > 0 ? totals.noteDisc : null,
+                flete: totals.flete > 0 ? totals.flete : null,
                 cash_received: !credit && totals.cashDue > 0 ? totals.received : null,
                 card: num(card),
                 transfer: num(transfer),
@@ -730,6 +735,24 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                 )}
                             </div>
                         )}
+
+                        <div className="mt-3">
+                            <label htmlFor="caja-flete" className="text-xs font-medium text-steel">
+                                Flete <span className="font-normal text-fog">· opcional</span>
+                            </label>
+                            <input
+                                id="caja-flete"
+                                inputMode="decimal"
+                                placeholder="0"
+                                value={flete}
+                                onChange={(e) => {
+                                    setServerErrors({});
+                                    setFlete(e.target.value);
+                                }}
+                                className={`mt-1 ${inputCls}`}
+                            />
+                            {serverErrors.flete && <p className="mt-1 text-xs text-red-700">{serverErrors.flete}</p>}
+                        </div>
 
                         <div className="flex items-baseline justify-between pt-3 mt-4 border-t border-ash">
                             <span className="text-sm font-medium text-steel">Total</span>

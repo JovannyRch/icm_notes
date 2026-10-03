@@ -77,6 +77,7 @@ class CajaController extends Controller
             'items.*.discount' => 'nullable|numeric|min:0',
             'items.*.update_catalog' => 'boolean',
             'discount' => 'nullable|numeric|min:0',
+            'flete' => 'nullable|numeric|min:0|max:1000000',
             'cash_received' => 'nullable|numeric|min:0',
             'card' => 'nullable|numeric|min:0',
             'transfer' => 'nullable|numeric|min:0',

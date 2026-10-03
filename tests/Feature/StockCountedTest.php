@@ -92,7 +92,7 @@ class StockCountedTest extends TestCase
     public function test_stock_entry_counts(): void
     {
         $this->actingAs(User::factory()->create())->withSession(['branch_id' => $this->branch->id])
-            ->post(route('stock-entries.store'), ['date' => '2026-09-10', 'items' => [['product_id' => $this->product->id, 'quantity' => 3]]]);
+            ->post(route('stock-entries.store'), ['date' => '2026-09-10', 'items' => [['product_id' => $this->product->id, 'quantity' => 3, 'cost' => 100]]])->assertSessionHasNoErrors();
         $this->assertTrue($this->counted());
     }
 

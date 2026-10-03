@@ -143,8 +143,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'store' => 'stock.store',
         ]);
         Route::post('/stock-movements', [StockMovementController::class, 'store'])->name('stock-movements.store');
+        Route::get('/notas-entrada', [StockEntryController::class, 'index'])->name('stock-entries.index');
         Route::get('/nota-entrada/crear', [StockEntryController::class, 'create'])->name('stock-entries.create');
         Route::post('/nota-entrada', [StockEntryController::class, 'store'])->name('stock-entries.store');
+        Route::get('/nota-entrada/{entry}', [StockEntryController::class, 'show'])->whereNumber('entry')->name('stock-entries.show');
+        Route::patch('/nota-entrada/{entry}/estado', [StockEntryController::class, 'updateStatus'])->whereNumber('entry')->name('stock-entries.status');
         Route::put('/sucursales/{branch}/extra', [BranchController::class, 'updateExtra'])->name('branches.extra.update');
     });
 

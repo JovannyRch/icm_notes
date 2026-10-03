@@ -30,7 +30,7 @@ class SaleService
     public function __construct(private StockService $stock = new StockService) {}
 
     /**
-     * @param  array{folio?: ?string, customer?: ?string, customer_phone?: ?string, customer_address?: ?string, items: array, discount?: ?float, credit?: bool, cash?: ?float, cash_received?: ?float, card?: ?float, transfer?: ?float}  $data
+     * @param  array{folio?: ?string, customer?: ?string, customer_phone?: ?string, customer_address?: ?string, items: array, discount?: ?float, flete?: ?float, credit?: bool, cash?: ?float, cash_received?: ?float, card?: ?float, transfer?: ?float}  $data
      */
     public function create(User $user, Branch $branch, array $data): Note
     {
@@ -57,11 +57,12 @@ class SaleService
                 'sale_total' => $sale['sale_total'],
                 'discount' => $sale['discount'],
                 'cash_received' => $sale['cash_received'],
-                'flete' => 0,
+                'flete' => $sale['flete'],
                 'notes' => '',
                 // A crédito con saldo: "Pendiente" hasta que se registre el resto (dashboard o Notas).
                 'status' => $sale['balance'] > 0.009 ? 'pending' : 'paid',
-                'purchase_status' => 'pending',
+                // El producto de la caja ya está en tienda: la compra queda liquidada.
+                'purchase_status' => 'paid',
                 'delivery_status' => self::DELIVERED,
             ]);
             $note->forceFill(['user_id' => $user->id])->save();
@@ -217,7 +218,9 @@ class SaleService
             $errors['discount'] = sprintf('Tu tope de descuento es %s%% (esta venta lleva %s%%).', rtrim(rtrim(number_format($max, 2), '0'), '.'), number_format($totalDiscount / $gross * 100, 1));
         }
 
-        $saleTotal = round($linesNet - $noteDiscount, 2);
+        // Flete: lo que se cobra por llevar la mercancía; lo escribe el cajero (no es fijo).
+        $flete = round((float) ($data['flete'] ?? 0), 2);
+        $saleTotal = round($linesNet - $noteDiscount + $flete, 2);
 
         $card = round((float) ($data['card'] ?? 0), 2);
         $transfer = round((float) ($data['transfer'] ?? 0), 2);
@@ -254,6 +257,7 @@ class SaleService
             'lines' => $lines,
             'catalog_updates' => $catalogUpdates,
             'discount' => $noteDiscount,
+            'flete' => $flete,
             'sale_total' => $saleTotal,
             'purchase_total' => round($purchaseTotal, 2),
             'cash' => max($cash, 0),

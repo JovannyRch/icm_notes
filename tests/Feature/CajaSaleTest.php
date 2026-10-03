@@ -71,6 +71,7 @@ class CajaSaleTest extends TestCase
         $this->assertEquals(0, $note->balance);
         $this->assertEquals(6000, $note->cash_received);
         $this->assertSame('paid', $note->status);
+        $this->assertSame('paid', $note->purchase_status, 'el producto ya está en tienda: compra liquidada');
         $this->assertSame('entregado_a_cliente', $note->delivery_status);
         $this->assertSame('Público en general', $note->customer);
         $this->assertSame($cashier->id, $note->user_id);
@@ -83,6 +84,38 @@ class CajaSaleTest extends TestCase
 
         $this->assertEquals(8, $this->stock($this->tire));
         $this->assertEquals(7, $this->stock($this->cement));
+    }
+
+    public function test_freight_is_added_to_the_total_and_charged(): void
+    {
+        // 1 × $245 + flete $150 = $395; con tarjeta $100, el efectivo cubre $295.
+        $this->sell($this->cashier(), [
+            'items' => [['product_id' => $this->cement->id, 'quantity' => 1]],
+            'flete' => 150, 'card' => 100, 'cash_received' => 300,
+        ])->assertSessionHasNoErrors()->assertSessionHas('lastSale.change', 5.0);
+
+        $note = Note::sole();
+        $this->assertEquals(150, $note->flete);
+        $this->assertEquals(395, $note->sale_total);
+        $this->assertEquals(295, $note->cash);
+        $this->assertEquals(0, $note->balance);
+        $this->assertSame('paid', $note->status);
+
+        // A crédito el flete también entra al saldo.
+        $this->sell($this->cashier(), [
+            'items' => [['product_id' => $this->cement->id, 'quantity' => 1]],
+            'flete' => 55.5, 'credit' => true, 'cash' => 100,
+        ])->assertSessionHasNoErrors();
+        $credit = Note::latest('id')->first();
+        $this->assertEquals(300.5, $credit->sale_total);
+        $this->assertEquals(200.5, $credit->balance);
+        $this->assertSame('pending', $credit->status);
+        $this->assertSame('paid', $credit->purchase_status);
+
+        $this->sell($this->cashier(), [
+            'items' => [['product_id' => $this->cement->id, 'quantity' => 1]],
+            'flete' => -10, 'cash_received' => 245,
+        ])->assertSessionHasErrors('flete');
     }
 
     public function test_browser_totals_are_ignored(): void

@@ -184,6 +184,9 @@ test("el cajero consulta el catálogo y manda un producto a la caja", async ({ p
     await page.waitForURL("**/caja");
     await expect(page.getByLabel("Cantidad de CASTEL MARMOL E2E")).toHaveValue("1");
     await expect(page.getByTestId("caja-total")).toHaveText("$389.00");
+    // El flete se escribe en cada venta y se suma al total.
+    await page.getByLabel("Flete").fill("150");
+    await expect(page.getByTestId("caja-total")).toHaveText("$539.00");
     // El folio es automático: el cajero no lo puede cambiar.
     await expect(page.getByTitle("Folio automático: lo asigna el sistema al cobrar")).toBeVisible();
 });
