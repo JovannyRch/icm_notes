@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { addProduct, login } from "./helpers";
+import { login } from "./helpers";
 
 /** Nota de entrada: costo, IVA y extra por producto, total al proveedor, lista y marcar pagada. */
 test("nota de entrada con costos y total a pagar al proveedor", async ({ page }) => {
@@ -10,8 +10,20 @@ test("nota de entrada con costos y total a pagar al proveedor", async ({ page })
     await page.getByRole("button", { name: "Nueva nota de entrada" }).click();
     await page.waitForURL("**/nota-entrada/crear");
 
-    await addProduct(page, "GOODYEAR");
-    await page.keyboard.press("Escape");
+    // Buscador fijo: escribir y Enter agrega; el cursor salta a la cantidad.
+    const search = page.getByRole("combobox", { name: "Buscar producto para agregar" });
+    await expect(search).toBeFocused();
+    await search.fill("GOODYEAR");
+    await expect(page.getByRole("option").first()).toContainText("$1,100.00");
+    await search.press("Enter");
+    await expect(page.getByLabel("Cantidad de GOODYEAR ASSURANCE")).toBeFocused();
+    // Enter regresa al buscador; agregar el mismo producto suma uno.
+    await page.keyboard.press("Enter");
+    await expect(search).toBeFocused();
+    await search.fill("GOODYEAR");
+    await page.getByRole("option", { name: /GOODYEAR ASSURANCE/ }).click();
+    await expect(page.getByLabel("Cantidad de GOODYEAR ASSURANCE")).toHaveValue("2");
+    await page.getByLabel("Cantidad de GOODYEAR ASSURANCE").fill("1");
     // Costo, IVA y extra vienen del catálogo.
     await expect(page.getByLabel("Costo de GOODYEAR ASSURANCE")).toHaveValue("1100");
     await expect(page.getByTestId("entry-total")).toHaveText("$1,100.00");

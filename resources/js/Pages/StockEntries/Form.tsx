@@ -1,5 +1,4 @@
 import Container from "@/Components/Container";
-import ProductsModal from "@/Components/ProductsModal/ProductsModal";
 import PageHeader from "@/Components/ui/PageHeader";
 import { formatCurrency, getToday } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
@@ -9,9 +8,10 @@ import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
 import { router } from "@inertiajs/react";
 import { Button, Checkbox, Switch, Text } from "@radix-ui/themes";
-import { useMemo, useState } from "react";
-import { LuPackagePlus, LuPlus, LuSave, LuTrash2 } from "react-icons/lu";
+import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { LuPackagePlus, LuSave, LuTrash2 } from "react-icons/lu";
 import { toast } from "react-toastify";
+import ProductSearchBox from "./components/ProductSearchBox";
 
 interface EntryRow {
     product: Product;
@@ -59,16 +59,49 @@ const StockEntryForm = ({ flash, suppliers }: Props) => {
     const [notes, setNotes] = useState("");
     const [paid, setPaid] = useState(false);
     const [updateCatalog, setUpdateCatalog] = useState(true);
-    const [showProductsModal, setShowProductsModal] = useState(false);
+    const searchRef = useRef<HTMLInputElement>(null);
+    const quantityRefs = useRef<Record<number, HTMLInputElement | null>>({});
+    // Después de agregar, el cursor salta a la cantidad de ese producto.
+    const [focusId, setFocusId] = useState<number | null>(null);
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const addProduct = (product: Product) => {
-        if (rows.some((row) => row.product.id === product.id)) {
-            toast.warning("Ese producto ya está en la nota");
-            return;
+        setErrors({});
+        setRows((r) =>
+            r.some((row) => row.product.id === product.id)
+                ? // Ya estaba: se suma uno a su cantidad en vez de repetirlo.
+                  r.map((row) => (row.product.id === product.id ? { ...row, quantity: String(num(row.quantity) + 1) } : row))
+                : [...r, { product, quantity: "1", cost: str(product.cost), iva: str(product.iva ?? 16), extra: str(product.extra ?? 0) }]
+        );
+        setFocusId(product.id);
+    };
+
+    useEffect(() => {
+        if (focusId === null) return;
+        quantityRefs.current[focusId]?.select();
+        setFocusId(null);
+    }, [focusId]);
+
+    // "/" lleva al buscador desde cualquier parte que no sea un campo de texto.
+    useEffect(() => {
+        const onKey = (e: globalThis.KeyboardEvent) => {
+            const el = e.target as HTMLElement;
+            if (e.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)) {
+                e.preventDefault();
+                searchRef.current?.focus();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    // Enter en cantidad, costo, IVA o extra: listo, de regreso al buscador por el siguiente.
+    const backToSearch = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            searchRef.current?.focus();
         }
-        setRows((r) => [...r, { product, quantity: "1", cost: str(product.cost), iva: str(product.iva ?? 16), extra: str(product.extra ?? 0) }]);
     };
 
     const updateRow = (index: number, patch: Partial<EntryRow>) => {
@@ -149,22 +182,19 @@ const StockEntryForm = ({ flash, suppliers }: Props) => {
                                 <p className="text-xs text-fog">La sucursal tiene extra global de {globalExtra}%: se aplica a todos los productos.</p>
                             )}
                         </div>
-                        <Button type="button" variant="outline" color="gray" onClick={() => setShowProductsModal(true)}>
-                            <LuPlus /> Agregar producto
-                        </Button>
+                        {rows.length > 0 && <span className="text-xs text-fog">Enter en un campo regresa al buscador</span>}
+                    </div>
+                    <div className="px-4 py-3 border-b border-ash">
+                        <ProductSearchBox ref={searchRef} branchId={currentBranchId} onPick={addProduct} />
                     </div>
 
                     {errors.items && <p className="px-4 pt-3 text-sm text-red-700">{errors.items}</p>}
 
                     {rows.length === 0 ? (
-                        <button
-                            type="button"
-                            onClick={() => setShowProductsModal(true)}
-                            className="flex flex-col items-center w-full gap-2 px-4 py-12 text-center text-fog hover:text-charcoal"
-                        >
+                        <div className="flex flex-col items-center w-full gap-2 px-4 py-12 text-center text-fog">
                             <LuPackagePlus className="w-8 h-8" aria-hidden />
-                            <span className="text-sm">Agrega los productos del catálogo que llegaron del proveedor.</span>
-                        </button>
+                            <span className="text-sm">Busca arriba los productos que llegaron del proveedor y presiona Enter para agregarlos.</span>
+                        </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm min-w-[760px]">
@@ -198,6 +228,8 @@ const StockEntryForm = ({ flash, suppliers }: Props) => {
                                                 <td className="px-2 py-2">
                                                     <input
                                                         aria-label={`Cantidad de ${name}`}
+                                                        onKeyDown={backToSearch}
+                                                        ref={(el) => (quantityRefs.current[p.id] = el)}
                                                         inputMode="decimal"
                                                         value={row.quantity}
                                                         onChange={(e) => updateRow(i, { quantity: e.target.value })}
@@ -207,6 +239,7 @@ const StockEntryForm = ({ flash, suppliers }: Props) => {
                                                 <td className="px-2 py-2">
                                                     <input
                                                         aria-label={`Costo de ${name}`}
+                                                        onKeyDown={backToSearch}
                                                         inputMode="decimal"
                                                         value={row.cost}
                                                         onChange={(e) => updateRow(i, { cost: e.target.value })}
@@ -217,6 +250,7 @@ const StockEntryForm = ({ flash, suppliers }: Props) => {
                                                 <td className="px-2 py-2">
                                                     <input
                                                         aria-label={`IVA de ${name}`}
+                                                        onKeyDown={backToSearch}
                                                         inputMode="decimal"
                                                         value={row.iva}
                                                         onChange={(e) => updateRow(i, { iva: e.target.value })}
@@ -226,6 +260,7 @@ const StockEntryForm = ({ flash, suppliers }: Props) => {
                                                 <td className="px-2 py-2">
                                                     <input
                                                         aria-label={`Extra de ${name}`}
+                                                        onKeyDown={backToSearch}
                                                         inputMode="decimal"
                                                         value={globalExtra !== null ? String(globalExtra) : row.extra}
                                                         disabled={globalExtra !== null}
@@ -345,13 +380,6 @@ const StockEntryForm = ({ flash, suppliers }: Props) => {
                     </section>
                 </aside>
             </div>
-
-            <ProductsModal
-                branchId={currentBranchId}
-                open={showProductsModal}
-                onClose={() => setShowProductsModal(false)}
-                onAddProduct={addProduct}
-            />
         </Container>
     );
 };
