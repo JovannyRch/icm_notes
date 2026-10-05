@@ -30,7 +30,7 @@ class SaleService
     public function __construct(private StockService $stock = new StockService) {}
 
     /**
-     * @param  array{folio?: ?string, customer?: ?string, customer_phone?: ?string, customer_address?: ?string, items: array, discount?: ?float, flete?: ?float, credit?: bool, cash?: ?float, cash_received?: ?float, card?: ?float, transfer?: ?float}  $data
+     * @param  array{folio?: ?string, customer?: ?string, customer_phone?: ?string, customer_address?: ?string, notes?: ?string, items: array, discount?: ?float, flete?: ?float, credit?: bool, cash?: ?float, cash_received?: ?float, card?: ?float, transfer?: ?float}  $data
      */
     public function create(User $user, Branch $branch, array $data): Note
     {
@@ -58,7 +58,8 @@ class SaleService
                 'discount' => $sale['discount'],
                 'cash_received' => $sale['cash_received'],
                 'flete' => $sale['flete'],
-                'notes' => '',
+                // Comentario del cajero (opcional); se imprime en el ticket si la sucursal lo tiene encendido.
+                'notes' => trim((string) ($data['notes'] ?? '')),
                 // A crédito con saldo: "Pendiente" hasta que se registre el resto (dashboard o Notas).
                 'status' => $sale['balance'] > 0.009 ? 'pending' : 'paid',
                 // El producto de la caja ya está en tienda: la compra queda liquidada.

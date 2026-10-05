@@ -143,6 +143,12 @@
         @endif
     @endunless
 
+    @if ($s['show_notes'] && $t['comments'])
+        <hr class="rule">
+        <div class="bold">Comentarios:</div>
+        <div class="pre">{{ $t['comments'] }}</div>
+    @endif
+
     @if ($s['show_qr'] && $t['qr'])
         <div class="qr"><img src="{{ $t['qr'] }}" alt="QR {{ $t['code'] }}"></div>
         <div class="center muted">{{ $t['code'] }}</div>

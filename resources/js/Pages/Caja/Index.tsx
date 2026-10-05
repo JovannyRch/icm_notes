@@ -112,6 +112,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
     const [customer, setCustomer] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
     const [customerAddress, setCustomerAddress] = useState("");
+    const [comments, setComments] = useState("");
     // A crédito: el cliente abona lo que quiera (o nada) y la venta queda "Pendiente".
     const [credit, setCredit] = useState(false);
     const [downPayment, setDownPayment] = useState("");
@@ -333,6 +334,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
         setCustomer("");
         setCustomerPhone("");
         setCustomerAddress("");
+        setComments("");
         setCredit(false);
         setDownPayment("");
         setNoteDiscount("");
@@ -361,6 +363,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                 customer: customer.trim() || null,
                 customer_phone: customerPhone.trim() || null,
                 customer_address: customerAddress.trim() || null,
+                notes: comments.trim() || null,
                 credit,
                 cash: credit ? num(downPayment) : null,
                 items: cart.map((l, i) => ({
@@ -723,6 +726,18 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                 <input value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className={`${inputCls} mt-1`} />
                             </label>
                         </div>
+                        <label className="block mt-2 text-xs font-medium text-steel">
+                            Comentarios <span className="font-normal text-fog">· opcional, sale en el ticket</span>
+                            <textarea
+                                rows={2}
+                                maxLength={500}
+                                value={comments}
+                                onChange={(e) => setComments(e.target.value)}
+                                placeholder="P. ej. entregar el sábado, color exacto, apartado…"
+                                className="w-full px-2.5 py-2 mt-1 text-sm bg-white border rounded-input border-pebble text-charcoal focus:border-electric focus:ring-2 focus:ring-electric/20"
+                            />
+                        </label>
+                        {serverErrors.notes && <p className="mt-1 text-xs text-red-700">{serverErrors.notes}</p>}
                         {(serverErrors.customer || serverErrors.customer_phone) && (
                             <p className="mt-1 text-xs text-red-700">{serverErrors.customer ?? serverErrors.customer_phone}</p>
                         )}

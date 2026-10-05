@@ -69,7 +69,7 @@ class TicketController extends Controller
     {
         $note = new Note([
             'folio' => '0000', 'customer' => 'Público en general', 'date' => businessToday(), 'flete' => 0,
-            'sale_total' => 2745, 'discount' => 100, 'cash_received' => 3000, 'status' => 'paid', 'delivery_status' => 'entregado_a_cliente',
+            'sale_total' => 2745, 'discount' => 100, 'cash_received' => 3000, 'notes' => 'Ejemplo de comentario: entregar el sábado por la mañana.', 'status' => 'paid', 'delivery_status' => 'entregado_a_cliente',
         ]);
         $note->forceFill(['code' => 'PRUEBA2345', 'cash' => 2745, 'card' => 0, 'transfer' => 0, 'balance' => 0, 'created_at' => now()]);
         $note->setRelation('branch', $branch);
@@ -148,6 +148,7 @@ class TicketController extends Controller
             'customer' => $note->customer,
             'customer_phone' => $note->customer_phone,
             'customer_address' => $note->customer_address,
+            'comments' => trim((string) $note->notes) ?: null,
             'lines' => $lines,
             'units' => $lines->sum('quantity'),
             'm2' => round($lines->sum('m2'), 2),

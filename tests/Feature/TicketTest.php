@@ -232,6 +232,29 @@ class TicketTest extends TestCase
         $this->assertStringContainsString('$4,750.00', $html, 'el total siempre sale');
     }
 
+    public function test_sale_comments_are_printed_and_can_be_turned_off(): void
+    {
+        // Sin comentario no sale la sección.
+        $this->assertStringNotContainsString('Comentarios:', $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent());
+
+        // El cajero lo escribe en la caja.
+        $product = Product::sole();
+        $this->actingAs($this->cashier)->withSession(['branch_id' => $this->a->id])->post('/caja/ventas', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]], 'cash_received' => 2500,
+            'notes' => "  Entregar el sábado.\nTocar en la puerta azul.  ",
+        ])->assertSessionHasNoErrors();
+        $this->note = Note::latest('id')->first();
+        $this->assertSame("Entregar el sábado.\nTocar en la puerta azul.", $this->note->notes);
+
+        $html = $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent();
+        $this->assertStringContainsString('Comentarios:', $html);
+        $this->assertStringContainsString("Entregar el sábado.\nTocar en la puerta azul.", $html);
+
+        $this->configure(['show_notes' => false]);
+        $html = $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent();
+        $this->assertStringNotContainsString('Entregar el sábado', $html);
+    }
+
     public function test_two_copies_when_printing_and_one_in_pdf(): void
     {
         $this->configure(['copies' => 2]);

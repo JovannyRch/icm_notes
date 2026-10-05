@@ -68,6 +68,7 @@ class CajaController extends Controller
             'customer' => 'nullable|string|max:255',
             'customer_phone' => 'nullable|string|max:30',
             'customer_address' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:500',
             'credit' => 'boolean',
             'cash' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1|max:100',

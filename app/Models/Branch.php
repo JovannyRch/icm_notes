@@ -17,7 +17,7 @@ class Branch extends Model
     public const TICKET_FIELDS = ['business_name', 'rfc', 'address', 'phone', 'header', 'footer', 'farewell', 'register_label', 'seller_label'];
 
     /** Qué se imprime (interruptores) — todos encendidos por omisión. */
-    public const TICKET_TOGGLES = ['show_logo', 'show_business_name', 'show_register', 'show_customer', 'show_m2', 'show_amount_in_words', 'show_payment', 'show_qr', 'show_farewell'];
+    public const TICKET_TOGGLES = ['show_logo', 'show_business_name', 'show_register', 'show_customer', 'show_m2', 'show_amount_in_words', 'show_payment', 'show_qr', 'show_farewell', 'show_notes'];
 
     /** Cómo aparece quién vendió: su nombre, un texto genérico ("Vendedor") o nada. */
     public const SELLER_MODES = ['name', 'generic', 'none'];

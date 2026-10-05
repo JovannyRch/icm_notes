@@ -10,7 +10,7 @@ import { Button, RadioGroup, SegmentedControl, Switch, Text } from "@radix-ui/th
 import { LuExternalLink, LuPrinter } from "react-icons/lu";
 
 type TextField = "business_name" | "rfc" | "address" | "phone" | "header" | "footer" | "farewell" | "register_label" | "seller_label";
-type Toggle = "show_logo" | "show_business_name" | "show_register" | "show_customer" | "show_m2" | "show_amount_in_words" | "show_payment" | "show_qr" | "show_farewell";
+type Toggle = "show_logo" | "show_business_name" | "show_register" | "show_customer" | "show_m2" | "show_amount_in_words" | "show_payment" | "show_qr" | "show_farewell" | "show_notes";
 type SellerMode = "name" | "generic" | "none";
 
 type TicketFields = Record<TextField, string> &
@@ -43,6 +43,7 @@ const toggles: { key: Toggle; label: string; hint?: string }[] = [
     { key: "show_amount_in_words", label: "Importe con letra" },
     { key: "show_payment", label: "Detalle del pago", hint: "Efectivo, recibido y cambio (el saldo pendiente siempre sale)" },
     { key: "show_qr", label: "Código QR de la venta" },
+    { key: "show_notes", label: "Comentarios de la venta", hint: "Sólo cuando la venta tiene comentario" },
     { key: "show_farewell", label: "Despedida al final" },
 ];
 
