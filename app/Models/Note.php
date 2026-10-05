@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Note extends Model
 {
+    /** notes.source: venta de mostrador o nota capturada en el formulario (lo pone el servidor). */
+    public const SOURCE_CAJA = 'caja';
+
+    public const SOURCE_NOTA = 'nota';
+
     protected $fillable = [
         'folio',
         'customer',

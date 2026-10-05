@@ -21,13 +21,17 @@ interface Props {
     height?: number;
     /** Filas extra en el tooltip (p. ej. costo y utilidad). */
     tooltipExtra?: (row: Props["data"][number]) => ReactNode;
+    /** "count" para cantidades (ventas, tickets) en vez de pesos. */
+    valueFormat?: "currency" | "count";
 }
 
 const PAD = { top: 12, right: 8, bottom: 28, left: 56 };
 const GAP = 2; // separación de superficie entre segmentos apilados
 
 /** Columnas (simples o apiladas) en SVG, con eje Y en moneda y tooltip por columna. */
-const ColumnChart = ({ data, series, height = 240, tooltipExtra }: Props) => {
+const ColumnChart = ({ data, series, height = 240, tooltipExtra, valueFormat = "currency" }: Props) => {
+    const axisText = (v: number) => (valueFormat === "count" ? new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(v) : formatCompactCurrency(v));
+    const valueText = (v: number) => (valueFormat === "count" ? new Intl.NumberFormat("es-MX").format(v) : formatCurrency(v));
     const ref = useRef<HTMLDivElement>(null);
     const [width, setWidth] = useState(600);
     const [hover, setHover] = useState<number | null>(null);
@@ -91,7 +95,7 @@ const ColumnChart = ({ data, series, height = 240, tooltipExtra }: Props) => {
                             fill={CHART.muted}
                             style={{ fontVariantNumeric: "tabular-nums" }}
                         >
-                            {formatCompactCurrency(t)}
+                            {axisText(t)}
                         </text>
                     </g>
                 ))}
@@ -180,7 +184,7 @@ const ColumnChart = ({ data, series, height = 240, tooltipExtra }: Props) => {
                                 {s.label}
                             </span>
                             <span className="font-medium tabular-nums">
-                                {formatCurrency(Number(hovered[s.key] ?? 0))}
+                                {valueText(Number(hovered[s.key] ?? 0))}
                             </span>
                         </div>
                     ))}
@@ -188,7 +192,7 @@ const ColumnChart = ({ data, series, height = 240, tooltipExtra }: Props) => {
                         <div className="flex justify-between pt-1 mt-1 font-semibold text-charcoal border-t border-ash">
                             <span>Total</span>
                             <span className="tabular-nums">
-                                {formatCurrency(totals[hover!])}
+                                {valueText(totals[hover!])}
                             </span>
                         </div>
                     )}

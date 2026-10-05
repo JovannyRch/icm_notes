@@ -177,7 +177,7 @@ class NoteController extends Controller
                 $request->merge(['folio' => Note::nextFolio((int) $request->branch_id)]);
             }
             $note = new Note($request->all());
-            $note->forceFill(['user_id' => $request->user()->id])->save();
+            $note->forceFill(['user_id' => $request->user()->id, 'source' => Note::SOURCE_NOTA])->save();
             $this->createItems($note, $items, moveStock: ! NoteStockService::isCancelled($note));
             $this->syncPayments($note, $payments, $isCancelled);
             $note->recalculateTotalsFromPayments();

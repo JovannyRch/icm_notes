@@ -53,6 +53,7 @@ return [
         // Sistema (sólo super_admin)
         'users.manage' => ['label' => 'Administrar usuarios y permisos', 'group' => 'Sistema', 'super_admin_only' => true],
         'billing.manage' => ['label' => 'Registrar pagos del servicio', 'group' => 'Sistema', 'super_admin_only' => true],
+        'usage.view' => ['label' => 'Ver el uso del sistema (adopción de la caja)', 'group' => 'Sistema', 'super_admin_only' => true],
     ],
 
 ];

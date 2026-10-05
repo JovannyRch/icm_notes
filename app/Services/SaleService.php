@@ -65,7 +65,7 @@ class SaleService
                 'purchase_status' => 'paid',
                 'delivery_status' => self::DELIVERED,
             ]);
-            $note->forceFill(['user_id' => $user->id])->save();
+            $note->forceFill(['user_id' => $user->id, 'source' => Note::SOURCE_CAJA])->save();
 
             foreach ($sale['lines'] as $line) {
                 NoteProduct::create($line + ['note_id' => $note->id]);

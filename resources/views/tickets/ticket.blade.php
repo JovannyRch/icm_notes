@@ -93,7 +93,6 @@
 
     @if ($copy > 1)<div class="banner">COPIA</div>@endif
     @if ($sample)<div class="banner">TICKET DE PRUEBA</div>@endif
-    @if ($reprint)<div class="banner">REIMPRESIÓN</div>@endif
     @if ($t['canceled'])<div class="banner">VENTA CANCELADA</div>@endif
 
     <hr class="rule">

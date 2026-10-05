@@ -12,6 +12,7 @@ import { DropdownMenu } from "@radix-ui/themes";
 import { PropsWithChildren, ReactNode, useState } from "react";
 import { IconType } from "react-icons";
 import {
+    LuActivity,
     LuCalculator,
     LuChevronDown,
     LuCreditCard,
@@ -108,6 +109,11 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                                         <LuUsers /> Usuarios
                                     </DropdownMenu.Item>
                                 )}
+                                {can("usage.view") && (
+                                    <DropdownMenu.Item onSelect={() => router.visit(route("usage.index"))}>
+                                        <LuActivity /> Uso del sistema
+                                    </DropdownMenu.Item>
+                                )}
                                 {canManageBilling && (
                                     <DropdownMenu.Item onSelect={() => router.visit(route("service-payments.index"))}>
                                         <LuCreditCard /> Pagos del servicio
@@ -163,6 +169,11 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
                             {can("users.manage") && (
                                 <ResponsiveNavLink href={route("users.index")}>
                                     <LuUsers className="w-4 h-4" /> Usuarios
+                                </ResponsiveNavLink>
+                            )}
+                            {can("usage.view") && (
+                                <ResponsiveNavLink href={route("usage.index")}>
+                                    <LuActivity className="w-4 h-4" /> Uso del sistema
                                 </ResponsiveNavLink>
                             )}
                             {canManageBilling && (

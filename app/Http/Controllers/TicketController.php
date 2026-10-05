@@ -18,7 +18,7 @@ use Illuminate\Http\Request;
 /**
  * Ticket de 80 mm (Epson TM-T20IV) como página HTML independiente. Con ?print=1 se
  * imprime solo al cargar (Chrome con --kiosk-printing lo manda directo a la impresora
- * predeterminada, sin diálogo) y queda en la bitácora; desde la 2.ª vez sale "REIMPRESIÓN".
+ * predeterminada, sin diálogo) y queda en la bitácora (ticket_prints.reprint marca desde la 2.ª vez; el ticket ya no lo imprime).
  */
 class TicketController extends Controller
 {

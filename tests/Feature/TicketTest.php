@@ -73,8 +73,9 @@ class TicketTest extends TestCase
         $this->assertStringNotContainsString('REIMPRESIÓN', $first);
         $this->assertStringContainsString("window.addEventListener('load'", $first);
 
+        // La reimpresión queda en la bitácora, pero el ticket sale igual que el original.
         $second = $this->actingAs($this->cashier)->get($this->ticketUrl(print: true))->getContent();
-        $this->assertStringContainsString('REIMPRESIÓN', $second);
+        $this->assertStringNotContainsString('REIMPRESIÓN', $second);
 
         $this->assertSame([false, true], TicketPrint::orderBy('id')->pluck('reprint')->all());
         $this->assertSame($this->cashier->id, TicketPrint::first()->user_id);
