@@ -58,7 +58,8 @@ const m2PerBox = (l: SummaryLine) => {
  * escribir "Hoy" en los pagos de ese día; `extra` agrega datos al final (p. ej. entrega).
  */
 const SaleSummary = ({ sale, today, showPurchase = false, extra }: { sale: SummarySale; today: string; showPurchase?: boolean; extra?: ReactNode }) => {
-    const gross = sale.lines.reduce((acc, l) => acc + l.price * l.quantity, 0);
+    // Importe + descuento: en la caja el importe de una partida se puede escribir a mano.
+    const gross = sale.lines.reduce((acc, l) => acc + l.amount + l.discount, 0);
     const discounts = sale.lines.reduce((acc, l) => acc + l.discount, 0) + sale.discount;
     const change = sale.cash_received !== null ? sale.cash_received - sale.cash : null;
     const purchase = sale.lines.reduce((acc, l) => acc + Number(l.purchase ?? 0), 0);

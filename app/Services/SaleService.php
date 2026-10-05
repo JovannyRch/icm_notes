@@ -150,6 +150,16 @@ class SaleService
             $listPrice = round((float) $product->price, 2);
             $price = isset($item['price']) ? round((float) $item['price'], 2) : $listPrice;
             $discount = round((float) ($item['discount'] ?? 0), 2);
+            // Importe escrito a mano (p. ej. para cerrar los centavos): manda sobre precio × cantidad
+            // y el precio de la partida queda en importe ÷ cantidad. Es un cambio de precio.
+            $amount = isset($item['amount']) ? round((float) $item['amount'], 2) : null;
+            if ($amount !== null && $quantity > 0) {
+                $price = round($amount / $quantity, 2);
+                if (abs($amount - $listPrice * $quantity) >= 0.005 && ! $canChangePrice) {
+                    $errors["items.{$i}.amount"] = 'No tienes permiso para cambiar el importe.';
+                }
+            }
+            $lineGross = $amount ?? round($price * $quantity, 2);
 
             if (abs($price - $listPrice) >= 0.005 && ! $canChangePrice) {
                 $errors["items.{$i}.price"] = 'No tienes permiso para cambiar precios.';
@@ -169,7 +179,7 @@ class SaleService
             if ($discount > 0 && ! $canDiscount) {
                 $errors["items.{$i}.discount"] = 'No tienes permiso para aplicar descuentos.';
             }
-            if ($discount > $price * $quantity + 0.001) {
+            if ($discount > $lineGross + 0.001) {
                 $errors["items.{$i}.discount"] = 'El descuento de '.$product->brand.' '.$product->model.' es mayor que su importe.';
             }
 
@@ -191,13 +201,13 @@ class SaleService
                 'price' => $price,
                 'list_price' => $listPrice,
                 'discount' => $discount,
-                'sale_subtotal' => round($price * $quantity - $discount, 2),
+                'sale_subtotal' => round($lineGross - $discount, 2),
                 'purchase_subtotal' => round($purchase, 2),
                 'supplied_status' => 'no_enviado',
                 'delivery_status' => self::DELIVERED,
             ];
 
-            $gross += $price * $quantity;
+            $gross += $lineGross;
             $lineDiscounts += $discount;
             $purchaseTotal += $purchase;
         }

@@ -184,6 +184,15 @@ test("el cajero consulta el catálogo y manda un producto a la caja", async ({ p
     await page.waitForURL("**/caja");
     await expect(page.getByLabel("Cantidad de CASTEL MARMOL E2E")).toHaveValue("1");
     await expect(page.getByTestId("caja-total")).toHaveText("$389.00");
+    // El importe se puede escribir a mano para cerrarlo; el precio queda en importe ÷ cantidad.
+    await page.getByLabel("Importe de CASTEL MARMOL E2E").fill("400");
+    await expect(page.getByTestId("caja-total")).toHaveText("$400.00");
+    await expect(page.getByLabel("Precio de CASTEL MARMOL E2E")).toHaveValue("400");
+    await page.getByLabel("Agregar uno").click(); // cambiar la cantidad regresa al cálculo normal
+    await expect(page.getByTestId("caja-total")).toHaveText("$800.00");
+    await page.getByLabel("Quitar uno").click();
+    await page.getByLabel("Precio de CASTEL MARMOL E2E").fill("389");
+    await expect(page.getByTestId("caja-total")).toHaveText("$389.00");
     // El flete se escribe en cada venta y se suma al total.
     await page.getByLabel("Flete").fill("150");
     await expect(page.getByTestId("caja-total")).toHaveText("$539.00");

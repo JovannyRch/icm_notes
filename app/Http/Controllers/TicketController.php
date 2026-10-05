@@ -125,7 +125,8 @@ class TicketController extends Controller
             ];
         });
 
-        $gross = $lines->sum(fn ($l) => $l['price'] * $l['quantity']);
+        // Importe + descuento (no precio × cantidad): en la caja el importe se puede escribir a mano.
+        $gross = $lines->sum(fn ($l) => $l['amount'] + $l['discount']);
         $discount = $lines->sum('discount') + (float) ($note->discount ?? 0);
         $total = (float) $note->sale_total;
         $cash = (float) $note->cash;

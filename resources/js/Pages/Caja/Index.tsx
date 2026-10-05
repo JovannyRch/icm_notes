@@ -56,6 +56,8 @@ interface CartLine {
     discount: string;
     /** m² que pidió el cliente (pisos): de aquí se calculan las cajas. Vacío = se capturan cajas. */
     m2: string;
+    /** Importe escrito a mano (cerrar centavos). Vacío = precio × cantidad. Al cambiar precio o cantidad se borra. */
+    amount: string;
     /** Guardar el precio cambiado como nuevo precio del producto (catálogo). */
     updateCatalog: boolean;
 }
@@ -228,7 +230,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
         setCart((current) => {
             const existing = current.findIndex((l) => l.product.id === p.id);
             if (existing >= 0) {
-                return current.map((l, i) => (i === existing ? { ...l, quantity: String(num(l.quantity) + 1) } : l));
+                return current.map((l, i) => (i === existing ? { ...l, quantity: String(num(l.quantity) + 1), amount: "" } : l));
             }
             return [
                 ...current,
@@ -241,6 +243,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                     discountMode: "$",
                     discount: "",
                     m2: "",
+                    amount: "",
                     updateCatalog: false,
                 },
             ];
@@ -279,7 +282,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
     // Mismas cuentas que SaleService (el servidor vuelve a calcular y valida).
     const totals = useMemo(() => {
         const lines = cart.map((l) => {
-            const gross = round2(num(l.price) * num(l.quantity));
+            const gross = l.amount.trim() !== "" ? round2(num(l.amount)) : round2(num(l.price) * num(l.quantity));
             const discount = rules.discount ? discountAmount(gross, l.discountMode, l.discount) : 0;
             return { gross, discount, net: round2(gross - discount) };
         });
@@ -364,6 +367,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                     product_id: l.product.id,
                     quantity: num(l.quantity),
                     ...(rules.changePrice ? { price: num(l.price) } : {}),
+                    ...(rules.changePrice && l.amount.trim() !== "" ? { amount: totals.lines[i].gross } : {}),
                     ...(l.updateCatalog && Math.abs(num(l.price) - Number(l.product.price)) >= 0.005 ? { update_catalog: true } : {}),
                     ...(rules.discount && totals.lines[i].discount > 0 ? { discount: totals.lines[i].discount } : {}),
                 })),
@@ -394,7 +398,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
         setTimeout(() => searchRef.current?.focus(), 0);
     };
 
-    const lineError = (i: number) => serverErrors[`items.${i}.price`] ?? serverErrors[`items.${i}.discount`] ?? serverErrors[`items.${i}.quantity`];
+    const lineError = (i: number) => serverErrors[`items.${i}.price`] ?? serverErrors[`items.${i}.amount`] ?? serverErrors[`items.${i}.discount`] ?? serverErrors[`items.${i}.quantity`];
 
     return (
         <Container headTitle="Caja">
@@ -536,7 +540,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                                     variant="soft"
                                                     color="gray"
                                                     aria-label="Quitar uno"
-                                                    onClick={() => updateLine(i, { quantity: String(Math.max(1, num(line.quantity) - 1)), m2: "" })}
+                                                    onClick={() => updateLine(i, { quantity: String(Math.max(1, num(line.quantity) - 1)), m2: "", amount: "" })}
                                                 >
                                                     <LuMinus />
                                                 </IconButton>
@@ -544,7 +548,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                                     aria-label={`Cantidad de ${productName(line.product)}`}
                                                     inputMode="numeric"
                                                     value={line.quantity}
-                                                    onChange={(e) => updateLine(i, { quantity: e.target.value.replace(/[^\d]/g, ""), m2: "" })}
+                                                    onChange={(e) => updateLine(i, { quantity: e.target.value.replace(/[^\d]/g, ""), m2: "", amount: "" })}
                                                     className={`${inputCls} mx-1 text-center !w-12 !px-1`}
                                                 />
                                                 <IconButton
@@ -552,7 +556,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                                     variant="soft"
                                                     color="gray"
                                                     aria-label="Agregar uno"
-                                                    onClick={() => updateLine(i, { quantity: String(num(line.quantity) + 1), m2: "" })}
+                                                    onClick={() => updateLine(i, { quantity: String(num(line.quantity) + 1), m2: "", amount: "" })}
                                                 >
                                                     <LuPlus />
                                                 </IconButton>
@@ -570,6 +574,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                                                 const m2 = num(value.replace(",", "."));
                                                                 updateLine(i, {
                                                                     m2: value,
+                                                                    amount: "",
                                                                     ...(m2 > 0 ? { quantity: String(boxesFor(m2, boxM2(line.product)!)) } : {}),
                                                                 });
                                                             }}
@@ -584,7 +589,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                                         aria-label={`Precio de ${productName(line.product)}`}
                                                         inputMode="decimal"
                                                         value={line.price}
-                                                        onChange={(e) => updateLine(i, { price: e.target.value })}
+                                                        onChange={(e) => updateLine(i, { price: e.target.value, amount: "" })}
                                                         className={`${inputCls} ${num(line.price) <= 0 ? "!border-amber-500 bg-amber-tint" : ""}`}
                                                     />
                                                 ) : (
@@ -626,7 +631,38 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                                 )}
                                             </div>
                                             <div className="font-semibold text-right tabular-nums text-charcoal">
-                                                {formatCurrency(t.net)}
+                                                {rules.changePrice ? (
+                                                    <>
+                                                        <input
+                                                            aria-label={`Importe de ${productName(line.product)}`}
+                                                            inputMode="decimal"
+                                                            title="Escribe el importe para cerrarlo (p. ej. sin centavos)"
+                                                            value={line.amount !== "" ? line.amount : String(t.gross)}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                const qty = num(line.quantity);
+                                                                // El precio sigue al importe: importe ÷ cantidad.
+                                                                updateLine(i, { amount: value, ...(qty > 0 && num(value) > 0 ? { price: String(round2(num(value) / qty)) } : {}) });
+                                                            }}
+                                                            onFocus={() => line.amount === "" && updateLine(i, { amount: String(t.gross) })}
+                                                            onBlur={() => {
+                                                                // Igual a precio × cantidad (o vacío): no hay ajuste, se vuelve al cálculo normal.
+                                                                if (num(line.amount) <= 0 || Math.abs(num(line.amount) - round2(num(line.price) * num(line.quantity))) < 0.005) {
+                                                                    updateLine(i, { amount: "" });
+                                                                }
+                                                            }}
+                                                            className={`${inputCls} text-right font-semibold ${line.amount !== "" && Math.abs(num(line.amount) - round2(num(line.price) * num(line.quantity))) >= 0.005 ? "!border-amber-500" : ""}`}
+                                                        />
+                                                        {line.amount !== "" && Math.abs(num(line.amount) - round2(num(line.price) * num(line.quantity))) >= 0.005 && (
+                                                            <div className="mt-0.5 text-[11px] font-normal text-fog" title="Precio × cantidad">
+                                                                ajustado · era {formatCurrency(round2(num(line.price) * num(line.quantity)))}
+                                                            </div>
+                                                        )}
+                                                        {t.discount > 0 && <div className="text-[11px] font-normal">neto {formatCurrency(t.net)}</div>}
+                                                    </>
+                                                ) : (
+                                                    formatCurrency(t.net)
+                                                )}
                                                 {t.discount > 0 && <div className="text-[11px] font-normal text-red-700">−{formatCurrency(t.discount)}</div>}
                                             </div>
                                             <div className="absolute text-right right-3 top-3 md:static">

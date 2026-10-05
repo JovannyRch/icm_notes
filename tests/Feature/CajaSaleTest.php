@@ -118,6 +118,40 @@ class CajaSaleTest extends TestCase
         ])->assertSessionHasErrors('flete');
     }
 
+    public function test_cashier_can_type_the_line_amount_to_round_it(): void
+    {
+        // 3 cajas a $333.33 = $999.99: el cajero cierra el importe en $1,000.
+        $tile = Product::create(['brand' => 'CASTEL', 'model' => 'MARMOL', 'measure' => '60x60', 'mc' => '1.44', 'unit' => 'CAJA', 'iva' => 0, 'extra' => 0, 'price' => 333.33, 'cost' => 200]);
+        $this->sell($this->cashier(), [
+            'items' => [['product_id' => $tile->id, 'quantity' => 3, 'amount' => 1000], ['product_id' => $this->cement->id, 'quantity' => 1]],
+            'cash_received' => 1245,
+        ])->assertSessionHasNoErrors()->assertSessionHas('lastSale.change', 0.0);
+
+        $note = Note::sole();
+        $this->assertEquals(1245, $note->sale_total);
+        $line = NoteProduct::where('product_id', $tile->id)->sole();
+        $this->assertEquals(1000, $line->sale_subtotal, 'el importe escrito manda');
+        $this->assertEquals(333.33, $line->price, 'precio = importe ÷ cantidad');
+        $this->assertEquals(333.33, $line->list_price);
+        $this->assertEquals(333.33, $tile->fresh()->price, 'sin pedirlo, el catálogo no cambia');
+    }
+
+    public function test_typing_the_amount_needs_the_change_price_permission(): void
+    {
+        $cashier = $this->cashier(['sales.change_price' => false]);
+        $this->sell($cashier, [
+            'items' => [['product_id' => $this->cement->id, 'quantity' => 1, 'amount' => 240]],
+            'cash_received' => 240,
+        ])->assertSessionHasErrors('items.0.amount');
+        $this->assertSame(0, Note::count());
+
+        // El mismo importe que el catálogo no es un cambio.
+        $this->sell($cashier, [
+            'items' => [['product_id' => $this->cement->id, 'quantity' => 2, 'amount' => 490]],
+            'cash_received' => 490,
+        ])->assertSessionHasNoErrors();
+    }
+
     public function test_browser_totals_are_ignored(): void
     {
         $this->sell($this->cashier(), [
