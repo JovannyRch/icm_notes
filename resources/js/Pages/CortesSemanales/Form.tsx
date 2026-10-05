@@ -145,6 +145,7 @@ const CorteSemanalForm = ({
         () => ({
             sale_total: calculateTotal(cortesWithTotals, "sale_total"),
             balance_total: calculateTotal(cortesWithTotals, "balance_total"),
+            card_total: calculateTotal(cortesWithTotals, "card_total"),
             transfer_total: calculateTotal(cortesWithTotals, "transfer_total"),
             previous_notes_total: calculateTotal(
                 cortesWithTotals,
@@ -374,9 +375,10 @@ const CorteSemanalForm = ({
                         subtitle={`Suma de ${cortesWithTotals.length} ${cortesWithTotals.length === 1 ? "corte guardado" : "cortes guardados"}`}
                         className="lg:col-span-2"
                     >
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
                             <SummaryValue label="Venta total" value={totals.sale_total} />
                             <SummaryValue label="Restan notas" value={totals.balance_total} />
+                            <SummaryValue label="Tarjeta" value={totals.card_total} />
                             <SummaryValue label="Transferencias" value={totals.transfer_total} />
                             <SummaryValue label="Entradas" value={totals.previous_notes_total} />
                             <SummaryValue label="Gastos" value={totals.expenses_total} />
@@ -442,6 +444,7 @@ const CorteSemanalForm = ({
                                         <th className="py-2 pr-3 font-medium">Fecha</th>
                                         <th className="py-2 pr-3 font-medium text-right">Venta</th>
                                         <th className="py-2 pr-3 font-medium text-right">Resta</th>
+                                        <th className="py-2 pr-3 font-medium text-right">Tarjeta</th>
                                         <th className="py-2 pr-3 font-medium text-right">Transferencias</th>
                                         <th className="py-2 pr-3 font-medium text-right">Entradas</th>
                                         <th className="py-2 pr-3 font-medium text-right">Gastos</th>
@@ -456,6 +459,7 @@ const CorteSemanalForm = ({
                                             <td className="py-2 pr-3 font-medium whitespace-nowrap">{corte.date}</td>
                                             <td className="py-2 pr-3 text-right">{formatCurrency(corte.sale_total)}</td>
                                             <td className="py-2 pr-3 text-right">{formatCurrency(corte.balance_total)}</td>
+                                            <td className="py-2 pr-3 text-right">{formatCurrency(corte.card_total)}</td>
                                             <td className="py-2 pr-3 text-right">{formatCurrency(corte.transfer_total)}</td>
                                             <td className="py-2 pr-3 text-right">{formatCurrency(corte.previous_notes_total)}</td>
                                             <td className="py-2 pr-3 text-right">{formatCurrency(corte.expenses_total)}</td>
@@ -491,7 +495,7 @@ const CorteSemanalForm = ({
                                     ))}
                                     <tr className="font-semibold text-charcoal border-t-2 border-ash">
                                         <td className="py-2 pr-3">Total</td>
-                                        {(["sale_total", "balance_total", "transfer_total", "previous_notes_total", "expenses_total", "cash_total", "material_total"] as const).map((key) => (
+                                        {(["sale_total", "balance_total", "card_total", "transfer_total", "previous_notes_total", "expenses_total", "cash_total", "material_total"] as const).map((key) => (
                                             <td key={key} className={`py-2 pr-3 text-right ${key === "material_total" ? "pr-5" : ""}`}>
                                                 {formatCurrency(calculateTotal(cortesWithTotals, key))}
                                             </td>

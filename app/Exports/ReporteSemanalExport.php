@@ -58,7 +58,7 @@ class ReporteSemanalExport implements FromArray, WithEvents
         $rows[1][1] = $data['title'] ?? 'Reporte';
 
         $rows[14][1] = 'CORTES';
-        $rows[15] = ['', 'FECHA', 'VENTA', 'RESTA', 'TRANSFERENCIA', 'ENTRADAS', 'GASTOS', 'EFECTIVO', 'MATERIAL'];
+        $rows[15] = ['', 'FECHA', 'VENTA', 'RESTA', 'TARJETA', 'TRANSFERENCIA', 'ENTRADAS', 'GASTOS', 'EFECTIVO', 'MATERIAL'];
 
 
         $data['cortes'] = json_decode($data['cortes'], true);
@@ -70,6 +70,7 @@ class ReporteSemanalExport implements FromArray, WithEvents
                 $note['date'],
                 $this->setValue($note['sale_total']),
                 $this->setValue($note['balance_total']),
+                $this->setValue($note['card_total'] ?? null),
                 $this->setValue($note['transfer_total']),
                 $this->setValue($note['previous_notes_total']),
                 $this->setValue($note['expenses_total']),
@@ -91,6 +92,7 @@ class ReporteSemanalExport implements FromArray, WithEvents
             '=SUM(G16:G' . $this->lastCorteRow . ')',
             '=SUM(H16:H' . $this->lastCorteRow . ')',
             '=SUM(I16:I' . $this->lastCorteRow . ')',
+            '=SUM(J16:J' . $this->lastCorteRow . ')',
         ];
 
 
@@ -104,14 +106,16 @@ class ReporteSemanalExport implements FromArray, WithEvents
         $totalRow = $this->lastCorteRow + 1;
         $this->setTotalValue('VENTA TOTAL:',  '=C' . $totalRow, $rows, 3);
         $this->setTotalValue('RESTAN NOTAS:', '=D' . $totalRow, $rows, 4);
-        $this->setTotalValue('TRANSFERENCIAS:', '=E' . $totalRow, $rows, 5);
-        $this->setTotalValue('ENTRADAS:', '=F' . $totalRow, $rows, 6);
-        $this->setTotalValue('GASTOS:', '=G' . $totalRow, $rows, 7);
-        $this->setTotalValue('EFECTIVO:', '=H' . $totalRow, $rows, 8);
-        $this->setTotalValue('MATERIAL:', '=I' . $totalRow, $rows, 9);
-        $this->setTotalValue('SUELDOS:', $data['salary'] ?? 0, $rows, 10);
-        $this->setTotalValue('GASTOS EXTRA:', '=G9', $rows, 11);
-        $this->setTotalValue('50%:', '=(C4-C10-C11-C12)*0.5', $rows, 12);
+        $this->setTotalValue('TARJETAS:', '=E' . $totalRow, $rows, 5);
+        $this->setTotalValue('TRANSFERENCIAS:', '=F' . $totalRow, $rows, 6);
+        $this->setTotalValue('ENTRADAS:', '=G' . $totalRow, $rows, 7);
+        $this->setTotalValue('GASTOS:', '=H' . $totalRow, $rows, 8);
+        $this->setTotalValue('EFECTIVO:', '=I' . $totalRow, $rows, 9);
+        $this->setTotalValue('MATERIAL:', '=J' . $totalRow, $rows, 10);
+        $this->setTotalValue('SUELDOS:', $data['salary'] ?? 0, $rows, 11);
+        $this->setTotalValue('GASTOS EXTRA:', '=G9', $rows, 12);
+        // 50% = (venta − material − sueldos − gastos extra) / 2
+        $this->setTotalValue('50%:', '=(C4-C11-C12-C13)*0.5', $rows, 13);
 
 
 
@@ -126,9 +130,9 @@ class ReporteSemanalExport implements FromArray, WithEvents
                 $sheet = $event->sheet;
 
 
-                $sheet->mergeCells('B2:I2');
+                $sheet->mergeCells('B2:J2');
 
-                $sheet->getStyle('A1:J40')->applyFromArray([
+                $sheet->getStyle('A1:K40')->applyFromArray([
                     'font' => [
                         'size' => 14,
                     ],
@@ -144,7 +148,7 @@ class ReporteSemanalExport implements FromArray, WithEvents
                     ],
                 ]);
 
-                $sheet->mergeCells('B15:I15');
+                $sheet->mergeCells('B15:J15');
                 $sheet->getStyle('B15')->applyFromArray([
                     'font' => [
                         'bold' => true,
@@ -178,9 +182,10 @@ class ReporteSemanalExport implements FromArray, WithEvents
                 $sheet->getColumnDimension('G')->setWidth($columnWidth);
                 $sheet->getColumnDimension('H')->setWidth($columnWidth);
                 $sheet->getColumnDimension('I')->setWidth($columnWidth);
+                $sheet->getColumnDimension('J')->setWidth($columnWidth);
 
                 $currencyFormat = '$#,##0.00';
-                $sheet->getStyle("C4:C13")
+                $sheet->getStyle("C4:C14")
                     ->getNumberFormat()
                     ->setFormatCode($currencyFormat);
 
@@ -189,7 +194,7 @@ class ReporteSemanalExport implements FromArray, WithEvents
                     ->setFormatCode($currencyFormat);
 
                 $lastRow = $this->lastCorteRow + 1;
-                $sheet->getStyle("B17:I{$lastRow}")
+                $sheet->getStyle("B17:J{$lastRow}")
                     ->getNumberFormat()
                     ->setFormatCode($currencyFormat);
 
@@ -208,7 +213,7 @@ class ReporteSemanalExport implements FromArray, WithEvents
                 ]);
 
 
-                $sheet->getStyle('B16:I16')->applyFromArray([
+                $sheet->getStyle('B16:J16')->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'color' => ['rgb' => 'FFFFFF'],
