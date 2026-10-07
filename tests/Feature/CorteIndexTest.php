@@ -66,4 +66,23 @@ class CorteIndexTest extends TestCase
         $this->assertStringContainsString('11 <strong>(CRÉDITO)</strong>', $html);
         $this->assertStringNotContainsString('10 <strong>(CRÉDITO)</strong>', $html);
     }
+
+    public function test_corte_pdf_splits_card_into_credit_and_debit(): void
+    {
+        $note = fn ($folio, $card, $credit, $debit) => ['id' => $folio, 'folio' => $folio, 'date' => businessToday(), 'advance' => $card, 'balance' => 0,
+            'sale_total' => $card, 'cash' => 0, 'card' => $card, 'card_credit' => $credit, 'card_debit' => $debit, 'transfer' => 0, 'purchase_total' => 0, 'status' => 'paid', 'delivery_status' => 'entregado_a_cliente'];
+        $corte = $this->corte(businessToday(), 1000);
+        $corte->update([
+            'card_total' => 1000,
+            'notes' => [$note('20', 600, 600, 0), $note('21', 300, 0, 300)],
+            // Entrada de una nota anterior pagada con débito.
+            'previous_notes' => [['folio' => '5', 'date' => '2026-01-01', 'cash' => '0', 'card' => '100', 'card_type' => 'debito', 'transfer' => '0']],
+        ]);
+
+        $html = view('pdf.corte', ['corte' => $corte->fresh()->load('branch'), 'branch_name' => 'A', 'hideCosts' => true])->render();
+
+        $this->assertStringContainsString('(crédito $600.00 · débito $400.00)', $html);
+        $this->assertStringContainsString('T. créd ($600.00)', $html);
+        $this->assertStringContainsString('T. déb ($300.00)', $html);
+    }
 }

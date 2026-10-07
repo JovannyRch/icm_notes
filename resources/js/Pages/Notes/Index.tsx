@@ -109,6 +109,7 @@ const toSummary = (n: ListNote): SummarySale => ({
         date: String(p.date).slice(0, 10),
         cash: Number(p.cash ?? 0),
         card: Number(p.card ?? 0),
+        card_type: p.card_type ?? null,
         transfer: Number(p.transfer ?? 0),
     })),
 });

@@ -31,6 +31,9 @@ export interface Note {
     // Agregados de todos los pagos (los recalcula el servidor).
     cash: number;
     card: number;
+    /** Sólo en el snapshot de un corte: la tarjeta del día por tipo. */
+    card_credit?: number;
+    card_debit?: number;
     transfer: number;
     payments?: NotePayment[];
     // Columnas legacy: sólo aparecen en snapshots de cortes guardados antes de N pagos.

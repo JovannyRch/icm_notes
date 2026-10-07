@@ -1,3 +1,4 @@
+import CardTypePicker from "@/Components/CardTypePicker";
 import Container from "@/Components/Container";
 import ContainerSection from "@/Components/ContainerSection";
 import InlineInput from "@/Components/InlineInput";
@@ -132,6 +133,7 @@ const NoteForm = ({
               date: payment.date,
               cash: String(payment.cash ?? 0),
               card: String(payment.card ?? 0),
+              card_type: payment.card_type ?? null,
               transfer: String(payment.transfer ?? 0),
           }))
         : [emptyPayment(noteDate)];
@@ -278,6 +280,7 @@ const NoteForm = ({
                     date: index === 0 ? formData.date : payment.date,
                     cash: String(Number(payment.cash || 0)),
                     card: String(Number(payment.card || 0)),
+                    card_type: Number(payment.card || 0) > 0 ? payment.card_type ?? null : null,
                     transfer: String(Number(payment.transfer || 0)),
                 }))
                 .filter(
@@ -902,6 +905,16 @@ const NoteForm = ({
                                             leading={<BiDollar />}
                                             error={errors["payments.0.card"]}
                                         />
+                                        {Number(data.payments[0]?.card || 0) > 0 && (
+                                            <Flex justify="end">
+                                                <CardTypePicker
+                                                    label="Tipo de tarjeta del primer pago"
+                                                    value={data.payments[0]?.card_type}
+                                                    invalid={!data.payments[0]?.card_type}
+                                                    onChange={(v) => updatePayment(0, "card_type", v)}
+                                                />
+                                            </Flex>
+                                        )}
 
                                         <LineDivider className="my-2" />
                                         <Flex
@@ -1052,6 +1065,16 @@ const NoteForm = ({
                                                                 ]
                                                             }
                                                         />
+                                                        {Number(payment.card || 0) > 0 && (
+                                                            <Flex justify="end">
+                                                                <CardTypePicker
+                                                                    label={`Tipo de tarjeta del pago ${index + 1}`}
+                                                                    value={payment.card_type}
+                                                                    invalid={!payment.card_type}
+                                                                    onChange={(v) => updatePayment(index, "card_type", v)}
+                                                                />
+                                                            </Flex>
+                                                        )}
                                                         <Flex
                                                             gap="2"
                                                             justify="between"

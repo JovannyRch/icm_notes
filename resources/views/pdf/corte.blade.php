@@ -57,7 +57,20 @@ function getPaymentMethods($note): string
         $result[] = 'Efect (' . format_currency($note['cash']) . ')';
     }
     if ($note['card'] > 0) {
-        $result[] = 'Tarj (' . format_currency($note['card']) . ')';
+        // Con desglose (cortes nuevos): T. créd / T. déb; lo que no tiene tipo, "Tarj".
+        // (las entradas anteriores traen card_type en lugar del desglose)
+        $type = $note['card_type'] ?? null;
+        $credit = (float) ($note['card_credit'] ?? ($type === 'credito' ? $note['card'] : 0));
+        $debit = (float) ($note['card_debit'] ?? ($type === 'debito' ? $note['card'] : 0));
+        if ($credit > 0) {
+            $result[] = 'T. créd (' . format_currency($credit) . ')';
+        }
+        if ($debit > 0) {
+            $result[] = 'T. déb (' . format_currency($debit) . ')';
+        }
+        if ($note['card'] - $credit - $debit > 0.009) {
+            $result[] = 'Tarj (' . format_currency($note['card'] - $credit - $debit) . ')';
+        }
     }
     if ($note['transfer'] > 0) {
         $result[] = 'Trans (' . format_currency($note['transfer']) . ')';
@@ -188,7 +201,18 @@ function getPurchaseTotal($corte)
         <p>Venta total: {{ format_currency($corte->sale_total, 2) }}</p>
         <p><strong>Efectivo: {{ format_currency($corte->cash_total, 2) }}</strong></p>
         <p>Transferencia: {{ format_currency($corte->transfer_total, 2) }}</p>
-        <p>Tarjeta: {{ format_currency($corte->card_total, 2) }}</p>
+        @php
+            // Tarjeta por tipo: del snapshot de las notas del día y de las entradas anteriores.
+            $cardCredit = array_sum(array_map(fn ($n) => (float) ($n['card_credit'] ?? 0), cleanNotes($corte->notes ?? [])))
+                + array_sum(array_map(fn ($p) => ($p['card_type'] ?? null) === 'credito' ? (float) ($p['card'] ?? 0) : 0, $corte->previous_notes ?? []));
+            $cardDebit = array_sum(array_map(fn ($n) => (float) ($n['card_debit'] ?? 0), cleanNotes($corte->notes ?? [])))
+                + array_sum(array_map(fn ($p) => ($p['card_type'] ?? null) === 'debito' ? (float) ($p['card'] ?? 0) : 0, $corte->previous_notes ?? []));
+        @endphp
+        <p>Tarjeta: {{ format_currency($corte->card_total, 2) }}
+            @if ($cardCredit > 0.009 || $cardDebit > 0.009)
+                (crédito {{ format_currency($cardCredit, 2) }} · débito {{ format_currency($cardDebit, 2) }})
+            @endif
+        </p>
         <p>Entradas: {{ format_currency($corte->previous_notes_total, 2) }}</p>
         <p>Restan notas: {{ getBalance($corte) }}</p>
         @php

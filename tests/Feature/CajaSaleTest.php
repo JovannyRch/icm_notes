@@ -71,7 +71,7 @@ class CajaSaleTest extends TestCase
         $this->assertEquals(0, $note->balance);
         $this->assertEquals(6000, $note->cash_received);
         $this->assertSame('paid', $note->status);
-        $this->assertSame('paid', $note->purchase_status, 'el producto ya está en tienda: compra liquidada');
+        $this->assertSame('pending', $note->purchase_status, 'la compra al proveedor la liquida el dueño a mano');
         $this->assertSame('entregado_a_cliente', $note->delivery_status);
         $this->assertSame('Público en general', $note->customer);
         $this->assertSame($cashier->id, $note->user_id);
@@ -91,7 +91,7 @@ class CajaSaleTest extends TestCase
         // 1 × $245 + flete $150 = $395; con tarjeta $100, el efectivo cubre $295.
         $this->sell($this->cashier(), [
             'items' => [['product_id' => $this->cement->id, 'quantity' => 1]],
-            'flete' => 150, 'card' => 100, 'cash_received' => 300,
+            'flete' => 150, 'card' => 100, 'card_type' => 'debito', 'cash_received' => 300,
         ])->assertSessionHasNoErrors()->assertSessionHas('lastSale.change', 5.0);
 
         $note = Note::sole();
@@ -110,7 +110,7 @@ class CajaSaleTest extends TestCase
         $this->assertEquals(300.5, $credit->sale_total);
         $this->assertEquals(200.5, $credit->balance);
         $this->assertSame('pending', $credit->status);
-        $this->assertSame('paid', $credit->purchase_status);
+        $this->assertSame('pending', $credit->purchase_status);
 
         $this->sell($this->cashier(), [
             'items' => [['product_id' => $this->cement->id, 'quantity' => 1]],
@@ -186,7 +186,7 @@ class CajaSaleTest extends TestCase
         $this->sell($cashier, [
             'items' => [['product_id' => $this->tire->id, 'quantity' => 2, 'price' => 2400, 'discount' => 200]],
             'discount' => 250,
-            'card' => 350, 'transfer' => 0, 'cash_received' => 4000,
+            'card' => 350, 'card_type' => 'credito', 'transfer' => 0, 'cash_received' => 4000,
         ])->assertSessionHasNoErrors()->assertSessionHas('lastSale.change', 0.0);
 
         $note = Note::sole();
@@ -283,7 +283,7 @@ class CajaSaleTest extends TestCase
         // 2 × $2,500 = 5,000; abona 1,000 en efectivo y 500 con tarjeta → debe 3,500.
         $this->sell($cashier, [
             'items' => [['product_id' => $this->tire->id, 'quantity' => 2]],
-            'credit' => true, 'cash' => 1000, 'card' => 500,
+            'credit' => true, 'cash' => 1000, 'card' => 500, 'card_type' => 'credito',
             'customer' => 'Juan Pérez', 'customer_phone' => '712 111 2233', 'customer_address' => 'Calle 1, Centro',
         ])->assertSessionHasNoErrors()->assertSessionHas('lastSale.balance', 3500.0);
 
@@ -348,8 +348,12 @@ class CajaSaleTest extends TestCase
         $item = [['product_id' => $this->cement->id, 'quantity' => 2]]; // 490
 
         $this->sell($cashier, ['items' => $item, 'cash_received' => 400])->assertSessionHasErrors('cash_received');
-        $this->sell($cashier, ['items' => $item, 'card' => 500])->assertSessionHasErrors('card');
-        $this->sell($cashier, ['items' => $item, 'card' => 290, 'transfer' => 200])->assertSessionHasNoErrors();
+        $this->sell($cashier, ['items' => $item, 'card' => 500, 'card_type' => 'debito'])->assertSessionHasErrors('card');
+        // Con tarjeta hay que decir si es de crédito o de débito.
+        $this->sell($cashier, ['items' => $item, 'card' => 290, 'transfer' => 200])->assertSessionHasErrors('card_type');
+        $this->sell($cashier, ['items' => $item, 'card' => 290, 'card_type' => 'tarjeta', 'transfer' => 200])->assertSessionHasErrors('card_type');
+        $this->sell($cashier, ['items' => $item, 'card' => 290, 'card_type' => 'debito', 'transfer' => 200])->assertSessionHasNoErrors();
+        $this->assertSame('debito', Note::latest('id')->first()->payments()->sole()->card_type);
 
         $note = Note::sole();
         $this->assertEquals(0, $note->cash);

@@ -193,6 +193,14 @@ test("el cajero consulta el catálogo y manda un producto a la caja", async ({ p
     await page.getByLabel("Quitar uno").click();
     await page.getByLabel("Precio de CASTEL MARMOL E2E").fill("389");
     await expect(page.getByTestId("caja-total")).toHaveText("$389.00");
+    // Con tarjeta hay que elegir crédito o débito antes de cobrar.
+    await page.getByRole("button", { name: "Tarjeta o transferencia" }).click();
+    await page.getByLabel("Tarjeta", { exact: true }).fill("389");
+    await expect(page.getByText("Elige si la tarjeta es de crédito o de débito.")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Cobrar/ })).toBeDisabled();
+    await page.getByRole("radio", { name: "Débito" }).click();
+    await expect(page.getByRole("button", { name: /^Cobrar/ })).toBeEnabled();
+    await page.getByLabel("Tarjeta", { exact: true }).fill("");
     // El flete se escribe en cada venta y se suma al total.
     await page.getByLabel("Flete").fill("150");
     await expect(page.getByTestId("caja-total")).toHaveText("$539.00");

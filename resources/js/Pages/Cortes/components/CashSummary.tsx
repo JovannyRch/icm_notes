@@ -9,6 +9,8 @@ interface Props {
     /** Efectivo en caja: ya trae restados gastos y devoluciones (calculateSums). */
     cashSum: number;
     cardSum: number;
+    cardCreditSum?: number;
+    cardDebitSum?: number;
     transferSum: number;
     expensesSum: number;
     returnsSum: number;
@@ -36,7 +38,14 @@ const Line = ({ label, value, hint, sign, strong = false }: { label: string; val
  * Cuadre de caja del corte: presenta paso a paso las mismas sumas de calculateSums()
  * (no calcula nada distinto): cobrado hoy por método y cómo queda el efectivo.
  */
-const CashSummary = ({ total, notesCount, balanceSum, cashSum, cardSum, transferSum, expensesSum, returnsSum, previousNotesSum, purchasesSum, credit, children }: Props) => {
+const SubLine = ({ label, value }: { label: string; value: number }) => (
+    <div className="flex justify-between gap-3 py-0.5">
+        <span>{label}</span>
+        <span className="tabular-nums">{formatCurrency(value)}</span>
+    </div>
+);
+
+const CashSummary = ({ total, notesCount, balanceSum, cashSum, cardSum, cardCreditSum = 0, cardDebitSum = 0, transferSum, expensesSum, returnsSum, previousNotesSum, purchasesSum, credit, children }: Props) => {
     const seeCosts = useCan()("costs.view");
     const cashCollected = cashSum + expensesSum + returnsSum; // efectivo antes de gastos y devoluciones
 
@@ -76,6 +85,13 @@ const CashSummary = ({ total, notesCount, balanceSum, cashSum, cardSum, transfer
                 <div className="mb-1 text-xs font-medium tracking-wide uppercase text-fog">Cobrado hoy</div>
                 <Line label="Efectivo" value={cashCollected} />
                 <Line label="Tarjeta" value={cardSum} />
+                {(cardCreditSum > 0.009 || cardDebitSum > 0.009) && (
+                    <div className="pl-3 text-xs text-steel" data-testid="corte-card-types">
+                        {cardCreditSum > 0.009 && <SubLine label="Crédito" value={cardCreditSum} />}
+                        {cardDebitSum > 0.009 && <SubLine label="Débito" value={cardDebitSum} />}
+                        {cardSum - cardCreditSum - cardDebitSum > 0.009 && <SubLine label="Sin especificar" value={cardSum - cardCreditSum - cardDebitSum} />}
+                    </div>
+                )}
                 <Line label="Transferencia" value={transferSum} />
                 {previousNotesSum > 0 && (
                     <p className="mt-1 text-xs text-fog">Incluye {formatCurrency(previousNotesSum)} de notas de días anteriores.</p>

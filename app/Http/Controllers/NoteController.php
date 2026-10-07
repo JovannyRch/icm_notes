@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\Note;
+use App\Models\NotePayment;
 use App\Models\NoteProduct;
 use App\Services\CortePaymentsService;
 use App\Services\NoteStockService;
@@ -71,6 +72,7 @@ class NoteController extends Controller
             'payments.*.cash' => 'required|numeric|min:0',
             'payments.*.card' => 'required|numeric|min:0',
             'payments.*.transfer' => 'required|numeric|min:0',
+            'payments.*.card_type' => 'nullable|in:credito,debito',
             'payments.*.description' => 'nullable|string|max:255',
         ]);
     }
@@ -107,6 +109,7 @@ class NoteController extends Controller
                 'cash' => $cash,
                 'card' => $card,
                 'transfer' => $transfer,
+                'card_type' => $card > 0 && in_array($payment['card_type'] ?? null, NotePayment::CARD_TYPES, true) ? $payment['card_type'] : null,
                 'position' => $position++,
                 'description' => $payment['description'] ?? null,
             ]);
@@ -266,7 +269,8 @@ class NoteController extends Controller
     {
         abort_unless($request->user()->canAccessBranch((int) $note->branch_id), 403, 'No tienes acceso a esa sucursal.');
         $data = $request->validate([
-            'method' => 'required|in:cash,card,transfer',
+            // card_credito / card_debito: tarjeta con su tipo; 'card' sola queda sin tipo.
+            'method' => 'required|in:cash,card,card_credito,card_debito,transfer',
             'amount' => 'required|numeric|min:0',
         ], ['amount.required' => 'Escribe el importe que pagó el cliente.']);
 
@@ -289,7 +293,8 @@ class NoteController extends Controller
                     'branch_id' => $note->branch_id,
                     'date' => businessToday(),
                     'cash' => $data['method'] === 'cash' ? $amount : 0,
-                    'card' => $data['method'] === 'card' ? $amount : 0,
+                    'card' => str_starts_with($data['method'], 'card') ? $amount : 0,
+                    'card_type' => match ($data['method']) { 'card_credito' => 'credito', 'card_debito' => 'debito', default => null },
                     'transfer' => $data['method'] === 'transfer' ? $amount : 0,
                     'position' => (int) $note->payments()->max('position') + 1,
                     'description' => 'Cobro desde el dashboard',

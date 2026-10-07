@@ -16,6 +16,8 @@ export interface SummaryPayment {
     date: string;
     cash: number;
     card: number;
+    /** credito | debito | null (sin especificar o anterior al campo). */
+    card_type?: string | null;
     transfer: number;
 }
 
@@ -37,8 +39,10 @@ export interface SummarySale {
 
 const qty = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 
+export const cardLabel = (type?: string | null) => (type === "credito" ? "T. crédito" : type === "debito" ? "T. débito" : "Tarjeta");
+
 const methodNames = (p: SummaryPayment) =>
-    [p.cash > 0 && "Efectivo", p.card > 0 && "Tarjeta", p.transfer > 0 && "Transf."].filter(Boolean).join(" · ") || "—";
+    [p.cash > 0 && "Efectivo", p.card > 0 && cardLabel(p.card_type), p.transfer > 0 && "Transf."].filter(Boolean).join(" · ") || "—";
 
 const Row = ({ label, value, strong, tone }: { label: string; value: string; strong?: boolean; tone?: "amber" }) => (
     <div className={`flex justify-between gap-3 py-0.5 ${strong ? "font-semibold text-charcoal" : "text-steel"} ${tone === "amber" ? "!text-amber-800 font-semibold" : ""}`}>

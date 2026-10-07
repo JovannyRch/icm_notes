@@ -255,6 +255,20 @@ class TicketTest extends TestCase
         $this->assertStringNotContainsString('Entregar el sábado', $html);
     }
 
+    public function test_card_payments_print_their_type(): void
+    {
+        $product = Product::sole();
+        $this->actingAs($this->cashier)->withSession(['branch_id' => $this->a->id])->post('/caja/ventas', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]], 'card' => 2000, 'card_type' => 'credito', 'cash_received' => 500,
+        ])->assertSessionHasNoErrors();
+        $this->note = Note::latest('id')->first();
+
+        $html = $this->actingAs($this->cashier)->get($this->ticketUrl())->getContent();
+        $this->assertStringContainsString('Tarjeta de crédito', $html);
+        $this->assertStringContainsString('$2,000.00', $html);
+        $this->assertStringNotContainsString('Tarjeta de débito', $html);
+    }
+
     public function test_two_copies_when_printing_and_one_in_pdf(): void
     {
         $this->configure(['copies' => 2]);

@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class NotePayment extends Model
 {
+    /** Tipos de tarjeta (card_type). El importe va en `card`. */
+    public const CARD_TYPES = ['credito', 'debito'];
+
     protected $fillable = [
         'note_id',
         'branch_id',
@@ -13,6 +16,7 @@ class NotePayment extends Model
         'cash',
         'card',
         'transfer',
+        'card_type',
         'position',
         'description',
     ];

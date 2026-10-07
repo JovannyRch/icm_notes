@@ -41,6 +41,7 @@ class CortePaymentsService
                 'date' => $payment->note?->date,
                 'cash' => (string) $payment->cash,
                 'card' => (string) $payment->card,
+                'card_type' => $payment->card_type,
                 'transfer' => (string) $payment->transfer,
             ])
             ->values()

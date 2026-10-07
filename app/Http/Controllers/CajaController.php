@@ -82,6 +82,7 @@ class CajaController extends Controller
             'flete' => 'nullable|numeric|min:0|max:1000000',
             'cash_received' => 'nullable|numeric|min:0',
             'card' => 'nullable|numeric|min:0',
+            'card_type' => 'nullable|in:credito,debito',
             'transfer' => 'nullable|numeric|min:0',
         ], [
             'items.required' => 'Agrega al menos un producto.',
@@ -151,6 +152,7 @@ class CajaController extends Controller
                     'date' => substr((string) $p->date, 0, 10),
                     'cash' => (float) $p->cash,
                     'card' => (float) $p->card,
+                    'card_type' => $p->card_type,
                     'transfer' => (float) $p->transfer,
                 ])->values(),
                 'balance' => (float) $n->balance,

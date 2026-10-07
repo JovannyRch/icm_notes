@@ -127,7 +127,9 @@
         <hr class="rule">
         @if ($s['show_payment'])
         @if ($t['cash'] > 0)<div class="row"><span>Efectivo</span><span>{{ $money($t['cash']) }}</span></div>@endif
-        @if ($t['card'] > 0)<div class="row"><span>Tarjeta</span><span>{{ $money($t['card']) }}</span></div>@endif
+        @if ($t['card_credit'] > 0)<div class="row"><span>Tarjeta de crédito</span><span>{{ $money($t['card_credit']) }}</span></div>@endif
+        @if ($t['card_debit'] > 0)<div class="row"><span>Tarjeta de débito</span><span>{{ $money($t['card_debit']) }}</span></div>@endif
+        @if ($t['card'] - $t['card_credit'] - $t['card_debit'] > 0.009)<div class="row"><span>Tarjeta</span><span>{{ $money($t['card'] - $t['card_credit'] - $t['card_debit']) }}</span></div>@endif
         @if ($t['transfer'] > 0)<div class="row"><span>Transferencia</span><span>{{ $money($t['transfer']) }}</span></div>@endif
         @if ($t['cash_received'] !== null)
             <div class="row"><span>Recibido</span><span>{{ $money($t['cash_received']) }}</span></div>

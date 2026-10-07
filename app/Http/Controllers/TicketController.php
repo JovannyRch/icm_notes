@@ -131,6 +131,9 @@ class TicketController extends Controller
         $total = (float) $note->sale_total;
         $cash = (float) $note->cash;
         $cashReceived = $note->cash_received !== null ? (float) $note->cash_received : null;
+        // Tarjeta por tipo (crédito / débito / sin especificar), de los pagos de la nota.
+        $payments = $note->exists ? $note->payments()->get(['card', 'card_type']) : collect();
+        $cardBy = fn (?string $type) => round((float) $payments->where('card_type', $type)->sum('card'), 2);
         $canceled = $note->delivery_status === 'cancelado' || $note->status === 'canceled';
 
         return [
@@ -158,6 +161,8 @@ class TicketController extends Controller
             'total' => $total,
             'cash' => $cash,
             'card' => (float) $note->card,
+            'card_credit' => $cardBy('credito'),
+            'card_debit' => $cardBy('debito'),
             'transfer' => (float) $note->transfer,
             'cash_received' => $cashReceived,
             'change' => $cashReceived !== null ? round($cashReceived - $cash, 2) : null,

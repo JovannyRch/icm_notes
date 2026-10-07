@@ -57,6 +57,8 @@ export const paymentsOnDate = (note: Note, date: string) => {
         return {
             cash: Number(note.cash ?? 0),
             card: Number(note.card ?? 0),
+            card_credit: Number(note.card_credit ?? 0),
+            card_debit: Number(note.card_debit ?? 0),
             transfer: Number(note.transfer ?? 0),
         };
     }
@@ -67,9 +69,11 @@ export const paymentsOnDate = (note: Note, date: string) => {
             (acc, payment) => ({
                 cash: acc.cash + Number(payment.cash ?? 0),
                 card: acc.card + Number(payment.card ?? 0),
+                card_credit: acc.card_credit + (payment.card_type === "credito" ? Number(payment.card ?? 0) : 0),
+                card_debit: acc.card_debit + (payment.card_type === "debito" ? Number(payment.card ?? 0) : 0),
                 transfer: acc.transfer + Number(payment.transfer ?? 0),
             }),
-            { cash: 0, card: 0, transfer: 0 }
+            { cash: 0, card: 0, card_credit: 0, card_debit: 0, transfer: 0 }
         );
 };
 
@@ -81,6 +85,8 @@ function calculateSums(
     date: string
 ): CutSums {
     let cardSum = 0;
+    let cardCreditSum = 0;
+    let cardDebitSum = 0;
     let transferSum = 0;
     let cashSum = 0;
     let balanceSum = 0;
@@ -92,6 +98,8 @@ function calculateSums(
         const paid = paymentsOnDate(note, date);
 
         cardSum += paid.card;
+        cardCreditSum += paid.card_credit;
+        cardDebitSum += paid.card_debit;
         transferSum += paid.transfer;
         cashSum += paid.cash;
         balanceSum += Number(note.balance ?? 0);
@@ -116,6 +124,8 @@ function calculateSums(
         previousNotesCashSum += cash;
         previousNotesTransferSum += transfer;
         previousNotesCardSum += card;
+        if (note.card_type === "credito") cardCreditSum += card;
+        if (note.card_type === "debito") cardDebitSum += card;
     });
 
     cashSum += previousNotesCashSum;
@@ -130,6 +140,8 @@ function calculateSums(
 
     return {
         cardSum,
+        cardCreditSum,
+        cardDebitSum,
         transferSum,
         cashSum,
         balanceSum,
@@ -174,6 +186,8 @@ const CorteForm = ({
     const [sums, setSums] = useState<CutSums>({
         notesSum: 0,
         cardSum: 0,
+        cardCreditSum: 0,
+        cardDebitSum: 0,
         transferSum: 0,
         cashSum: 0,
         balanceSum: 0,
@@ -262,6 +276,8 @@ const CorteForm = ({
                         sale_total: note.sale_total,
                         cash: paid.cash,
                         card: paid.card,
+                        card_credit: paid.card_credit,
+                        card_debit: paid.card_debit,
                         transfer: paid.transfer,
                         purchase_total: note.purchase_total,
                         status: note.status,
@@ -429,6 +445,8 @@ const CorteForm = ({
                             balanceSum={balanceSum}
                             cashSum={cashSum}
                             cardSum={cardSum}
+                            cardCreditSum={sums.cardCreditSum}
+                            cardDebitSum={sums.cardDebitSum}
                             transferSum={transferSum}
                             expensesSum={sums.expensesSum}
                             returnsSum={sums.returnsSum}

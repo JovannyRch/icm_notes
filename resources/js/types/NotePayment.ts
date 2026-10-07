@@ -5,6 +5,8 @@ export interface NotePayment {
     date: string;
     cash: number | string;
     card: number | string;
+    /** credito | debito | null (sin especificar). */
+    card_type?: string | null;
     transfer: number | string;
     position?: number;
     description?: string | null;
@@ -16,5 +18,6 @@ export interface PaymentInput {
     date: string;
     cash: string;
     card: string;
+    card_type?: string | null;
     transfer: string;
 }

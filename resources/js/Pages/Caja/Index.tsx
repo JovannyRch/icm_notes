@@ -1,5 +1,6 @@
 import Container from "@/Components/Container";
 import PageHeader from "@/Components/ui/PageHeader";
+import CardTypePicker, { CardType } from "@/Components/CardTypePicker";
 import { formatCurrency } from "@/helpers/formatters";
 import { downloadTicketPdf, extractNoteCode, getAutoPrint, printTicket, setAutoPrint } from "@/helpers/printTicket";
 import useAlerts from "@/hooks/useAlerts";
@@ -123,6 +124,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
     const [flete, setFlete] = useState("");
     const [cashReceived, setCashReceived] = useState("");
     const [card, setCard] = useState("");
+    const [cardType, setCardType] = useState<CardType | "">("");
     const [transfer, setTransfer] = useState("");
     const [showOther, setShowOther] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -307,13 +309,14 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
     const lineProblem = totals.lines.some((l, i) => l.discount > l.gross || num(cart[i].quantity) < 1 || !Number.isInteger(num(cart[i].quantity)));
     const missingPrice = cart.some((l) => num(l.price) <= 0);
     const creditProblem = credit && totals.paid > totals.total + 0.001 ? "El abono es mayor que el total." : null;
-    const paymentProblem = credit
+    const cardTypeProblem = num(card) > 0 && !cardType ? "Elige si la tarjeta es de crédito o de débito." : null;
+    const paymentProblem = cardTypeProblem ?? (credit
         ? creditProblem
         : totals.cashDue < -0.001
             ? "Tarjeta y transferencia suman más que el total."
             : totals.cashDue > 0.001 && (totals.received ?? 0) < totals.cashDue
               ? `Falta efectivo: ${formatCurrency(totals.cashDue - (totals.received ?? 0))}`
-              : null;
+              : null);
     const blocker =
         cart.length === 0
             ? "Agrega productos para cobrar."
@@ -342,6 +345,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
         setFlete("");
         setCashReceived("");
         setCard("");
+        setCardType("");
         setTransfer("");
         setShowOther(false);
         setServerErrors({});
@@ -378,6 +382,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                 flete: totals.flete > 0 ? totals.flete : null,
                 cash_received: !credit && totals.cashDue > 0 ? totals.received : null,
                 card: num(card),
+                card_type: num(card) > 0 ? cardType || null : null,
                 transfer: num(transfer),
             },
             {
@@ -880,10 +885,24 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
 
                         {showOther ? (
                             <div className="grid grid-cols-2 gap-2 mt-3">
-                                <label className="text-xs font-medium text-steel">
-                                    Tarjeta
-                                    <input inputMode="decimal" placeholder="0" value={card} onChange={(e) => setCard(e.target.value)} className={`${inputCls} mt-1`} />
-                                </label>
+                                <div>
+                                    <label className="block text-xs font-medium text-steel">
+                                        Tarjeta
+                                        <input inputMode="decimal" placeholder="0" value={card} onChange={(e) => setCard(e.target.value)} className={`${inputCls} mt-1`} />
+                                    </label>
+                                    {num(card) > 0 && (
+                                        <div className="mt-1.5">
+                                            <CardTypePicker
+                                                value={cardType}
+                                                onChange={(v) => {
+                                                    setServerErrors({});
+                                                    setCardType(v);
+                                                }}
+                                                invalid={!cardType}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                                 <label className="text-xs font-medium text-steel">
                                     Transferencia
                                     <input inputMode="decimal" placeholder="0" value={transfer} onChange={(e) => setTransfer(e.target.value)} className={`${inputCls} mt-1`} />
@@ -918,8 +937,8 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                         </div>
                         )}
                         {cart.length > 0 && blocker && <p className="mt-2 text-xs text-amber-800">{blocker}</p>}
-                        {(serverErrors.cash_received || serverErrors.card || serverErrors.cash || serverErrors.credit) && (
-                            <p className="mt-2 text-xs text-red-700">{serverErrors.cash_received ?? serverErrors.card ?? serverErrors.cash ?? serverErrors.credit}</p>
+                        {(serverErrors.cash_received || serverErrors.card || serverErrors.card_type || serverErrors.cash || serverErrors.credit) && (
+                            <p className="mt-2 text-xs text-red-700">{serverErrors.cash_received ?? serverErrors.card ?? serverErrors.card_type ?? serverErrors.cash ?? serverErrors.credit}</p>
                         )}
 
                         <Button size="4" className="mt-4" style={{ width: "100%" }} disabled={!!blocker || processing} onClick={charge}>

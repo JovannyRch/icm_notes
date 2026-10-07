@@ -87,6 +87,43 @@ class NotePaymentsTest extends TestCase
         );
     }
 
+    public function test_cada_pago_con_tarjeta_guarda_si_es_de_credito_o_debito(): void
+    {
+        $this->actingAsUser()->post(route('notes.store'), $this->notePayload([
+            'payments' => [
+                ['date' => '2026-08-10', 'cash' => 0, 'card' => 200, 'card_type' => 'credito', 'transfer' => 0],
+                ['date' => '2026-08-12', 'cash' => 0, 'card' => 100, 'card_type' => 'debito', 'transfer' => 0],
+                // Sin tarjeta, el tipo no se guarda aunque venga.
+                ['date' => '2026-08-13', 'cash' => 50, 'card' => 0, 'card_type' => 'credito', 'transfer' => 0],
+                // En la nota del dueño el tipo es opcional.
+                ['date' => '2026-08-14', 'cash' => 0, 'card' => 30, 'transfer' => 0],
+            ],
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertSame(['credito', 'debito', null, null], Note::sole()->payments()->orderBy('position')->pluck('card_type')->all());
+
+        $this->actingAsUser()->post(route('notes.store'), $this->notePayload([
+            'folio' => '1002',
+            'payments' => [['date' => '2026-08-10', 'cash' => 0, 'card' => 200, 'card_type' => 'amex', 'transfer' => 0]],
+        ]))->assertSessionHasErrors('payments.0.card_type');
+    }
+
+    public function test_el_cobro_rapido_registra_el_tipo_de_tarjeta(): void
+    {
+        $this->actingAsUser()->post(route('notes.store'), $this->notePayload([
+            'payments' => [['date' => '2026-08-10', 'cash' => 100, 'card' => 0, 'transfer' => 0]],
+        ]));
+        $note = Note::sole();
+
+        $this->actingAsUser()->post(route('notes.collect', $note), ['method' => 'card_debito', 'amount' => 150])->assertSessionHasNoErrors();
+        $this->actingAsUser()->post(route('notes.collect', $note), ['method' => 'card_credito', 'amount' => 50])->assertSessionHasNoErrors();
+
+        $payments = $note->payments()->orderBy('position')->get();
+        $this->assertEquals([0, 150, 50], $payments->pluck('card')->map(fn ($v) => (float) $v)->all());
+        $this->assertSame([null, 'debito', 'credito'], $payments->pluck('card_type')->all());
+        $this->assertEquals(200, $note->fresh()->card);
+    }
+
     public function test_el_servidor_calcula_advance_y_balance_desde_los_pagos(): void
     {
         // El cliente manda cifras equivocadas a propósito: no deben usarse.

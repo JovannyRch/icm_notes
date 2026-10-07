@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Branch;
 use App\Models\Note;
+use App\Models\NotePayment;
 use App\Models\NoteProduct;
 use App\Models\Product;
 use App\Models\User;
@@ -30,7 +31,7 @@ class SaleService
     public function __construct(private StockService $stock = new StockService) {}
 
     /**
-     * @param  array{folio?: ?string, customer?: ?string, customer_phone?: ?string, customer_address?: ?string, notes?: ?string, items: array, discount?: ?float, flete?: ?float, credit?: bool, cash?: ?float, cash_received?: ?float, card?: ?float, transfer?: ?float}  $data
+     * @param  array{folio?: ?string, customer?: ?string, customer_phone?: ?string, customer_address?: ?string, notes?: ?string, items: array, discount?: ?float, flete?: ?float, credit?: bool, cash?: ?float, cash_received?: ?float, card?: ?float, card_type?: ?string, transfer?: ?float}  $data
      */
     public function create(User $user, Branch $branch, array $data): Note
     {
@@ -62,8 +63,8 @@ class SaleService
                 'notes' => trim((string) ($data['notes'] ?? '')),
                 // A crédito con saldo: "Pendiente" hasta que se registre el resto (dashboard o Notas).
                 'status' => $sale['balance'] > 0.009 ? 'pending' : 'paid',
-                // El producto de la caja ya está en tienda: la compra queda liquidada.
-                'purchase_status' => 'paid',
+                // La compra al proveedor la liquida el dueño a mano (Notas): la venta no la toca.
+                'purchase_status' => 'pending',
                 'delivery_status' => self::DELIVERED,
             ]);
             $note->forceFill(['user_id' => $user->id, 'source' => Note::SOURCE_CAJA])->save();
@@ -89,6 +90,7 @@ class SaleService
                     'cash' => $sale['cash'],
                     'card' => $sale['card'],
                     'transfer' => $sale['transfer'],
+                    'card_type' => $sale['card'] > 0 ? $sale['card_type'] : null,
                     'position' => 0,
                 ]);
             }
@@ -234,6 +236,11 @@ class SaleService
         $saleTotal = round($linesNet - $noteDiscount + $flete, 2);
 
         $card = round((float) ($data['card'] ?? 0), 2);
+        // Con tarjeta hay que decir si es de crédito o débito (para cuadrar con la terminal).
+        $cardType = in_array($data['card_type'] ?? null, NotePayment::CARD_TYPES, true) ? $data['card_type'] : null;
+        if ($card > 0 && $cardType === null) {
+            $errors['card_type'] = 'Elige si la tarjeta es de crédito o de débito.';
+        }
         $transfer = round((float) ($data['transfer'] ?? 0), 2);
         $credit = ! empty($data['credit']);
 
@@ -274,6 +281,7 @@ class SaleService
             'cash' => max($cash, 0),
             'card' => $card,
             'transfer' => $transfer,
+            'card_type' => $cardType,
             'cash_received' => ! $credit && $cash > 0 ? $cashReceived : null,
             'change' => ! $credit && $cash > 0 ? round($cashReceived - $cash, 2) : 0.0,
             'balance' => round($saleTotal - max($cash, 0) - $card - $transfer, 2),

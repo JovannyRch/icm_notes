@@ -52,12 +52,14 @@
   "payments": [
     {
       "card": "0",
+      "card_type": null,
       "cash": "300",
       "date": "2026-07-21",
       "transfer": "0"
     },
     {
       "card": "0",
+      "card_type": null,
       "cash": "0",
       "date": "2026-07-25",
       "transfer": "500"

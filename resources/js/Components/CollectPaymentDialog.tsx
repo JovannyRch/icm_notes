@@ -61,7 +61,8 @@ const CollectPaymentDialog = ({ note, onClose }: { note: CollectableNote | null;
                                 <span className="block mb-1 text-sm font-medium text-charcoal">Cómo pagó</span>
                                 <SegmentedControl.Root value={data.method} onValueChange={(v) => setData("method", v)} style={{ width: "100%" }}>
                                     <SegmentedControl.Item value="cash">Efectivo</SegmentedControl.Item>
-                                    <SegmentedControl.Item value="card">Tarjeta</SegmentedControl.Item>
+                                    <SegmentedControl.Item value="card_credito">T. crédito</SegmentedControl.Item>
+                                    <SegmentedControl.Item value="card_debito">T. débito</SegmentedControl.Item>
                                     <SegmentedControl.Item value="transfer">Transferencia</SegmentedControl.Item>
                                 </SegmentedControl.Root>
                             </div>
@@ -75,7 +76,7 @@ const CollectPaymentDialog = ({ note, onClose }: { note: CollectableNote | null;
                                     onFocus={(e) => e.target.select()}
                                     className="w-full h-10 px-3 mt-1 text-lg bg-white border tabular-nums rounded-input border-pebble focus:border-electric focus:ring-2 focus:ring-electric/20"
                                 />
-                                {errors.amount && <span className="block mt-1 text-xs text-red-700">{errors.amount}</span>}
+                                {(errors.amount || errors.method) && <span className="block mt-1 text-xs text-red-700">{errors.amount ?? errors.method}</span>}
                                 <span className="block mt-1 text-xs font-normal text-fog">
                                     {remaining > 0.009
                                         ? `Abono: la nota sigue pendiente con ${formatCurrency(remaining)}.`
