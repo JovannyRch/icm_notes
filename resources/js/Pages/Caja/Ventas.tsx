@@ -12,6 +12,16 @@ import CancelSaleDialog from "./components/CancelSaleDialog";
 import { Fragment, MouseEvent, useState } from "react";
 import { LuBan, LuChevronDown, LuChevronRight, LuFileDown, LuPrinter } from "react-icons/lu";
 
+/** Venta que no se llevó el material: "Por enviar" / "Por recoger"; null si ya se entregó. */
+const pendingDelivery = (status: string) =>
+    status === "pagado_x_enviar" || status === "acuenta_x_enviar"
+        ? "Por enviar"
+        : status === "pagador_x_recoger" || status === "acuenta_x_recoger"
+          ? "Por recoger"
+          : status === "pendiente"
+            ? "Por entregar"
+            : null;
+
 interface Sale {
     customer_address: string | null;
     flete: number;
@@ -35,6 +45,8 @@ interface Sale {
     transfer: number;
     seller: string | null;
     canceled: boolean;
+    /** entregado_a_cliente, o por enviar / por recoger (pagado o a cuenta). */
+    delivery_status: string;
     can_cancel: boolean;
     /** "CANCELADA 02/10/2026 14:20 por Ana. Motivo: …" (del comentario de la nota). */
     cancel_reason: string | null;
@@ -84,6 +96,11 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
     // Pago de la venta: cancelada, a crédito (a cuenta y resta) o métodos de pago.
     const payment = (s: Sale) => (
         <>
+            {!s.canceled && pendingDelivery(s.delivery_status) && (
+                <div className="mb-1">
+                    <StatusPill tone="violet">{pendingDelivery(s.delivery_status)}</StatusPill>
+                </div>
+            )}
             {s.canceled ? (
                 <div className="space-y-0.5">
                     <StatusPill tone="gray">Cancelada</StatusPill>

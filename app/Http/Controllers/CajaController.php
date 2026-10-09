@@ -70,6 +70,7 @@ class CajaController extends Controller
             'customer_address' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:500',
             'credit' => 'boolean',
+            'delivery' => 'nullable|in:now,send,pickup',
             'cash' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1|max:100',
             'items.*.product_id' => 'required|integer|distinct|exists:products,id',
@@ -168,6 +169,7 @@ class CajaController extends Controller
                 'seller' => $n->seller?->name,
                 'is_mine' => $n->user_id === $user->id,
                 'canceled' => $n->delivery_status === 'cancelado' || $n->status === 'canceled',
+                'delivery_status' => $n->delivery_status,
                 // La última línea de cancelación del comentario (motivo, quién y cuándo).
                 'cancel_reason' => collect(preg_split('/\R/', (string) $n->notes))
                     ->last(fn ($l) => str_starts_with(trim($l), SaleService::CANCEL_PREFIX)),

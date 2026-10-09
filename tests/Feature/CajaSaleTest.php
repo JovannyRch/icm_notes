@@ -152,6 +152,39 @@ class CajaSaleTest extends TestCase
         ])->assertSessionHasNoErrors();
     }
 
+    public function test_delivery_can_be_later_by_shipping_or_pickup(): void
+    {
+        $sell = fn (array $extra) => $this->sell($this->cashier(), ['items' => [['product_id' => $this->cement->id, 'quantity' => 1]]] + $extra)->assertSessionHasNoErrors();
+
+        // Por omisión se lleva el material ahora.
+        $sell(['cash_received' => 245]);
+        $this->assertSame('entregado_a_cliente', Note::latest('id')->first()->delivery_status);
+
+        // Pagada y por enviar / por recoger.
+        $sell(['cash_received' => 245, 'delivery' => 'send']);
+        $note = Note::latest('id')->first();
+        $this->assertSame('pagado_x_enviar', $note->delivery_status);
+        $this->assertSame('pendiente', NoteProduct::where('note_id', $note->id)->sole()->delivery_status);
+        $sell(['cash_received' => 245, 'delivery' => 'pickup']);
+        $this->assertSame('pagador_x_recoger', Note::latest('id')->first()->delivery_status);
+
+        // A crédito con saldo: "a cuenta" por enviar / por recoger.
+        $sell(['credit' => true, 'cash' => 100, 'delivery' => 'send']);
+        $this->assertSame('acuenta_x_enviar', Note::latest('id')->first()->delivery_status);
+        $sell(['credit' => true, 'delivery' => 'pickup']);
+        $this->assertSame('acuenta_x_recoger', Note::latest('id')->first()->delivery_status);
+
+        // Las piezas salen del inventario igual (quedan apartadas).
+        $this->assertEquals(5, $this->stock($this->cement));
+
+        // Mis ventas sabe cuáles faltan por entregar.
+        $this->actingAs($this->cashier())->withSession(['branch_id' => $this->a->id])->get('/caja/ventas')
+            ->assertInertia(fn ($page) => $page->where('sales.0.delivery_status', 'acuenta_x_recoger'));
+
+        $this->sell($this->cashier(), ['items' => [['product_id' => $this->cement->id, 'quantity' => 1]], 'cash_received' => 245, 'delivery' => 'mañana'])
+            ->assertSessionHasErrors('delivery');
+    }
+
     public function test_browser_totals_are_ignored(): void
     {
         $this->sell($this->cashier(), [

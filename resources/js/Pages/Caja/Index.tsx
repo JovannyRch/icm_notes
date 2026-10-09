@@ -8,7 +8,7 @@ import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
 import { showsStock } from "@/helpers/utils";
 import { router } from "@inertiajs/react";
-import { Button, Dialog, IconButton, Switch, Text } from "@radix-ui/themes";
+import { Button, Dialog, IconButton, SegmentedControl, Switch, Text } from "@radix-ui/themes";
 import axios from "axios";
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
@@ -114,6 +114,8 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
     const [customerPhone, setCustomerPhone] = useState("");
     const [customerAddress, setCustomerAddress] = useState("");
     const [comments, setComments] = useState("");
+    // Cómo se entrega: ahora en mostrador (lo normal), se envía después o pasa a recoger.
+    const [delivery, setDelivery] = useState<"now" | "send" | "pickup">("now");
     // A crédito: el cliente abona lo que quiera (o nada) y la venta queda "Pendiente".
     const [credit, setCredit] = useState(false);
     const [downPayment, setDownPayment] = useState("");
@@ -338,6 +340,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
         setCustomerPhone("");
         setCustomerAddress("");
         setComments("");
+        setDelivery("now");
         setCredit(false);
         setDownPayment("");
         setNoteDiscount("");
@@ -368,6 +371,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                 customer_phone: customerPhone.trim() || null,
                 customer_address: customerAddress.trim() || null,
                 notes: comments.trim() || null,
+                delivery,
                 credit,
                 cash: credit ? num(downPayment) : null,
                 items: cart.map((l, i) => ({
@@ -740,6 +744,28 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                 Dirección
                                 <input value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className={`${inputCls} mt-1`} />
                             </label>
+                        </div>
+                        <div className="mt-2">
+                            <span id="caja-delivery" className="block mb-1 text-xs font-medium text-steel">
+                                Entrega
+                            </span>
+                            <SegmentedControl.Root
+                                aria-labelledby="caja-delivery"
+                                value={delivery}
+                                onValueChange={(v) => setDelivery(v as typeof delivery)}
+                                size="1"
+                                style={{ width: "100%" }}
+                            >
+                                <SegmentedControl.Item value="now">Se lleva ahora</SegmentedControl.Item>
+                                <SegmentedControl.Item value="send">Por enviar</SegmentedControl.Item>
+                                <SegmentedControl.Item value="pickup">Pasa a recoger</SegmentedControl.Item>
+                            </SegmentedControl.Root>
+                            {delivery !== "now" && (
+                                <p className="mt-1 text-xs text-fog">
+                                    Queda {delivery === "send" ? "por enviar" : "por recoger"}; las piezas se apartan del inventario.
+                                    {delivery === "send" && !customerAddress.trim() && <span className="text-amber-800"> Anota la dirección.</span>}
+                                </p>
+                            )}
                         </div>
                         <label className="block mt-2 text-xs font-medium text-steel">
                             Comentarios <span className="font-normal text-fog">· opcional, sale en el ticket</span>

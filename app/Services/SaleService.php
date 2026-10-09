@@ -25,13 +25,29 @@ class SaleService
 {
     public const DELIVERED = 'entregado_a_cliente';
 
+    /** Cómo se entrega: ahora en mostrador, se envía después o el cliente pasa a recoger. */
+    public const DELIVERY = ['now', 'send', 'pickup'];
+
+    /**
+     * Estado de entrega de la nota (los mismos de Notas, const.ts): si no se lleva el material
+     * ahora, distingue si ya está pagado o sólo a cuenta (venta a crédito con saldo).
+     */
+    public static function deliveryStatus(string $delivery, bool $owes): string
+    {
+        return match ($delivery) {
+            'send' => $owes ? 'acuenta_x_enviar' : 'pagado_x_enviar',
+            'pickup' => $owes ? 'acuenta_x_recoger' : 'pagador_x_recoger',
+            default => self::DELIVERED,
+        };
+    }
+
     /** Cuántos precios del catálogo actualizó la última venta (para avisarle al cajero). */
     public int $lastCatalogUpdates = 0;
 
     public function __construct(private StockService $stock = new StockService) {}
 
     /**
-     * @param  array{folio?: ?string, customer?: ?string, customer_phone?: ?string, customer_address?: ?string, notes?: ?string, items: array, discount?: ?float, flete?: ?float, credit?: bool, cash?: ?float, cash_received?: ?float, card?: ?float, card_type?: ?string, transfer?: ?float}  $data
+     * @param  array{folio?: ?string, customer?: ?string, customer_phone?: ?string, customer_address?: ?string, notes?: ?string, delivery?: ?string, items: array, discount?: ?float, flete?: ?float, credit?: bool, cash?: ?float, cash_received?: ?float, card?: ?float, card_type?: ?string, transfer?: ?float}  $data
      */
     public function create(User $user, Branch $branch, array $data): Note
     {
@@ -47,6 +63,7 @@ class SaleService
             }
 
             $today = businessToday();
+            $delivery = in_array($data['delivery'] ?? 'now', self::DELIVERY, true) ? ($data['delivery'] ?? 'now') : 'now';
             $note = new Note([
                 'folio' => $folio,
                 'customer' => trim((string) ($data['customer'] ?? '')) ?: 'Público en general',
@@ -66,11 +83,14 @@ class SaleService
                 // El producto de la caja ya está en tienda: la compra queda liquidada, aunque
                 // la venta al cliente sea a crédito (eso sólo afecta el `status` de arriba).
                 'purchase_status' => 'paid',
-                'delivery_status' => self::DELIVERED,
+                // Por omisión se lleva el material ahora; si no, queda "por enviar" o "por recoger".
+                'delivery_status' => self::deliveryStatus($delivery, $sale['balance'] > 0.009),
             ]);
             $note->forceFill(['user_id' => $user->id, 'source' => Note::SOURCE_CAJA])->save();
 
             foreach ($sale['lines'] as $line) {
+                // Las piezas salen del inventario igual (ya están vendidas); la partida queda pendiente de entregar.
+                $line['delivery_status'] = $delivery === 'now' ? self::DELIVERED : 'pendiente';
                 NoteProduct::create($line + ['note_id' => $note->id]);
                 $this->stock->adjustStock($branch->id, $line['product_id'], $line['quantity'], 'OUT', $note->id, 'Salida por venta en caja #'.$note->folio);
             }
