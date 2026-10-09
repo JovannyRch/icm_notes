@@ -492,7 +492,12 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                                         {stock === null ? "sin inventario" : `${stock} disp.`}
                                                     </span>
                                                 )}
-                                                <span className="font-semibold tabular-nums text-charcoal">{formatCurrency(Number(p.price))}</span>
+                                                <span className="text-right">
+                                                    <span className="block font-semibold tabular-nums text-charcoal">{formatCurrency(Number(p.price))}</span>
+                                                    {boxM2(p) !== null && Number(p.price) > 0 && (
+                                                        <span className="block text-xs tabular-nums text-fog">{formatCurrency(Number(p.price) / boxM2(p)!)} / m²</span>
+                                                    )}
+                                                </span>
                                             </button>
                                         );
                                     })
@@ -602,6 +607,11 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                                     />
                                                 ) : (
                                                     <span className="text-sm tabular-nums text-charcoal">{formatCurrency(num(line.price))}</span>
+                                                )}
+                                                {boxM2(line.product) !== null && num(line.price) > 0 && (
+                                                    <div className="mt-0.5 text-[11px] tabular-nums text-fog" title="Sólo de referencia: no se imprime en el ticket">
+                                                        {formatCurrency(num(line.price) / boxM2(line.product)!)} / m²
+                                                    </div>
                                                 )}
                                                 {priceChanged && Number(line.product.price) > 0 && (
                                                     <div className="mt-0.5 text-[11px] text-fog line-through tabular-nums">{formatCurrency(Number(line.product.price))}</div>

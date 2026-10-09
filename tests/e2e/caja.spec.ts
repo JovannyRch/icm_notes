@@ -142,11 +142,15 @@ test("m² que pide el cliente se convierten en cajas, redondeando hacia arriba",
     const search = page.getByRole("combobox", { name: "Buscar producto" });
     await search.fill("MARMOL E2E");
     await expect(page.getByRole("option").first()).toContainText("1.44 m²/caja");
+    // Precio por m² de referencia en el resultado: 389 ÷ 1.44.
+    await expect(page.getByRole("option").first()).toContainText("$270.14 / m²");
     await search.press("Enter");
 
     const m2 = page.getByLabel("m² que necesita de CASTEL MARMOL E2E");
     const quantity = page.getByLabel("Cantidad de CASTEL MARMOL E2E");
     const summary = page.getByTestId("line-m2");
+    // También como referencia en la línea del carrito, junto al precio por caja; no es editable.
+    await expect(page.locator("li", { has: page.getByLabel("Precio de CASTEL MARMOL E2E") })).toContainText("$270.14 / m²");
 
     // 20 m² ÷ 1.44 = 13.9 → 14 cajas (cubren 20.16 m²).
     await m2.fill("20");

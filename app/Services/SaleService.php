@@ -63,8 +63,9 @@ class SaleService
                 'notes' => trim((string) ($data['notes'] ?? '')),
                 // A crédito con saldo: "Pendiente" hasta que se registre el resto (dashboard o Notas).
                 'status' => $sale['balance'] > 0.009 ? 'pending' : 'paid',
-                // La compra al proveedor la liquida el dueño a mano (Notas): la venta no la toca.
-                'purchase_status' => 'pending',
+                // El producto de la caja ya está en tienda: la compra queda liquidada, aunque
+                // la venta al cliente sea a crédito (eso sólo afecta el `status` de arriba).
+                'purchase_status' => 'paid',
                 'delivery_status' => self::DELIVERED,
             ]);
             $note->forceFill(['user_id' => $user->id, 'source' => Note::SOURCE_CAJA])->save();
