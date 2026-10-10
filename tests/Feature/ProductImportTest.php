@@ -142,4 +142,20 @@ class ProductImportTest extends TestCase
 
         $this->assertEquals([389, 350], [(float) Product::sole()->price, (float) Product::sole()->price2]);
     }
+
+    public function test_the_downloadable_template_imports_with_price2(): void
+    {
+        // La plantilla de "Descargar template" trae las mismas columnas que la exportación.
+        $path = public_path('templates/template_productos.xlsx');
+        $headers = \PhpOffice\PhpSpreadsheet\IOFactory::load($path)->getActiveSheet()->rangeToArray('A1:K1')[0];
+        $this->assertSame((new ProductsExport)->headings(), $headers);
+
+        $copy = tempnam(sys_get_temp_dir(), 'tpl').'.xlsx';
+        copy($path, $copy);
+        $this->actingAs($this->user)->withSession(['branch_id' => $this->a->id])
+            ->post(route('import.products'), ['file' => new UploadedFile($copy, 'template_productos.xlsx', null, null, true)])->assertSessionHasNoErrors();
+
+        $product = Product::sole();
+        $this->assertEquals([1300, 1200, 1000], [(float) $product->price, (float) $product->price2, (float) $product->cost]);
+    }
 }
