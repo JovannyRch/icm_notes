@@ -53,6 +53,7 @@ class ProductsImport implements ToCollection, WithHeadingRow
                 'unit' => $row['unidad'] ?? null,
                 'cost' => $row['costo'] ?? null,
                 'price' => $row['precio_venta'] ?? $row['precio_publico'] ?? $row['precio_público'] ?? $row['precio'] ?? null,
+                'price2' => $row['precio_2'] ?? $row['precio2'] ?? $row['precio_mayoreo'] ?? null,
                 'iva' => $row['iva'] ?? null,
                 'extra' => $row['extra'] ?? null,
             ], fn ($v) => ! self::blank($v));

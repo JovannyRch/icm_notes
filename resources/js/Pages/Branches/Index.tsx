@@ -5,7 +5,7 @@ import PageHeader from "@/Components/ui/PageHeader";
 import { printTicket } from "@/helpers/printTicket";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
-import { useForm } from "@inertiajs/react";
+import { router, useForm } from "@inertiajs/react";
 import { Button, RadioGroup, SegmentedControl, Switch, Text } from "@radix-ui/themes";
 import { LuExternalLink, LuPrinter } from "react-icons/lu";
 
@@ -24,6 +24,8 @@ interface BranchRow {
     name: string;
     ticket: TicketFields;
     defaults: TicketFields;
+    /** Corte semanal: la utilidad se reparte al 50%. */
+    weekly_split: boolean;
 }
 
 interface Props extends PageProps {
@@ -169,6 +171,25 @@ const BranchTicketForm = ({ branch }: { branch: BranchRow }) => {
                         <SegmentedControl.Item value="2">2 (cliente y copia)</SegmentedControl.Item>
                     </SegmentedControl.Root>
                     <p className="mt-1.5 text-xs text-fog">La segunda sale marcada “COPIA”, en su propio corte. El PDF siempre es uno.</p>
+                </fieldset>
+
+                <fieldset className="pt-4 border-t border-ash">
+                    <legend className="mb-2 text-xs font-semibold tracking-wide uppercase text-fog">Corte semanal</legend>
+                    <Text as="label" size="2" className="flex items-start justify-between gap-3">
+                        <span>
+                            <span className="block text-charcoal">Repartir la utilidad al 50%</span>
+                            <span className="block text-xs text-fog">
+                                {branch.weekly_split
+                                    ? "El corte semanal calcula (venta − sueldos − material − gastos extra) ÷ 2."
+                                    : "El corte semanal muestra la utilidad completa, sin dividir entre 2."}{" "}
+                                Se guarda al instante.
+                            </span>
+                        </span>
+                        <Switch
+                            checked={branch.weekly_split}
+                            onCheckedChange={(v) => router.put(route("branches.weekly.update", branch.id), { weekly_split: v }, { preserveScroll: true, preserveState: true })}
+                        />
+                    </Text>
                 </fieldset>
 
                 <div className="flex justify-end">

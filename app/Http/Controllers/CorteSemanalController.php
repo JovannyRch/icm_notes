@@ -83,6 +83,10 @@ class CorteSemanalController extends Controller
     public function exportCorteSemanal(Request $request)
     {
 
-        return Excel::download(new ReporteSemanalExport($request->all()), 'reporte.xlsx');
+        // El reparto al 50% es por sucursal (/sucursales); lo decide el servidor, no el navegador.
+        $branch = \App\Models\Branch::find((int) $request->input('branch_id'));
+        abort_unless($branch && $request->user()->canAccessBranch($branch->id), 403, 'No tienes acceso a esa sucursal.');
+
+        return Excel::download(new ReporteSemanalExport([...$request->all(), 'split' => $branch->weekly_split !== false]), 'reporte.xlsx');
     }
 }

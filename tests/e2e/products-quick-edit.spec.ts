@@ -30,9 +30,13 @@ test("editar precio, costo y existencias desde la lista con el teclado", async (
     await price1.press("Enter");
     const price2 = page.getByLabel("precio público de QUICKEDIT QE-2");
     await expect(price2).toBeFocused();
-    // Tab guarda y pasa al costo de la misma fila.
+    // Tab guarda y pasa al precio 2 (mayoreo) y luego al costo de la misma fila.
     await price2.fill("210");
     await price2.press("Tab");
+    const wholesale2 = page.getByLabel("precio 2 de QUICKEDIT QE-2");
+    await expect(wholesale2).toBeFocused();
+    await wholesale2.fill("190");
+    await wholesale2.press("Tab");
     const cost2 = page.getByLabel("costo de QUICKEDIT QE-2");
     await expect(cost2).toBeFocused();
     await cost2.fill("150");
@@ -41,6 +45,7 @@ test("editar precio, costo y existencias desde la lista con el teclado", async (
     await expect(row(page, "QE-1")).toContainText("$149.90");
     await expect(row(page, "QE-2")).toContainText("$210.00");
     await expect(row(page, "QE-2")).toContainText("$150.00");
+    await expect(row(page, "QE-2")).toContainText("P2 $190.00");
 
     // Esc cancela sin guardar.
     await row(page, "QE-1").getByRole("button", { name: /Editar costo/ }).click();

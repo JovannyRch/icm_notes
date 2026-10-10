@@ -57,9 +57,9 @@ interface Props extends PageProps {
     summary: Summary;
 }
 
-type QuickField = "price" | "cost" | "iva" | "extra" | "stock";
+type QuickField = "price" | "price2" | "cost" | "iva" | "extra" | "stock";
 
-const fieldLabels: Record<QuickField, string> = { price: "precio público", cost: "costo", iva: "IVA", extra: "extra", stock: "existencias" };
+const fieldLabels: Record<QuickField, string> = { price: "precio público", price2: "precio 2", cost: "costo", iva: "IVA", extra: "extra", stock: "existencias" };
 
 // Filtros de estado (mismas claves que ProductController::STATUSES). tone: color del conteo cuando hay.
 const STATUSES: { key: Status; label: string; hint: string; tone?: "warn" | "bad" }[] = [
@@ -158,6 +158,7 @@ const Index = ({ pagination, flash, brands, filters, summary }: Props) => {
     // no se edita aquí cuando la sucursal tiene extra global (ese es el que aplica).
     const quickFields: QuickField[] = [
         "price",
+        "price2",
         "cost",
         "iva",
         ...(globalExtra === null ? (["extra"] as QuickField[]) : []),
@@ -229,7 +230,7 @@ const Index = ({ pagination, flash, brands, filters, summary }: Props) => {
                     rows.map((r) =>
                         r.id !== p.id
                             ? r
-                            : { ...r, price: data.price, cost: data.cost, iva: data.iva, extra: data.extra, stock: data.stock ? ({ ...(r.stock as any), ...data.stock } as any) : r.stock }
+                            : { ...r, price: data.price, price2: data.price2, cost: data.cost, iva: data.iva, extra: data.extra, stock: data.stock ? ({ ...(r.stock as any), ...data.stock } as any) : r.stock }
                     )
                 );
                 setSaved((s) => ({ ...s, [key]: true }));
@@ -613,6 +614,18 @@ const Index = ({ pagination, flash, brands, filters, summary }: Props) => {
                                                     {mc && Number(product.price) > 0 && (
                                                         <div className="text-xs tabular-nums text-fog">{formatCurrency(Number(product.price) / mc)} / m²</div>
                                                     )}
+                                                    {/* Precio 2 (mayoreo): también se edita en la fila. */}
+                                                    <div className="mt-0.5 text-xs text-steel">
+                                                        {quickCell(
+                                                            product,
+                                                            "price2",
+                                                            Number(product.price2 ?? 0) > 0 ? (
+                                                                <span className="tabular-nums">P2 {formatCurrency(Number(product.price2))}</span>
+                                                            ) : (
+                                                                <span className="text-fog">+ precio 2</span>
+                                                            )
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-3 py-2 text-right text-steel clickable">{quickCell(product, "cost", formatCurrency(product.cost))}</td>
                                                 <td className="px-3 py-2 text-right text-steel clickable">{quickCell(product, "iva", `${Number(product.iva ?? 0)}%`, "%")}</td>

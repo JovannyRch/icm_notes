@@ -118,11 +118,28 @@ class ProductImportTest extends TestCase
         $this->import($this->b, [['PIRELLI', 'P7', '195/65R15', '', 'PZA', 1800, 1300, 16, 0, 5]]);
 
         $rows = (new ProductsExport(null, $this->b->id))->collection();
-        $this->assertSame(self::HEADERS, (new ProductsExport)->headings());
+        // Lo exportado se puede volver a importar: incluye el precio 2 (los archivos sin esa columna también se importan).
+        $this->assertSame(['MARCA', 'MODELO', 'MEDIDA', 'MC', 'UNIDAD', 'PRECIO PUBLICO', 'PRECIO 2', 'COSTO', 'IVA', 'EXTRA', 'EXISTENCIAS'], (new ProductsExport)->headings());
         $this->assertSame(5.0, (float) $rows->first()->existencias);
 
         Excel::fake();
         $this->actingAs($this->user)->withSession(['branch_id' => $this->a->id])->get(route('export.products'))->assertOk();
         Excel::assertDownloaded('CATALAGO_DE_PRODUCTOS_'.date('d-m-Y').'.xlsx', fn (ProductsExport $e) => (float) $e->collection()->first()->existencias === 12.0);
+    }
+
+    public function test_import_reads_price2(): void
+    {
+        $book = new Spreadsheet;
+        $book->getActiveSheet()->fromArray([
+            ['MARCA', 'MODELO', 'MEDIDA', 'MC', 'UNIDAD', 'PRECIO PUBLICO', 'PRECIO 2', 'COSTO', 'IVA', 'EXTRA', 'EXISTENCIAS'],
+            ['CASTEL', 'MARMOL', '60x60', '1.44', 'CAJA', 389, 350, 250, 16, 0, null],
+        ]);
+        $path = tempnam(sys_get_temp_dir(), 'imp').'.xlsx';
+        (new Xlsx($book))->save($path);
+
+        $this->actingAs($this->user)->withSession(['branch_id' => $this->a->id])
+            ->post(route('import.products'), ['file' => new UploadedFile($path, 'p.xlsx', null, null, true)])->assertSessionHasNoErrors();
+
+        $this->assertEquals([389, 350], [(float) Product::sole()->price, (float) Product::sole()->price2]);
     }
 }

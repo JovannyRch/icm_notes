@@ -33,4 +33,12 @@ class WeeklyReportExportTest extends TestCase
         $this->assertSame(['50%:', '=(C4-C11-C12-C13)*0.5'], [$rows[13][1], $rows[13][2]]);
         $this->assertSame('CORTES', $rows[14][1], 'el resumen no pisa el título de la tabla');
     }
+
+    public function test_branch_without_split_shows_the_full_profit(): void
+    {
+        $cortes = [['date' => 'LUNES', 'sale_total' => 1000, 'balance_total' => 0, 'card_total' => 0, 'transfer_total' => 0, 'previous_notes_total' => 0, 'expenses_total' => 0, 'cash_total' => 1000, 'material_total' => 400]];
+        $rows = (new ReporteSemanalExport(['title' => 'SEMANA', 'cortes' => json_encode($cortes), 'salary' => 100, 'split' => false]))->array();
+
+        $this->assertSame(['UTILIDAD:', '=(C4-C11-C12-C13)*1'], [$rows[13][1], $rows[13][2]]);
+    }
 }

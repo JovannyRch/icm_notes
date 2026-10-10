@@ -32,6 +32,7 @@ return [
         'sales.edit_folio' => ['label' => 'Cambiar el folio de la venta', 'group' => 'Caja', 'cashier' => true, 'default' => false],
         'sales.change_price' => ['label' => 'Cambiar el precio de un producto en la venta', 'group' => 'Caja', 'cashier' => true, 'default' => true],
         'products.update_price' => ['label' => 'Guardar el precio nuevo en el catálogo desde la caja', 'group' => 'Caja', 'cashier' => true, 'default' => true],
+        'sales.price2' => ['label' => 'Vender a precio 2 (mayoreo)', 'group' => 'Caja', 'cashier' => true, 'default' => true],
         'sales.discount' => ['label' => 'Aplicar descuentos (hasta su tope)', 'group' => 'Caja', 'cashier' => true, 'default' => false],
         'sales.credit' => ['label' => 'Vender a crédito (el cliente paga después)', 'group' => 'Caja', 'cashier' => true, 'default' => true],
         'sales.cancel_own' => ['label' => 'Cancelar sus ventas del día', 'group' => 'Caja', 'cashier' => true, 'default' => false],

@@ -97,10 +97,10 @@ class SaleService
 
             // Precio desactualizado o vacío: el cajero pidió guardar el nuevo en el catálogo.
             $this->lastCatalogUpdates = count($sale['catalog_updates']);
-            foreach ($sale['catalog_updates'] as $productId => $price) {
-                $before = Product::whereKey($productId)->value('price');
-                Product::whereKey($productId)->update(['price' => $price]);
-                Log::info('Precio actualizado desde la caja', ['product_id' => $productId, 'antes' => $before, 'ahora' => $price, 'user_id' => $user->id, 'nota' => $note->folio]);
+            foreach ($sale['catalog_updates'] as $productId => ['field' => $field, 'price' => $price]) {
+                $before = Product::whereKey($productId)->value($field);
+                Product::whereKey($productId)->update([$field => $price]);
+                Log::info('Precio actualizado desde la caja', ['product_id' => $productId, 'campo' => $field, 'antes' => $before, 'ahora' => $price, 'user_id' => $user->id, 'nota' => $note->folio]);
             }
 
             // Sin pago (crédito sin abono) no hay fila: los pagos en cero no se guardan.
@@ -171,7 +171,16 @@ class SaleService
         foreach ($data['items'] as $i => $item) {
             $product = $products->get($item['product_id']);
             $quantity = (int) $item['quantity'];
-            $listPrice = round((float) $product->price, 2);
+            // Precio 1 (público) o precio 2 del catálogo (p. ej. mayoreo). El precio 2 es un precio
+            // de catálogo: elegirlo no es "cambiar el precio" (pide sales.price2, no sales.change_price).
+            $level = (int) ($item['price_level'] ?? 1) === 2 ? 2 : 1;
+            $price2 = $product->price2 !== null ? round((float) $product->price2, 2) : 0.0;
+            if ($level === 2 && ! $user->can('sales.price2')) {
+                $errors["items.{$i}.price_level"] = 'No tienes permiso para vender a precio 2.';
+            } elseif ($level === 2 && $price2 <= 0) {
+                $errors["items.{$i}.price_level"] = "{$product->brand} {$product->model} no tiene precio 2.";
+            }
+            $listPrice = $level === 2 && $price2 > 0 ? $price2 : round((float) $product->price, 2);
             $price = isset($item['price']) ? round((float) $item['price'], 2) : $listPrice;
             $discount = round((float) ($item['discount'] ?? 0), 2);
             // Importe escrito a mano (p. ej. para cerrar los centavos): manda sobre precio × cantidad
@@ -195,7 +204,8 @@ class SaleService
             }
             if (! empty($item['update_catalog']) && abs($price - $listPrice) >= 0.005) {
                 if ($canChangePrice && $user->can('products.update_price')) {
-                    $catalogUpdates[$product->id] = $price;
+                    // Se guarda en el precio con el que se vendió (1 o 2).
+                    $catalogUpdates[$product->id] = ['field' => $level === 2 ? 'price2' : 'price', 'price' => $price];
                 } else {
                     $errors["items.{$i}.price"] = 'No tienes permiso para cambiar el precio del catálogo.';
                 }
@@ -224,6 +234,7 @@ class SaleService
                 'extra' => $lineExtra,
                 'price' => $price,
                 'list_price' => $listPrice,
+                'price_level' => $level,
                 'discount' => $discount,
                 'sale_subtotal' => round($lineGross - $discount, 2),
                 'purchase_subtotal' => round($purchase, 2),

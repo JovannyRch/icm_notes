@@ -31,6 +31,7 @@ class NoteProduct extends Model
         'purchase_subtotal',
         'discount',          // descuento de la partida (importe)
         'list_price',        // precio de catálogo al vender
+        'price_level',       // 1 = precio público, 2 = precio 2 (mayoreo)
     ];
 
     public function note()

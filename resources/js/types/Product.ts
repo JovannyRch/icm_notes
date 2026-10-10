@@ -8,6 +8,8 @@ export interface Product {
     cost: number;
     iva: number;
     price: number;
+    /** Precio 2 (mayoreo); null/0 = no tiene. */
+    price2?: number | null;
     extra: number;
     created_at: string;
     updated_at: string;

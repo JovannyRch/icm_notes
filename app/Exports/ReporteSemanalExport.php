@@ -114,8 +114,9 @@ class ReporteSemanalExport implements FromArray, WithEvents
         $this->setTotalValue('MATERIAL:', '=J' . $totalRow, $rows, 10);
         $this->setTotalValue('SUELDOS:', $data['salary'] ?? 0, $rows, 11);
         $this->setTotalValue('GASTOS EXTRA:', '=G9', $rows, 12);
-        // 50% = (venta − material − sueldos − gastos extra) / 2
-        $this->setTotalValue('50%:', '=(C4-C11-C12-C13)*0.5', $rows, 13);
+        // 50% = (venta − material − sueldos − gastos extra) / 2; sin reparto (por sucursal) va completa.
+        $split = $data['split'] ?? true;
+        $this->setTotalValue($split ? '50%:' : 'UTILIDAD:', '=(C4-C11-C12-C13)*'.($split ? '0.5' : '1'), $rows, 13);
 
 
 

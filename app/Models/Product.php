@@ -17,6 +17,8 @@ class Product extends Model
         'extra',
         'stock',
         'price',
+        // Segundo precio (mayoreo); null = sin precio 2.
+        'price2',
         'cost',
     ];
 

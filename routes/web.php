@@ -81,6 +81,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:branches.manage')->group(function () {
         Route::get('/sucursales', [BranchController::class, 'index'])->name('branches.index');
         Route::put('/sucursales/{branch}/ticket', [BranchController::class, 'updateTicket'])->name('branches.ticket.update');
+        Route::put('/sucursales/{branch}/corte-semanal', [BranchController::class, 'updateWeekly'])->name('branches.weekly.update');
         Route::get('/sucursales/{branch}/ticket-prueba', [TicketController::class, 'sample'])->name('branches.ticket.sample');
     });
 

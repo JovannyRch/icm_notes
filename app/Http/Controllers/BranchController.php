@@ -22,6 +22,7 @@ class BranchController extends Controller
                     $b->ticket ?? [],
                 ),
                 'defaults' => $b->ticketDefaults(),
+                'weekly_split' => (bool) $b->weekly_split,
             ]),
         ]);
     }
@@ -47,6 +48,17 @@ class BranchController extends Controller
         $branch->update(['ticket' => array_map(fn ($v) => is_string($v) ? trim($v) : $v, $validated)]);
 
         return redirect()->back()->with('success', "Ticket de {$branch->name} actualizado.");
+    }
+
+    /** Corte semanal: repartir la utilidad al 50% o mostrarla completa (por sucursal). */
+    public function updateWeekly(Request $request, Branch $branch)
+    {
+        $data = $request->validate(['weekly_split' => 'required|boolean']);
+        $branch->update($data);
+
+        return redirect()->back()->with('success', $data['weekly_split']
+            ? "El corte semanal de {$branch->name} reparte la utilidad al 50%."
+            : "El corte semanal de {$branch->name} ya no divide la utilidad entre 2.");
     }
 
     /**

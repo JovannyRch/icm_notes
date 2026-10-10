@@ -173,15 +173,19 @@ const CorteSemanalForm = ({
 
     const [extraExpenses, setExtraExpenses] = useState("0");
 
+    // Por sucursal (/sucursales): la utilidad se reparte al 50% o se muestra completa.
+    const split = branch?.weekly_split !== false;
+    const resultLabel = split ? "50%" : "Utilidad";
+
     const fiftyPercent = useMemo(() => {
         return (
             (totals.sale_total -
                 (cleanNumber(salary) ?? 0) -
                 (cleanNumber(totals.material_total) ?? 0) -
                 (cleanNumber(extraExpenses) ?? 0)) *
-            0.5
+            (split ? 0.5 : 1)
         );
-    }, [totals, salary, extraExpenses]);
+    }, [totals, salary, extraExpenses, split]);
 
     const handleChange = (newValue: any) => {
         setValue(newValue);
@@ -387,7 +391,10 @@ const CorteSemanalForm = ({
                         </div>
                     </SectionCard>
 
-                    <SectionCard title="Cálculo del 50%" subtitle="Captura sueldos y gastos extra">
+                    <SectionCard
+                        title={split ? "Cálculo del 50%" : "Cálculo de la utilidad"}
+                        subtitle={split ? "Captura sueldos y gastos extra" : "Captura sueldos y gastos extra · esta sucursal no divide entre 2"}
+                    >
                         <div className="space-y-2">
                             <FieldRow label="Sueldos">
                                 <MoneyInput value={salary} onChange={setSalary} aria-label="Sueldos" />
@@ -411,7 +418,7 @@ const CorteSemanalForm = ({
                             <FormulaRow sign="−" label="Gastos extra" value={extraValue} />
                             <div className="pt-2 mt-2 border-t border-ash">
                                 <div className="flex items-baseline justify-between">
-                                    <span className="text-sm font-semibold text-charcoal">50%</span>
+                                    <span className="text-sm font-semibold text-charcoal">{resultLabel}</span>
                                     <span className={`text-2xl font-semibold tabular-nums ${fiftyPercent < 0 ? "text-[#d03b3b]" : "text-electric"}`}>
                                         {formatCurrency(fiftyPercent)}
                                     </span>
@@ -423,7 +430,7 @@ const CorteSemanalForm = ({
 
                 <SectionCard
                     title="Cortes de la semana"
-                    subtitle="Puedes ajustar el material de cada día; el total y el 50% se recalculan"
+                    subtitle={`Puedes ajustar el material de cada día; el total y ${split ? "el 50%" : "la utilidad"} se recalculan`}
                 >
                     {cortesWithTotals.length === 0 ? (
                         <div className="py-8 text-sm text-center text-fog">

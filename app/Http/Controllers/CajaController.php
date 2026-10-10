@@ -24,6 +24,7 @@ class CajaController extends Controller
             'nextFolio' => $branch ? Note::nextFolio($branch->id) : '1',
             'rules' => [
                 'changePrice' => $user->can('sales.change_price'),
+                'price2' => $user->can('sales.price2'),
                 'updateCatalogPrice' => $user->can('sales.change_price') && $user->can('products.update_price'),
                 'discount' => config('features.discounts') && $user->can('sales.discount'),
                 'credit' => $user->can('sales.credit'),
@@ -53,6 +54,7 @@ class CajaController extends Controller
             ...$product->only('id', 'brand', 'model', 'measure', 'mc', 'unit'),
             // Números siempre como número: Postgres regresa decimales como texto ("12.00").
             'price' => (float) $product->price,
+            'price2' => $product->price2 !== null ? (float) $product->price2 : null,
             'branch_stock' => $stock ? (float) $stock->quantity : null,
             'branch_counted_at' => $stock?->counted_at,
         ];
@@ -79,6 +81,7 @@ class CajaController extends Controller
             'items.*.discount' => 'nullable|numeric|min:0',
             'items.*.amount' => 'nullable|numeric|min:0|max:100000000',
             'items.*.update_catalog' => 'boolean',
+            'items.*.price_level' => 'nullable|in:1,2',
             'discount' => 'nullable|numeric|min:0',
             'flete' => 'nullable|numeric|min:0|max:1000000',
             'cash_received' => 'nullable|numeric|min:0',

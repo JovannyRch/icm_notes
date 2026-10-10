@@ -134,7 +134,7 @@ class RolePermissionsTest extends TestCase
     public function test_permissions_are_shared_with_the_frontend(): void
     {
         $this->actingAs($this->cashier())->get('/caja')->assertInertia(fn ($page) => $page
-            ->where('permissions', ['sales.create', 'sales.view_own', 'sales.view_branch', 'sales.change_price', 'products.update_price', 'sales.credit', 'stock.view', 'products.view', 'cortes.create']));
+            ->where('permissions', ['sales.create', 'sales.view_own', 'sales.view_branch', 'sales.change_price', 'products.update_price', 'sales.price2', 'sales.credit', 'stock.view', 'products.view', 'cortes.create']));
     }
 
     public function test_inactive_user_cannot_log_in_and_open_sessions_are_closed(): void

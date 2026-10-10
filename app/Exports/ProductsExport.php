@@ -31,13 +31,13 @@ class ProductsExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
             ->leftJoin('stocks', fn ($join) => $join->on('stocks.product_id', '=', 'products.id')
                 ->where('stocks.branch_id', $this->branchId ?? 0))
             ->orderBy('products.id')
-            ->get(['products.brand', 'products.model', 'products.measure', 'products.mc', 'products.unit', 'products.price',
+            ->get(['products.brand', 'products.model', 'products.measure', 'products.mc', 'products.unit', 'products.price', 'products.price2',
                 'products.cost', 'products.iva', 'products.extra', 'stocks.quantity as existencias']);
     }
 
     public function headings(): array
     {
-        return ['MARCA', 'MODELO', 'MEDIDA', 'MC', 'UNIDAD', 'PRECIO PUBLICO', 'COSTO', 'IVA', 'EXTRA', 'EXISTENCIAS'];
+        return ['MARCA', 'MODELO', 'MEDIDA', 'MC', 'UNIDAD', 'PRECIO PUBLICO', 'PRECIO 2', 'COSTO', 'IVA', 'EXTRA', 'EXISTENCIAS'];
     }
 
     public function styles(Worksheet $sheet)

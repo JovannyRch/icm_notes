@@ -16,6 +16,8 @@ interface CatalogProduct {
     mc: string | null;
     unit: string | null;
     price: number;
+    /** Precio 2 (mayoreo); null = no tiene. */
+    price2: number | null;
     m2_per_box: number | null;
     price_per_m2: number | null;
     stock: number | null; // null = sin inventario (nunca contado ni vendido) o sin permiso
@@ -226,6 +228,7 @@ const CatalogIndex = ({ pagination, brands, filters, seeStock, canSell, branch }
                                         ) : (
                                             <div className="text-sm font-medium text-amber-700">Sin precio</div>
                                         )}
+                                            {p.price2 !== null && <div className="text-xs tabular-nums text-steel">P2 {formatCurrency(p.price2)}</div>}
                                             {p.price_per_m2 !== null && (
                                                 <div className="text-xs tabular-nums text-fog">{formatCurrency(p.price_per_m2)} / m²</div>
                                             )}
@@ -267,6 +270,7 @@ const CatalogIndex = ({ pagination, brands, filters, seeStock, canSell, branch }
                                         ) : (
                                             <div className="text-sm font-medium text-amber-700">Sin precio</div>
                                         )}
+                                        {p.price2 !== null && <div className="text-xs tabular-nums text-steel">P2 {formatCurrency(p.price2)}</div>}
                                         {p.price_per_m2 !== null && <div className="text-xs tabular-nums text-fog">{formatCurrency(p.price_per_m2)} / m²</div>}
                                     </div>
                                 </div>

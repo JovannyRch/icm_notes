@@ -78,6 +78,8 @@ const Form = ({
         cost: String(source?.cost ?? 0),
         iva: String(source?.iva ?? 16),
         price: String(source?.price ?? 0),
+        // Vacío = sin precio 2.
+        price2: source?.price2 !== null && source?.price2 !== undefined && Number(source.price2) > 0 ? String(Number(source.price2)) : "",
         extra: String(source?.extra ?? 0),
         stock: String(
             isNumber(product?.stock?.quantity)
@@ -249,8 +251,12 @@ const Form = ({
                             </SectionCard>
 
                             <SectionCard title="Precio y costo">
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
                                     {field("price", "Precio público ($)")}
+                                    <div>
+                                        {field("price2", "Precio 2 / mayoreo ($)")}
+                                        <p className="mt-1 text-xs text-fog">Opcional. En la caja se elige por producto.</p>
+                                    </div>
                                     {field("cost", "Costo ($)")}
                                     {field("iva", "IVA (%)")}
                                     <div>

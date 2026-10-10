@@ -32,7 +32,7 @@ class CatalogController extends Controller
             'sort' => in_array($request->input('sort'), self::SORTS, true) ? $request->input('sort') : 'marca',
         ];
 
-        $query = Product::query()->select(['products.id', 'products.brand', 'products.model', 'products.measure', 'products.mc', 'products.unit', 'products.price']);
+        $query = Product::query()->select(['products.id', 'products.brand', 'products.model', 'products.measure', 'products.mc', 'products.unit', 'products.price', 'products.price2']);
 
         if ($seeStock && $branch) {
             $query->addSelect([
@@ -85,6 +85,7 @@ class CatalogController extends Controller
             'mc' => $p->mc,
             'unit' => $p->unit,
             'price' => (float) $p->price,
+            'price2' => $p->price2 !== null && (float) $p->price2 > 0 ? (float) $p->price2 : null,
             'm2_per_box' => $perBox,
             'price_per_m2' => $perBox ? round((float) $p->price / $perBox, 2) : null,
             'stock' => $stock,

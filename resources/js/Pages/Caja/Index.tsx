@@ -16,6 +16,8 @@ import { LuBanknote, LuCreditCard, LuFileDown, LuHistory, LuLock, LuReceipt, LuM
 
 interface Rules {
     changePrice: boolean;
+    /** Puede vender a precio 2 (mayoreo). */
+    price2: boolean;
     updateCatalogPrice: boolean;
     discount: boolean;
     maxDiscountPercent: number | null;
@@ -48,7 +50,9 @@ interface Props extends PageProps {
 type DiscountMode = "$" | "%";
 
 interface CartLine {
-    product: Pick<Product, "id" | "brand" | "model" | "measure" | "mc" | "unit" | "price">;
+    product: Pick<Product, "id" | "brand" | "model" | "measure" | "mc" | "unit" | "price" | "price2">;
+    /** Con qué precio del catálogo se vende: 1 (público) o 2 (mayoreo). */
+    priceLevel: 1 | 2;
     stock: number | null; // null = sin inventario (nunca contado ni vendido) o sin permiso para verlo
     counted: boolean; // contado: sólo entonces se avisa "sólo hay N"
     quantity: string;
@@ -74,6 +78,12 @@ const discountAmount = (base: number, mode: DiscountMode, value: string) =>
 /** Billetes para cobrar rápido: el siguiente múltiplo de 50, 100, 200 y 500. */
 const quickCash = (due: number) =>
     Array.from(new Set([50, 100, 200, 500].map((step) => Math.ceil(due / step) * step))).filter((v) => v > due).slice(0, 3);
+
+/** Precio 2 del producto si tiene (> 0). */
+const price2Of = (p: Pick<Product, "price2">): number | null => (Number(p.price2 ?? 0) > 0 ? Number(p.price2) : null);
+
+/** Precio de catálogo de la línea según el nivel elegido (1 público, 2 mayoreo). */
+const catalogPrice = (l: Pick<CartLine, "product" | "priceLevel">) => (l.priceLevel === 2 && price2Of(l.product) !== null ? price2Of(l.product)! : Number(l.product.price));
 
 const productName = (p: CartLine["product"]) => [p.brand, p.model].filter(Boolean).join(" ");
 
@@ -240,7 +250,8 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
             return [
                 ...current,
                 {
-                    product: { id: p.id, brand: p.brand, model: p.model, measure: p.measure, mc: p.mc, unit: p.unit, price: p.price },
+                    product: { id: p.id, brand: p.brand, model: p.model, measure: p.measure, mc: p.mc, unit: p.unit, price: p.price, price2: p.price2 },
+                    priceLevel: 1,
                     stock: stockOf(p),
                     counted: !!p.branch_counted_at,
                     quantity: "1",
@@ -379,7 +390,8 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                     quantity: num(l.quantity),
                     ...(rules.changePrice ? { price: num(l.price) } : {}),
                     ...(rules.changePrice && l.amount.trim() !== "" ? { amount: totals.lines[i].gross } : {}),
-                    ...(l.updateCatalog && Math.abs(num(l.price) - Number(l.product.price)) >= 0.005 ? { update_catalog: true } : {}),
+                    ...(l.updateCatalog && Math.abs(num(l.price) - catalogPrice(l)) >= 0.005 ? { update_catalog: true } : {}),
+                    ...(l.priceLevel === 2 ? { price_level: 2 } : {}),
                     ...(rules.discount && totals.lines[i].discount > 0 ? { discount: totals.lines[i].discount } : {}),
                 })),
                 discount: totals.noteDisc > 0 ? totals.noteDisc : null,
@@ -501,6 +513,9 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                                     {boxM2(p) !== null && Number(p.price) > 0 && (
                                                         <span className="block text-xs tabular-nums text-fog">{formatCurrency(Number(p.price) / boxM2(p)!)} / m²</span>
                                                     )}
+                                                    {rules.price2 && price2Of(p) !== null && (
+                                                        <span className="block text-xs tabular-nums text-steel">P2 {formatCurrency(price2Of(p)!)}</span>
+                                                    )}
                                                 </span>
                                             </button>
                                         );
@@ -530,7 +545,7 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                             </li>
                             {cart.map((line, i) => {
                                 const t = totals.lines[i];
-                                const priceChanged = Math.abs(num(line.price) - Number(line.product.price)) >= 0.005;
+                                const priceChanged = Math.abs(num(line.price) - catalogPrice(line)) >= 0.005;
                                 const exceeds = line.counted && line.stock !== null && num(line.quantity) > line.stock;
                                 const error = lineError(i) ?? (t.discount > t.gross ? "El descuento es mayor que el importe." : null);
                                 return (
@@ -617,8 +632,32 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                                         {formatCurrency(num(line.price) / boxM2(line.product)!)} / m²
                                                     </div>
                                                 )}
-                                                {priceChanged && Number(line.product.price) > 0 && (
-                                                    <div className="mt-0.5 text-[11px] text-fog line-through tabular-nums">{formatCurrency(Number(line.product.price))}</div>
+                                                {priceChanged && catalogPrice(line) > 0 && (
+                                                    <div className="mt-0.5 text-[11px] text-fog line-through tabular-nums">{formatCurrency(catalogPrice(line))}</div>
+                                                )}
+                                                {rules.price2 && price2Of(line.product) !== null && (
+                                                    // Precio 1 (público) o precio 2 (mayoreo) del catálogo: no cuenta como cambio de precio.
+                                                    <div role="radiogroup" aria-label={`Precio de catálogo de ${productName(line.product)}`} className="flex flex-col items-start gap-1 mt-1">
+                                                        {([1, 2] as const).map((level) => {
+                                                            const active = line.priceLevel === level;
+                                                            const value = level === 2 ? price2Of(line.product)! : Number(line.product.price);
+                                                            return (
+                                                                <button
+                                                                    key={level}
+                                                                    type="button"
+                                                                    role="radio"
+                                                                    aria-checked={active}
+                                                                    title={level === 2 ? "Precio 2 (mayoreo)" : "Precio público"}
+                                                                    onClick={() => updateLine(i, { priceLevel: level, price: String(value), amount: "", updateCatalog: false })}
+                                                                    className={`px-2 h-6 text-[11px] font-medium border rounded-full tabular-nums whitespace-nowrap ${
+                                                                        active ? "bg-ink border-ink text-white" : "bg-white border-ash text-steel hover:border-pebble"
+                                                                    }`}
+                                                                >
+                                                                    P{level} {formatCurrency(value)}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 )}
                                                 {num(line.price) <= 0 && <div className="mt-0.5 text-[11px] font-medium text-amber-700">Sin precio</div>}
                                                 {priceChanged && num(line.price) > 0 && rules.updateCatalogPrice && (

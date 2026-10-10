@@ -27,6 +27,7 @@ class ProductController extends Controller
             'extra' => 'numeric',
             'stock' => 'numeric',
             'price' => 'numeric',
+            'price2' => 'nullable|numeric|min:0',
             'cost' => 'numeric',
         ]);
     }
@@ -201,7 +202,7 @@ class ProductController extends Controller
         $source = $request->integer('duplicar') ? Product::find($request->integer('duplicar')) : null;
 
         return Inertia::render('Products/Form', [
-            'duplicate' => $source?->only(['brand', 'model', 'measure', 'mc', 'unit', 'iva', 'extra', 'price', 'cost']),
+            'duplicate' => $source?->only(['brand', 'model', 'measure', 'mc', 'unit', 'iva', 'extra', 'price', 'price2', 'cost']),
         ]);
     }
 
@@ -273,7 +274,7 @@ class ProductController extends Controller
     }
 
     /** Campos que se editan directo en la lista de productos (lo que cambia seguido). */
-    public const QUICK_FIELDS = ['price', 'cost', 'iva', 'extra', 'stock'];
+    public const QUICK_FIELDS = ['price', 'price2', 'cost', 'iva', 'extra', 'stock'];
 
     /**
      * Edición rápida de un campo desde la lista (JSON, sin recargar la página).
@@ -309,6 +310,7 @@ class ProductController extends Controller
         return response()->json([
             'id' => $product->id,
             'price' => (float) $product->price,
+            'price2' => $product->price2 !== null ? (float) $product->price2 : null,
             'cost' => (float) $product->cost,
             'iva' => (float) $product->iva,
             'extra' => (float) $product->extra,
