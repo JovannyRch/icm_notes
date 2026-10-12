@@ -90,7 +90,101 @@ class StockEntryController extends Controller
 
     public function store(Request $request, StockService $stockService)
     {
-        $validated = $request->validate([
+        $validated = $this->validateEntry($request);
+        $branch = Branch::findOrFail(currentBranchId());
+
+        $entry = DB::transaction(function () use ($validated, $branch, $stockService, $request) {
+            $entry = new StockEntry(['branch_id' => $branch->id] + $this->header($validated));
+            $entry->forceFill(['user_id' => $request->user()->id])->save();
+
+            $this->saveItems($entry, $validated, $branch);
+            foreach ($entry->items as $item) {
+                $stockService->adjustStock($branch->id, $item->product_id, (float) $item->quantity, 'IN', null, $this->description($entry));
+            }
+
+            return $entry;
+        });
+
+        return redirect()->route('stock-entries.show', $entry)
+            ->with('success', 'Nota de entrada #'.$entry->id.' registrada. Se sumaron '.count($validated['items']).' producto(s) al inventario.');
+    }
+
+    public function edit(StockEntry $entry)
+    {
+        abort_unless((int) $entry->branch_id === currentBranchId(), 404);
+        $entry->load(['items.product']);
+
+        return Inertia::render('StockEntries/Form', [
+            'suppliers' => StockEntry::where('branch_id', currentBranchId())
+                ->whereNotNull('supplier')->distinct()->orderBy('supplier')->pluck('supplier'),
+            'entry' => [
+                ...$entry->only('id', 'date', 'supplier', 'reference', 'notes', 'status'),
+                'date' => $entry->date?->toDateString(),
+                // Cada partida con el producto del catálogo (para comparar el costo) y lo que se capturó.
+                'items' => $entry->items->map(fn (StockEntryItem $i) => [
+                    'product' => $i->product,
+                    'missing' => $i->product === null ? trim("{$i->brand} {$i->model} {$i->measure}") : null,
+                    'quantity' => (float) $i->quantity,
+                    'cost' => (float) $i->cost,
+                    'iva' => (float) $i->iva,
+                    'extra' => (float) $i->extra,
+                ])->values(),
+            ],
+        ]);
+    }
+
+    /**
+     * Edita la entrada. El inventario se mueve sólo por la diferencia de cada producto:
+     * si subió la cantidad entra lo que falta, si bajó (o se quitó) sale lo que sobra.
+     */
+    public function update(Request $request, StockEntry $entry, StockService $stockService)
+    {
+        abort_unless((int) $entry->branch_id === currentBranchId(), 404);
+        if ($entry->items()->whereNull('product_id')->exists()) {
+            return back()->with('error', 'No se puede editar: un producto de esta nota ya no existe en el catálogo.');
+        }
+        $validated = $this->validateEntry($request);
+        $branch = Branch::findOrFail($entry->branch_id);
+
+        DB::transaction(function () use ($entry, $validated, $branch, $stockService) {
+            $before = $entry->items()->get()->groupBy('product_id')->map(fn ($rows) => (float) $rows->sum('quantity'));
+
+            $entry->update($this->header($validated));
+            $entry->items()->delete();
+            $this->saveItems($entry, $validated, $branch);
+            $after = $entry->items->groupBy('product_id')->map(fn ($rows) => (float) $rows->sum('quantity'));
+
+            $description = 'Edición de nota de entrada #'.$entry->id.($entry->supplier ? ' - '.$entry->supplier : '');
+            foreach ($before->keys()->merge($after->keys())->unique() as $productId) {
+                $diff = round(($after[$productId] ?? 0) - ($before[$productId] ?? 0), 2);
+                if (abs($diff) >= 0.005) {
+                    $stockService->adjustStock($branch->id, (int) $productId, abs($diff), $diff > 0 ? 'IN' : 'OUT', null, $description, false);
+                }
+            }
+        });
+
+        return redirect()->route('stock-entries.show', $entry)->with('success', 'Nota de entrada #'.$entry->id.' actualizada; el inventario se ajustó por la diferencia.');
+    }
+
+    /** Elimina la entrada y regresa sus piezas (salen del inventario de la sucursal). */
+    public function destroy(StockEntry $entry, StockService $stockService)
+    {
+        abort_unless((int) $entry->branch_id === currentBranchId(), 404);
+
+        DB::transaction(function () use ($entry, $stockService) {
+            $description = 'Eliminación de nota de entrada #'.$entry->id.($entry->supplier ? ' - '.$entry->supplier : '');
+            foreach ($entry->items()->whereNotNull('product_id')->get() as $item) {
+                $stockService->adjustStock($entry->branch_id, $item->product_id, (float) $item->quantity, 'OUT', null, $description, false);
+            }
+            $entry->delete(); // las partidas se borran en cascada
+        });
+
+        return redirect()->route('stock-entries.index')->with('success', 'Nota de entrada #'.$entry->id.' eliminada; sus piezas salieron del inventario.');
+    }
+
+    private function validateEntry(Request $request): array
+    {
+        return $request->validate([
             'date' => 'required|date',
             'supplier' => 'nullable|string|max:255',
             'reference' => 'nullable|string|max:255',
@@ -110,71 +204,74 @@ class StockEntryController extends Controller
             'items.*.quantity.gt' => 'La cantidad debe ser mayor a 0.',
             'items.*.cost.required' => 'Escribe el costo.',
         ]);
+    }
 
-        $branch = Branch::findOrFail(currentBranchId());
-        $globalExtra = $branch->extra_percentage; // el extra global de la sucursal manda
+    /** Datos generales de la entrada (fecha, proveedor, factura, comentarios, pago). */
+    private function header(array $validated): array
+    {
+        return [
+            'date' => $validated['date'],
+            'supplier' => trim((string) ($validated['supplier'] ?? '')) ?: null,
+            'reference' => trim((string) ($validated['reference'] ?? '')) ?: null,
+            'notes' => trim((string) ($validated['notes'] ?? '')) ?: null,
+            'status' => ! empty($validated['paid']) ? 'paid' : 'pending',
+        ];
+    }
+
+    private function description(StockEntry $entry): string
+    {
+        return 'Nota de entrada #'.$entry->id.($entry->supplier ? ' - '.$entry->supplier : '');
+    }
+
+    /**
+     * Crea las partidas con su costo, IVA y extra (el extra global de la sucursal manda), guarda
+     * el total y, si se pidió, los costos nuevos en el catálogo. No mueve inventario.
+     */
+    private function saveItems(StockEntry $entry, array $validated, Branch $branch): void
+    {
+        $globalExtra = $branch->extra_percentage;
         $products = Product::whereIn('id', collect($validated['items'])->pluck('product_id'))->get()->keyBy('id');
+        $total = 0.0;
 
-        $entry = DB::transaction(function () use ($validated, $branch, $globalExtra, $products, $stockService, $request) {
-            $entry = new StockEntry([
-                'branch_id' => $branch->id,
-                'date' => $validated['date'],
-                'supplier' => trim((string) ($validated['supplier'] ?? '')) ?: null,
-                'reference' => trim((string) ($validated['reference'] ?? '')) ?: null,
-                'notes' => trim((string) ($validated['notes'] ?? '')) ?: null,
-                'status' => ! empty($validated['paid']) ? 'paid' : 'pending',
+        foreach ($validated['items'] as $item) {
+            $product = $products->get($item['product_id']);
+            $quantity = round((float) $item['quantity'], 2);
+            $cost = round((float) $item['cost'], 2);
+            $iva = round((float) ($item['iva'] ?? 0), 2);
+            $extra = $globalExtra !== null ? (float) $globalExtra : round((float) ($item['extra'] ?? 0), 2);
+            $subtotal = StockEntryItem::subtotalFor($cost, $quantity, $iva, $extra);
+            $total += $subtotal;
+
+            $entry->items()->create([
+                'product_id' => $product->id,
+                'brand' => $product->brand,
+                'model' => $product->model,
+                'measure' => $product->measure,
+                'mc' => $product->mc,
+                'unit' => $product->unit,
+                'quantity' => $quantity,
+                'cost' => $cost,
+                'iva' => $iva,
+                'extra' => $extra,
+                'subtotal' => $subtotal,
             ]);
-            $entry->forceFill(['user_id' => $request->user()->id])->save();
 
-            $description = 'Nota de entrada #'.$entry->id.($entry->supplier ? ' - '.$entry->supplier : '');
-            $total = 0.0;
-
-            foreach ($validated['items'] as $item) {
-                $product = $products->get($item['product_id']);
-                $quantity = round((float) $item['quantity'], 2);
-                $cost = round((float) $item['cost'], 2);
-                $iva = round((float) ($item['iva'] ?? 0), 2);
-                $extra = $globalExtra !== null ? (float) $globalExtra : round((float) ($item['extra'] ?? 0), 2);
-                $subtotal = StockEntryItem::subtotalFor($cost, $quantity, $iva, $extra);
-                $total += $subtotal;
-
-                $entry->items()->create([
-                    'product_id' => $product->id,
-                    'brand' => $product->brand,
-                    'model' => $product->model,
-                    'measure' => $product->measure,
-                    'mc' => $product->mc,
-                    'unit' => $product->unit,
-                    'quantity' => $quantity,
-                    'cost' => $cost,
-                    'iva' => $iva,
-                    'extra' => $extra,
-                    'subtotal' => $subtotal,
-                ]);
-
-                $stockService->adjustStock($branch->id, $product->id, $quantity, 'IN', null, $description);
-
-                // Costo nuevo del proveedor: se guarda en el catálogo si así se pidió.
-                if (! empty($validated['update_catalog'])) {
-                    $changes = array_filter([
-                        'cost' => abs($cost - (float) $product->cost) >= 0.005 ? $cost : null,
-                        'iva' => abs($iva - (float) $product->iva) >= 0.005 ? $iva : null,
-                        'extra' => $globalExtra === null && abs($extra - (float) $product->extra) >= 0.005 ? $extra : null,
-                    ], fn ($v) => $v !== null);
-                    if ($changes) {
-                        Log::info('Costo actualizado desde nota de entrada', ['product_id' => $product->id, 'antes' => $product->only(array_keys($changes)), 'ahora' => $changes, 'entrada' => $entry->id]);
-                        $product->update($changes);
-                    }
+            // Costo nuevo del proveedor: se guarda en el catálogo si así se pidió.
+            if (! empty($validated['update_catalog'])) {
+                $changes = array_filter([
+                    'cost' => abs($cost - (float) $product->cost) >= 0.005 ? $cost : null,
+                    'iva' => abs($iva - (float) $product->iva) >= 0.005 ? $iva : null,
+                    'extra' => $globalExtra === null && abs($extra - (float) $product->extra) >= 0.005 ? $extra : null,
+                ], fn ($v) => $v !== null);
+                if ($changes) {
+                    Log::info('Costo actualizado desde nota de entrada', ['product_id' => $product->id, 'antes' => $product->only(array_keys($changes)), 'ahora' => $changes, 'entrada' => $entry->id]);
+                    $product->update($changes);
                 }
             }
+        }
 
-            $entry->update(['total' => round($total, 2)]);
-
-            return $entry;
-        });
-
-        return redirect()->route('stock-entries.show', $entry)
-            ->with('success', 'Nota de entrada #'.$entry->id.' registrada. Se sumaron '.count($validated['items']).' producto(s) al inventario.');
+        $entry->update(['total' => round($total, 2)]);
+        $entry->load('items');
     }
 
     /** Marca la entrada como pagada al proveedor (o la regresa a por pagar). */

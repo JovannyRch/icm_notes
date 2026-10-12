@@ -21,8 +21,21 @@ interface EntryRow {
     extra: string;
 }
 
+/** Nota que se edita: datos generales y sus partidas con el producto del catálogo. */
+interface EditableEntry {
+    id: number;
+    date: string;
+    supplier: string | null;
+    reference: string | null;
+    notes: string | null;
+    status: "pending" | "paid";
+    items: { product: Product | null; missing: string | null; quantity: number; cost: number; iva: number; extra: number }[];
+}
+
 interface Props extends PageProps {
     suppliers: string[];
+    /** Sólo al editar. */
+    entry?: EditableEntry;
 }
 
 const num = (v: string) => (v.trim() === "" || isNaN(Number(v)) ? 0 : Number(v));
@@ -47,18 +60,26 @@ const Field = ({ label, htmlFor, children, error }: { label: string; htmlFor: st
  * producto (vienen del catálogo y se pueden corregir) y el total que se le paga. Al
  * guardar, las piezas se suman al inventario de la sucursal activa.
  */
-const StockEntryForm = ({ flash, suppliers }: Props) => {
+const StockEntryForm = ({ flash, suppliers, entry }: Props) => {
     useAlerts(flash);
     const { currentBranchName, currentBranchId } = useBranch();
     const { globalExtra } = useBranchExtra();
 
-    const [rows, setRows] = useState<EntryRow[]>([]);
-    const [date, setDate] = useState(getToday());
-    const [supplier, setSupplier] = useState("");
-    const [reference, setReference] = useState("");
-    const [notes, setNotes] = useState("");
-    const [paid, setPaid] = useState(false);
-    const [updateCatalog, setUpdateCatalog] = useState(true);
+    const editing = !!entry;
+    // Partidas cuyo producto ya se borró del catálogo: no se pueden editar (no hay a qué regresar las piezas).
+    const missing = (entry?.items ?? []).filter((i) => !i.product).map((i) => i.missing);
+    const [rows, setRows] = useState<EntryRow[]>(() =>
+        (entry?.items ?? [])
+            .filter((i) => i.product)
+            .map((i) => ({ product: i.product!, quantity: str(i.quantity), cost: str(i.cost), iva: str(i.iva), extra: str(i.extra) }))
+    );
+    const [date, setDate] = useState(entry?.date ?? getToday());
+    const [supplier, setSupplier] = useState(entry?.supplier ?? "");
+    const [reference, setReference] = useState(entry?.reference ?? "");
+    const [notes, setNotes] = useState(entry?.notes ?? "");
+    const [paid, setPaid] = useState(entry?.status === "paid");
+    // Al editar, los costos que ya no coinciden con el catálogo no se guardan solos en él.
+    const [updateCatalog, setUpdateCatalog] = useState(!editing);
     const searchRef = useRef<HTMLInputElement>(null);
     const quantityRefs = useRef<Record<number, HTMLInputElement | null>>({});
     // Después de agregar, el cursor salta a la cantidad de ese producto.
@@ -146,9 +167,7 @@ const StockEntryForm = ({ flash, suppliers }: Props) => {
             return;
         }
         setProcessing(true);
-        router.post(
-            route("stock-entries.store"),
-            {
+        const payload = {
                 date,
                 supplier: supplier.trim() || null,
                 reference: reference.trim() || null,
@@ -156,22 +175,33 @@ const StockEntryForm = ({ flash, suppliers }: Props) => {
                 paid,
                 update_catalog: anyChanged && updateCatalog,
                 items: rows.map((r) => ({ product_id: r.product.id, quantity: r.quantity, cost: r.cost, iva: r.iva || 0, extra: r.extra || 0 })),
-            },
-            {
-                onError: (errs) => setErrors(errs as Record<string, string>),
-                onFinish: () => setProcessing(false),
-            }
-        );
+        };
+        const options = {
+            onError: (errs: Record<string, string>) => setErrors(errs),
+            onFinish: () => setProcessing(false),
+        };
+        if (entry) router.put(route("stock-entries.update", entry.id), payload, options);
+        else router.post(route("stock-entries.store"), payload, options);
     };
 
     return (
-        <Container headTitle="Nueva nota de entrada">
+        <Container headTitle={entry ? `Editar nota de entrada #${entry.id}` : "Nueva nota de entrada"}>
             <PageHeader
-                back={{ label: "Notas de entrada", href: route("stock-entries.index") }}
+                back={entry ? { label: `Nota de entrada #${entry.id}`, href: route("stock-entries.show", entry.id) } : { label: "Notas de entrada", href: route("stock-entries.index") }}
                 eyebrow={currentBranchName}
-                title="Nueva nota de entrada"
-                description="Lo que se compró al proveedor. Al guardar, las piezas se suman al inventario de esta sucursal."
+                title={entry ? `Editar nota de entrada #${entry.id}` : "Nueva nota de entrada"}
+                description={
+                    entry
+                        ? "Al guardar, el inventario se ajusta sólo por la diferencia: si subes una cantidad entran más piezas; si la bajas o quitas un producto, salen."
+                        : "Lo que se compró al proveedor. Al guardar, las piezas se suman al inventario de esta sucursal."
+                }
             />
+            {missing.length > 0 && (
+                <div className="p-3 mb-4 text-sm rounded-card bg-rose-tint text-red-900">
+                    No se puede editar esta nota: {missing.length === 1 ? "el producto" : "los productos"} {missing.join(", ")} ya no{" "}
+                    {missing.length === 1 ? "existe" : "existen"} en el catálogo. Puedes eliminar la nota completa desde su detalle.
+                </div>
+            )}
 
             <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
                 <section className="bg-white border border-ash rounded-card">
@@ -373,9 +403,9 @@ const StockEntryForm = ({ flash, suppliers }: Props) => {
                             </Text>
                         )}
 
-                        <Button type="button" size="3" className="mt-4" style={{ width: "100%" }} disabled={processing || rows.length === 0} onClick={submit}>
+                        <Button type="button" size="3" className="mt-4" style={{ width: "100%" }} disabled={processing || rows.length === 0 || missing.length > 0} onClick={submit}>
                             <LuSave />
-                            {processing ? "Guardando…" : "Guardar nota de entrada"}
+                            {processing ? "Guardando…" : entry ? "Guardar cambios" : "Guardar nota de entrada"}
                         </Button>
                     </section>
                 </aside>

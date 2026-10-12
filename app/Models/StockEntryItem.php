@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StockEntryItem extends Model
 {
@@ -15,6 +16,12 @@ class StockEntryItem extends Model
         'extra' => 'float',
         'subtotal' => 'float',
     ];
+
+    /** Producto del catálogo (null si se borró: la partida conserva su copia). */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
 
     /** Lo que se le paga al proveedor por la partida: costo × cantidad con IVA y extra (como calculatePurchaseSubtotal). */
     public static function subtotalFor(float $cost, float $quantity, float $iva, float $extra): float

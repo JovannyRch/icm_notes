@@ -186,4 +186,79 @@ class StockEntryTest extends TestCase
             ->post(route('stock-entries.store'), ['date' => '2026-09-30', 'items' => []])
             ->assertSessionHasErrors('items');
     }
+
+    private function entryWith(array $items): StockEntry
+    {
+        $this->actingAs($this->user)->withSession(['branch_id' => $this->branch->id])
+            ->post(route('stock-entries.store'), ['date' => '2026-10-01', 'supplier' => 'Porcelanite', 'items' => $items])
+            ->assertSessionHasNoErrors();
+
+        return StockEntry::latest('id')->first();
+    }
+
+    private function qty(Product $p): float
+    {
+        return (float) Stock::where(['branch_id' => $this->branch->id, 'product_id' => $p->id])->value('quantity');
+    }
+
+    public function test_editing_moves_stock_only_by_the_difference(): void
+    {
+        $a = $this->product();
+        $b = $this->product();
+        $c = $this->product();
+        $entry = $this->entryWith([
+            ['product_id' => $a->id, 'quantity' => 10, 'cost' => 300, 'iva' => 16, 'extra' => 0],
+            ['product_id' => $b->id, 'quantity' => 4, 'cost' => 300, 'iva' => 16, 'extra' => 0],
+        ]);
+        $this->assertEquals([10, 4], [$this->qty($a), $this->qty($b)]);
+
+        // A: 10 → 12 (+2) · B: se quita (−4) · C: se agrega (+3) · costo y proveedor nuevos.
+        $this->actingAs($this->user)->withSession(['branch_id' => $this->branch->id])->get(route('stock-entries.edit', $entry))
+            ->assertOk()->assertInertia(fn ($page) => $page->component('StockEntries/Form')->where('entry.id', $entry->id)->has('entry.items', 2));
+        $this->actingAs($this->user)->withSession(['branch_id' => $this->branch->id])->put(route('stock-entries.update', $entry), [
+            'date' => '2026-10-02', 'supplier' => 'Interceramic', 'paid' => true,
+            'items' => [
+                ['product_id' => $a->id, 'quantity' => 12, 'cost' => 310, 'iva' => 16, 'extra' => 0],
+                ['product_id' => $c->id, 'quantity' => 3, 'cost' => 100, 'iva' => 0, 'extra' => 0],
+            ],
+        ])->assertRedirect(route('stock-entries.show', $entry))->assertSessionHasNoErrors();
+
+        $this->assertEquals([12, 0, 3], [$this->qty($a), $this->qty($b), $this->qty($c)]);
+        $entry->refresh();
+        $this->assertSame('Interceramic', $entry->supplier);
+        $this->assertSame('paid', $entry->status);
+        $this->assertSame('2026-10-02', $entry->date->toDateString());
+        $this->assertEquals(round(12 * 310 * 1.16, 2) + 300, $entry->total);
+        $this->assertSame(2, $entry->items()->count());
+        // Movimientos sólo por la diferencia, con su descripción.
+        $edits = StockMovement::where('description', 'like', 'Edición de nota de entrada #'.$entry->id.'%')->get();
+        $this->assertEqualsCanonicalizing([[$a->id, 'IN', 2.0], [$b->id, 'OUT', 4.0], [$c->id, 'IN', 3.0]],
+            $edits->map(fn ($m) => [$m->product_id, $m->movement_type, (float) $m->quantity])->all());
+    }
+
+    public function test_deleting_returns_the_pieces_and_removes_the_entry(): void
+    {
+        $a = $this->product();
+        $entry = $this->entryWith([['product_id' => $a->id, 'quantity' => 6, 'cost' => 300, 'iva' => 16, 'extra' => 0]]);
+
+        $this->actingAs($this->user)->withSession(['branch_id' => $this->branch->id])->delete(route('stock-entries.destroy', $entry))
+            ->assertRedirect(route('stock-entries.index'));
+
+        $this->assertNull(StockEntry::find($entry->id));
+        $this->assertSame(0, \App\Models\StockEntryItem::count());
+        $this->assertEquals(0, $this->qty($a));
+        $this->assertTrue(StockMovement::where(['movement_type' => 'OUT', 'product_id' => $a->id])->where('description', 'like', 'Eliminación de nota de entrada%')->exists());
+    }
+
+    public function test_another_branch_cannot_edit_or_delete(): void
+    {
+        $a = $this->product();
+        $entry = $this->entryWith([['product_id' => $a->id, 'quantity' => 6, 'cost' => 300, 'iva' => 16, 'extra' => 0]]);
+        $as = fn () => $this->actingAs($this->user)->withSession(['branch_id' => $this->otherBranch->id]);
+
+        $as()->get(route('stock-entries.edit', $entry))->assertNotFound();
+        $as()->put(route('stock-entries.update', $entry), ['date' => '2026-10-02', 'items' => [['product_id' => $a->id, 'quantity' => 1, 'cost' => 1]]])->assertNotFound();
+        $as()->delete(route('stock-entries.destroy', $entry))->assertNotFound();
+        $this->assertEquals(6, $this->qty($a));
+    }
 }

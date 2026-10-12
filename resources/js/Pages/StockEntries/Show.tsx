@@ -4,8 +4,9 @@ import { formatCurrency, formatDate } from "@/helpers/formatters";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
 import { router } from "@inertiajs/react";
-import { Button } from "@radix-ui/themes";
-import { LuCheck, LuPackagePlus, LuPrinter, LuUndo2 } from "react-icons/lu";
+import { Button, Dialog, Flex } from "@radix-ui/themes";
+import { useState } from "react";
+import { LuCheck, LuPackagePlus, LuPencil, LuPrinter, LuTrash2, LuUndo2 } from "react-icons/lu";
 import { EntryStatusBadge, StockEntry } from "./Index";
 
 const qty = (n: number) => (Number.isInteger(Number(n)) ? String(Number(n)) : Number(n).toFixed(2));
@@ -19,6 +20,13 @@ const StockEntryShow = ({ entry, flash }: PageProps<{ entry: StockEntry }>) => {
     const iva = entry.items.reduce((a, i) => a + i.cost * i.quantity * (i.iva / 100), 0);
     const extra = entry.total - base - iva;
     const pieces = entry.items.reduce((a, i) => a + Number(i.quantity), 0);
+
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const remove = () => {
+        setDeleting(true);
+        router.delete(route("stock-entries.destroy", entry.id), { onFinish: () => setDeleting(false) });
+    };
 
     const setStatus = (status: StockEntry["status"]) =>
         router.patch(route("stock-entries.status", entry.id), { status }, { preserveScroll: true });
@@ -48,6 +56,12 @@ const StockEntryShow = ({ entry, flash }: PageProps<{ entry: StockEntry }>) => {
                                 <LuUndo2 /> Regresar a por pagar
                             </Button>
                         )}
+                        <Button variant="outline" color="gray" onClick={() => router.visit(route("stock-entries.edit", entry.id))} className="print:hidden">
+                            <LuPencil /> Editar
+                        </Button>
+                        <Button variant="outline" color="red" onClick={() => setConfirmDelete(true)} className="print:hidden">
+                            <LuTrash2 /> Eliminar
+                        </Button>
                         <Button variant="outline" color="gray" onClick={() => router.visit(route("stock-entries.create"))} className="print:hidden">
                             <LuPackagePlus /> Nueva
                         </Button>
@@ -132,6 +146,25 @@ const StockEntryShow = ({ entry, flash }: PageProps<{ entry: StockEntry }>) => {
                     </section>
                 </aside>
             </div>
+            <Dialog.Root open={confirmDelete} onOpenChange={setConfirmDelete}>
+                <Dialog.Content maxWidth="440px">
+                    <Dialog.Title>Eliminar nota de entrada #{entry.id}</Dialog.Title>
+                    <Dialog.Description size="2">
+                        Las {qty(pieces)} piezas de esta nota salen del inventario de {entry.branch?.name ?? "la sucursal"}. Si ya se vendieron, las existencias
+                        pueden quedar en negativo. No se puede deshacer.
+                    </Dialog.Description>
+                    <Flex gap="2" justify="end" mt="5">
+                        <Dialog.Close>
+                            <Button variant="outline" color="gray">
+                                No eliminar
+                            </Button>
+                        </Dialog.Close>
+                        <Button color="red" disabled={deleting} onClick={remove}>
+                            {deleting ? "Eliminando…" : "Eliminar nota"}
+                        </Button>
+                    </Flex>
+                </Dialog.Content>
+            </Dialog.Root>
         </Container>
     );
 };

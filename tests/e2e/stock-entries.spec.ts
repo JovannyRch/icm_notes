@@ -52,4 +52,23 @@ test("nota de entrada con costos y total a pagar al proveedor", async ({ page })
     const row = page.getByRole("row", { name: /Llantas del Centro E2E/ });
     await expect(row).toContainText("$2,784.00");
     await expect(row).toContainText("Pagada");
+
+    // Editar: 2 → 3 piezas (3 × 1,200 × 1.16 = 4,176); el inventario se ajusta por la diferencia.
+    await row.click();
+    await page.waitForURL(/\/nota-entrada\/\d+$/);
+    await page.getByRole("button", { name: "Editar" }).click();
+    await page.waitForURL(/\/editar$/);
+    await expect(page.getByLabel("Costo de GOODYEAR ASSURANCE")).toHaveValue("1200");
+    await page.getByLabel("Cantidad de GOODYEAR ASSURANCE").fill("3");
+    await expect(page.getByTestId("entry-total")).toHaveText("$4,176.00");
+    await page.getByRole("button", { name: "Guardar cambios" }).click();
+    await page.waitForURL(/\/nota-entrada\/\d+$/);
+    await expect(page.getByTestId("entry-total")).toHaveText("$4,176.00");
+
+    // Eliminar pide confirmación y regresa a la lista.
+    await page.getByRole("button", { name: "Eliminar" }).click();
+    await expect(page.getByRole("dialog")).toContainText("3 piezas");
+    await page.getByRole("button", { name: "Eliminar nota" }).click();
+    await page.waitForURL("**/notas-entrada");
+    await expect(page.getByRole("row", { name: /Llantas del Centro E2E/ })).toHaveCount(0);
 });

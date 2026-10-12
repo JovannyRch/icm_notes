@@ -1,0 +1,2 @@
+[    6418ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.youtube.com') does not match the recipient window's origin ('https://www.google.com'). @ https://www.youtube.com/s/player/ec429320/www-widgetapi.vflset/www-widgetapi.js:163
+[   20008ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://tablasdeverdad.app/favicon.ico:0
