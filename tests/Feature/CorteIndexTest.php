@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Corte;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\View;
 use Tests\TestCase;
 
 /** Lista de cortes: totales de todo el periodo, el corte de hoy y días repetidos. */
@@ -65,6 +66,75 @@ class CorteIndexTest extends TestCase
         $this->assertStringContainsString('Restan $1,500.00', $html);
         $this->assertStringContainsString('11 <strong>(CRÉDITO)</strong>', $html);
         $this->assertStringNotContainsString('10 <strong>(CRÉDITO)</strong>', $html);
+    }
+
+    public function test_corte_pdf_shows_dates_as_day_month_year(): void
+    {
+        $note = fn ($folio, $date) => ['id' => $folio, 'folio' => $folio, 'date' => $date, 'advance' => 0, 'balance' => 0,
+            'sale_total' => 100, 'cash' => 100, 'card' => 0, 'transfer' => 0, 'purchase_total' => 0, 'status' => 'paid', 'delivery_status' => 'entregado_a_cliente'];
+        $corte = $this->corte('2026-03-05', 100);
+        $corte->update([
+            'notes' => [$note('1', '2026-03-05')],
+            'previous_notes' => [['folio' => '9', 'date' => '2026-02-28', 'cash' => '50', 'card' => '0', 'transfer' => '0']],
+        ]);
+
+        $html = view('pdf.corte', ['corte' => $corte->fresh()->load('branch'), 'branch_name' => 'A', 'hideCosts' => true])->render();
+
+        $this->assertStringContainsString('Fecha: 05/03/2026', $html);
+        $this->assertStringContainsString('>05/03/2026<', $html);
+        $this->assertStringContainsString('>28/02/2026<', $html);
+        // El <title> interno sigue en ISO (nombre de archivo/metadato, no lo lee el cliente).
+        $this->assertStringNotContainsString('>2026-03-05<', $html);
+        $this->assertStringNotContainsString('>2026-02-28<', $html);
+    }
+
+    /**
+     * El cajero descarga el PDF sin "Total de compra a pisos Leo": sólo el dueño y el
+     * super admin lo ven. Se cuelga de `costs.view` (config/permissions.php), que el
+     * cajero nunca tiene aunque se la activen a mano (no es configurable por cajero).
+     */
+    public function test_only_owner_and_super_admin_see_the_purchase_total_in_the_downloaded_pdf(): void
+    {
+        $cashier = User::factory()->create();
+        $cashier->forceFill(['role' => User::CASHIER])->save();
+        $cashier->branches()->sync([$this->a->id]);
+        $owner = User::factory()->create();
+        $owner->forceFill(['role' => User::OWNER])->save();
+        $superAdmin = User::factory()->create();
+        $superAdmin->forceFill(['role' => User::SUPER_ADMIN])->save();
+
+        $corte = $this->corte(businessToday(), 1000);
+        $corte->update(['notes' => [['id' => '1', 'folio' => '1', 'date' => businessToday(), 'advance' => 1000, 'balance' => 0,
+            'sale_total' => 1000, 'cash' => 1000, 'card' => 0, 'transfer' => 0, 'purchase_total' => 777.77, 'status' => 'paid', 'delivery_status' => 'entregado_a_cliente']]]);
+
+        $hideCosts = [];
+        View::composer('pdf.corte', function ($view) use (&$hideCosts) {
+            $hideCosts[] = $view->getData()['hideCosts'] ?? null;
+        });
+
+        $this->actingAs($cashier)->get(route('cortes.export', $corte))->assertOk();
+        $this->actingAs($owner)->get(route('cortes.export', $corte))->assertOk();
+        $this->actingAs($superAdmin)->get(route('cortes.export', $corte))->assertOk();
+
+        // Orden: cajero, dueño, super admin.
+        $this->assertSame([true, false, false], $hideCosts);
+    }
+
+    public function test_pdf_view_shows_the_purchase_total_only_without_hidecosts(): void
+    {
+        $corte = $this->corte(businessToday(), 1000);
+        $corte->update(['notes' => [['id' => '1', 'folio' => '1', 'date' => businessToday(), 'advance' => 1000, 'balance' => 0,
+            'sale_total' => 1000, 'cash' => 1000, 'card' => 0, 'transfer' => 0, 'purchase_total' => 777.77, 'status' => 'paid', 'delivery_status' => 'entregado_a_cliente']]]);
+
+        $withCosts = view('pdf.corte', ['corte' => $corte->fresh()->load('branch'), 'branch_name' => 'A', 'hideCosts' => false])->render();
+        $withoutCosts = view('pdf.corte', ['corte' => $corte->fresh()->load('branch'), 'branch_name' => 'A', 'hideCosts' => true])->render();
+
+        $this->assertStringContainsString('Total de compra a pisos Leo: $777.77', $withCosts);
+        $this->assertStringContainsString('TOTAL COMPRA', $withCosts);
+
+        $this->assertStringNotContainsString('Total de compra a pisos Leo', $withoutCosts);
+        $this->assertStringNotContainsString('TOTAL COMPRA', $withoutCosts);
+        $this->assertStringNotContainsString('777.77', $withoutCosts);
     }
 
     public function test_corte_pdf_splits_card_into_credit_and_debit(): void

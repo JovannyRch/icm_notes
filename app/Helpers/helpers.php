@@ -18,6 +18,24 @@ if (! function_exists('format_currency')) {
         return '$'.number_format($amount, 2, '.', ',');
     }
 
+    /**
+     * Formatea una fecha (Y-m-d u otro formato que Carbon entienda) como día/mes/año,
+     * para los PDF y reportes del servidor. Si no se puede interpretar, regresa el
+     * texto tal cual para no romper la vista.
+     */
+    function format_date($date): string
+    {
+        if (blank($date)) {
+            return '-';
+        }
+
+        try {
+            return \Carbon\Carbon::parse($date)->format('d/m/Y');
+        } catch (\Throwable $e) {
+            return (string) $date;
+        }
+    }
+
     function currentBranchId(): ?int
     {
         $branchId = session('branch_id');

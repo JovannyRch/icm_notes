@@ -191,7 +191,7 @@ function getPurchaseTotal($corte)
     <div class="ticket-header">
         <p>CORTE #{{ $corte->id }}</p>
         <p>Sucursal: {{ $corte->branch->name }}</p>
-        <p>Fecha: {{ $corte->date }}</p>
+        <p>Fecha: {{ format_date($corte->date) }}</p>
     </div>
 
 
@@ -251,7 +251,7 @@ function getPurchaseTotal($corte)
             @foreach (cleanNotes($corte->notes) as $note)
                 <tr>
                     <td>{{ $note['folio'] }}@if ((float) ($note['balance'] ?? 0) > 0.009) <strong>(CRÉDITO)</strong>@endif</td>
-                    <td>{{ $note['date'] }}</td>
+                    <td>{{ format_date($note['date']) }}</td>
                     <td>{{ format_currency($note['advance'], 2) }}</td>
                     <td>{{ format_currency($note['balance'], 2) }}</td>
                     <td>{{ format_currency($note['sale_total'], 2) }}</td>
@@ -286,7 +286,7 @@ function getPurchaseTotal($corte)
                 @foreach ($corte->previous_notes as $note)
                     <tr>
                         <td>{{ $note['folio'] }}</td>
-                        <td>{{ $note['date'] }}</td>
+                        <td>{{ format_date($note['date']) }}</td>
                         <td>{{ format_currency($note['cash'], 2) }}</td>
                         <td>{{ format_currency($note['card'], 2) }}</td>
                         <td>{{ format_currency($note['transfer'], 2) }}</td>
