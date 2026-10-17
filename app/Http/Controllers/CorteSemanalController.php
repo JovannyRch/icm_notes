@@ -31,8 +31,8 @@ class CorteSemanalController extends Controller
     {
         $branch_id = currentBranchId();
         $branch = Branch::find($branch_id);
-        $start = $request->input('start_date', now()->startOfWeek()->format('Y-m-d'));
-        $end = $request->input('end_date', now()->endOfWeek()->format('Y-m-d'));
+        $start = $request->input('start_date', now()->startOfWeek(Carbon::MONDAY)->format('Y-m-d'));
+        $end = $request->input('end_date', now()->endOfWeek(Carbon::SUNDAY)->format('Y-m-d'));
 
         $start = Carbon::parse($start)->startOfDay()->toDateString();
         $end = Carbon::parse($end)->endOfDay()->toDateString();

@@ -7,6 +7,7 @@ use App\Models\Note;
 use App\Models\NotePayment;
 use App\Models\NoteProduct;
 use App\Services\CortePaymentsService;
+use Carbon\Carbon;
 use App\Services\NoteStockService;
 use App\Services\StockService;
 use App\Support\CorteCosts;
@@ -437,8 +438,8 @@ class NoteController extends Controller
         return match ($date) {
             'TODAY' => $range($now, $now),
             'YESTERDAY' => $range($now->copy()->subDay(), $now->copy()->subDay()),
-            'THIS_WEEK' => $range($now->copy()->startOfWeek(), $now->copy()->endOfWeek()),
-            'LAST_WEEK' => $range($now->copy()->subWeek()->startOfWeek(), $now->copy()->subWeek()->endOfWeek()),
+            'THIS_WEEK' => $range($now->copy()->startOfWeek(Carbon::MONDAY), $now->copy()->endOfWeek(Carbon::SUNDAY)),
+            'LAST_WEEK' => $range($now->copy()->subWeek()->startOfWeek(Carbon::MONDAY), $now->copy()->subWeek()->endOfWeek(Carbon::SUNDAY)),
             'THIS_MONTH' => $range($now->copy()->startOfMonth(), $now->copy()->endOfMonth()),
             'LAST_MONTH' => $range($now->copy()->subMonthNoOverflow()->startOfMonth(), $now->copy()->subMonthNoOverflow()->endOfMonth()),
             'THIS_YEAR' => $range($now->copy()->startOfYear(), $now->copy()->endOfYear()),

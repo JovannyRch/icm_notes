@@ -358,6 +358,7 @@ const CorteSemanalForm = ({
                             displayFormat="DD/MM/YYYY"
                             primaryColor="blue"
                             showShortcuts={false}
+                            startWeekOn="mon"
                             configs={{}}
                         />
                     </div>
