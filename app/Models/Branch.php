@@ -6,13 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Branch extends Model
 {
-    protected $fillable = ['name', 'extra_percentage', 'ticket', 'weekly_split'];
+    protected $fillable = ['name', 'extra_percentage', 'ticket', 'weekly_split', 'weekly_extra_expenses'];
 
     protected $casts = [
         'extra_percentage' => 'float',
         'ticket' => 'array',
         // Corte semanal: true = la utilidad se reparte al 50%; false = se muestra completa.
         'weekly_split' => 'boolean',
+        'weekly_extra_expenses' => 'boolean',
     ];
 
     /** Textos del ticket por sucursal (vacío = el valor por omisión). */

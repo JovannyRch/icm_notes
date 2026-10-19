@@ -23,6 +23,7 @@ class BranchController extends Controller
                 ),
                 'defaults' => $b->ticketDefaults(),
                 'weekly_split' => (bool) $b->weekly_split,
+                'weekly_extra_expenses' => (bool) $b->weekly_extra_expenses,
             ]),
         ]);
     }
@@ -50,11 +51,20 @@ class BranchController extends Controller
         return redirect()->back()->with('success', "Ticket de {$branch->name} actualizado.");
     }
 
-    /** Corte semanal: repartir la utilidad al 50% o mostrarla completa (por sucursal). */
+    /** Corte semanal (por sucursal): repartir la utilidad al 50% y/o manejar gastos extra. */
     public function updateWeekly(Request $request, Branch $branch)
     {
-        $data = $request->validate(['weekly_split' => 'required|boolean']);
+        $data = $request->validate([
+            'weekly_split' => 'required_without:weekly_extra_expenses|boolean',
+            'weekly_extra_expenses' => 'required_without:weekly_split|boolean',
+        ]);
         $branch->update($data);
+
+        if (array_key_exists('weekly_extra_expenses', $data)) {
+            return redirect()->back()->with('success', $data['weekly_extra_expenses']
+                ? "El corte semanal de {$branch->name} maneja gastos extra."
+                : "El corte semanal de {$branch->name} ya no maneja gastos extra.");
+        }
 
         return redirect()->back()->with('success', $data['weekly_split']
             ? "El corte semanal de {$branch->name} reparte la utilidad al 50%."

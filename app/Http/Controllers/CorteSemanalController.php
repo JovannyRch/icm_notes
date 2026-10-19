@@ -86,7 +86,7 @@ class CorteSemanalController extends Controller
         $branch = \App\Models\Branch::find((int) $request->input('branch_id'));
         abort_unless($branch && $request->user()->canAccessBranch($branch->id), 403, 'No tienes acceso a esa sucursal.');
 
-        return Excel::download(new ReporteSemanalExport([...$request->all(), 'split' => $branch->weekly_split !== false]), 'reporte.xlsx');
+        return Excel::download(new ReporteSemanalExport([...$request->all(), 'split' => $branch->weekly_split !== false, 'extras' => $branch->weekly_extra_expenses !== false]), 'reporte.xlsx');
     }
 
     public function exportCorteSemanalPdf(Request $request)
@@ -94,7 +94,9 @@ class CorteSemanalController extends Controller
         $branch = \App\Models\Branch::find((int) $request->input('branch_id'));
         abort_unless($branch && $request->user()->canAccessBranch($branch->id), 403, 'No tienes acceso a esa sucursal.');
 
+        $extras = $branch->weekly_extra_expenses !== false;
         $num = fn ($key) => (float) ($request->input($key) ?: 0);
+        $extra = fn ($key) => $extras ? $num($key) : 0.0;
         $cortes = json_decode((string) $request->input('cortes'), true) ?: [];
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.corte_semanal', [
@@ -112,10 +114,11 @@ class CorteSemanalController extends Controller
                 'material' => $num('material_total'),
             ],
             'salary' => $num('salary'),
-            'gasolina' => $num('gasolina'),
-            'luz' => $num('luz'),
-            'renta' => $num('renta'),
-            'extra' => $num('extra_expenses'),
+            'gasolina' => $extra('gasolina'),
+            'luz' => $extra('luz'),
+            'renta' => $extra('renta'),
+            'extra' => $extra('extra_expenses'),
+            'extras' => $extras,
             'split' => $branch->weekly_split !== false,
         ])->setPaper('letter', 'landscape');
 

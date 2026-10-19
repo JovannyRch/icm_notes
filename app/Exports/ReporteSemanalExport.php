@@ -2,13 +2,14 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 
 class ReporteSemanalExport implements FromArray, WithEvents
 {
     protected array $data;
+
     protected int $lastCorteRow = 15;
 
     public function __construct(array $data)
@@ -16,35 +17,36 @@ class ReporteSemanalExport implements FromArray, WithEvents
         $this->data = $data;
     }
 
-    //function to set a 0.0 if value is null or empty
+    // function to set a 0.0 if value is null or empty
     private function setValue($value): string
     {
         if (is_null($value) || $value === '') {
             return '0.0';
         }
-        return (string)$value;
+
+        return (string) $value;
     }
 
-    //rows as reference
+    // rows as reference
     private function setTotalValue(string $label, $value, array &$rows, int $rowIndex = 2, int $columnIndex = 1): void
-
     {
-        if (!isset($rows[$rowIndex])) {
+        if (! isset($rows[$rowIndex])) {
             $rows[$rowIndex] = [];
         }
         $rows[$rowIndex][$columnIndex] = $label;
         $rows[$rowIndex][$columnIndex + 1] = $value;
     }
 
-    //create a grid in excel with empty values to prevent errors
+    // create a grid in excel with empty values to prevent errors
     private function createEmptyGrid(int $startRow, int $endRow, int $columns = 3): array
     {
         $rows = [];
         for ($i = $startRow; $i <= $endRow; $i++) {
-            if (!isset($rows[$i])) {
+            if (! isset($rows[$i])) {
                 $rows[$i] = array_fill(0, $columns, '');
             }
         }
+
         return $rows;
     }
 
@@ -59,7 +61,6 @@ class ReporteSemanalExport implements FromArray, WithEvents
 
         $rows[14][1] = 'CORTES';
         $rows[15] = ['', 'FECHA', 'VENTA', 'RESTA', 'TARJETA', 'TRANSFERENCIA', 'ENTRADAS', 'GASTOS', 'EFECTIVO', 'MATERIAL'];
-
 
         $data['cortes'] = json_decode($data['cortes'], true);
 
@@ -85,41 +86,42 @@ class ReporteSemanalExport implements FromArray, WithEvents
         $rows[$this->lastCorteRow] = [
             '',
             'TOTAL',
-            '=SUM(C16:C' . $this->lastCorteRow . ')',
-            '=SUM(D16:D' . $this->lastCorteRow . ')',
-            '=SUM(E16:E' . $this->lastCorteRow . ')',
-            '=SUM(F16:F' . $this->lastCorteRow . ')',
-            '=SUM(G16:G' . $this->lastCorteRow . ')',
-            '=SUM(H16:H' . $this->lastCorteRow . ')',
-            '=SUM(I16:I' . $this->lastCorteRow . ')',
-            '=SUM(J16:J' . $this->lastCorteRow . ')',
+            '=SUM(C16:C'.$this->lastCorteRow.')',
+            '=SUM(D16:D'.$this->lastCorteRow.')',
+            '=SUM(E16:E'.$this->lastCorteRow.')',
+            '=SUM(F16:F'.$this->lastCorteRow.')',
+            '=SUM(G16:G'.$this->lastCorteRow.')',
+            '=SUM(H16:H'.$this->lastCorteRow.')',
+            '=SUM(I16:I'.$this->lastCorteRow.')',
+            '=SUM(J16:J'.$this->lastCorteRow.')',
         ];
 
-
-        $rows[4][5] = 'GASTOS EXTRA';
-        $this->setTotalValue('GASOLINA, CHOFER, CASETAS:',  $data['gasolina'] ?? 0, $rows, 5, 5);
-        $this->setTotalValue('LUZ:',  $data['luz'] ?? 0, $rows, 6, 5);
-        $this->setTotalValue('RENTA:',  $data['renta'] ?? 0, $rows, 7, 5);
-        $this->setTotalValue('TOTAL:',  '=SUM(G6:G8)', $rows, 8, 5);
-
+        // Sucursales sin gastos extra: ni el bloque ni la fila (la celda vacía suma 0 en la fórmula del 50%).
+        $extras = $data['extras'] ?? true;
+        if ($extras) {
+            $rows[4][5] = 'GASTOS EXTRA';
+            $this->setTotalValue('GASOLINA, CHOFER, CASETAS:', $data['gasolina'] ?? 0, $rows, 5, 5);
+            $this->setTotalValue('LUZ:', $data['luz'] ?? 0, $rows, 6, 5);
+            $this->setTotalValue('RENTA:', $data['renta'] ?? 0, $rows, 7, 5);
+            $this->setTotalValue('TOTAL:', '=SUM(G6:G8)', $rows, 8, 5);
+        }
 
         $totalRow = $this->lastCorteRow + 1;
-        $this->setTotalValue('VENTA TOTAL:',  '=C' . $totalRow, $rows, 3);
-        $this->setTotalValue('RESTAN NOTAS:', '=D' . $totalRow, $rows, 4);
-        $this->setTotalValue('TARJETAS:', '=E' . $totalRow, $rows, 5);
-        $this->setTotalValue('TRANSFERENCIAS:', '=F' . $totalRow, $rows, 6);
-        $this->setTotalValue('ENTRADAS:', '=G' . $totalRow, $rows, 7);
-        $this->setTotalValue('GASTOS:', '=H' . $totalRow, $rows, 8);
-        $this->setTotalValue('EFECTIVO:', '=I' . $totalRow, $rows, 9);
-        $this->setTotalValue('MATERIAL:', '=J' . $totalRow, $rows, 10);
+        $this->setTotalValue('VENTA TOTAL:', '=C'.$totalRow, $rows, 3);
+        $this->setTotalValue('RESTAN NOTAS:', '=D'.$totalRow, $rows, 4);
+        $this->setTotalValue('TARJETAS:', '=E'.$totalRow, $rows, 5);
+        $this->setTotalValue('TRANSFERENCIAS:', '=F'.$totalRow, $rows, 6);
+        $this->setTotalValue('ENTRADAS:', '=G'.$totalRow, $rows, 7);
+        $this->setTotalValue('GASTOS:', '=H'.$totalRow, $rows, 8);
+        $this->setTotalValue('EFECTIVO:', '=I'.$totalRow, $rows, 9);
+        $this->setTotalValue('MATERIAL:', '=J'.$totalRow, $rows, 10);
         $this->setTotalValue('SUELDOS:', $data['salary'] ?? 0, $rows, 11);
-        $this->setTotalValue('GASTOS EXTRA:', '=G9', $rows, 12);
+        if ($extras) {
+            $this->setTotalValue('GASTOS EXTRA:', '=G9', $rows, 12);
+        }
         // 50% = (venta − material − sueldos − gastos extra) / 2; sin reparto (por sucursal) va completa.
         $split = $data['split'] ?? true;
         $this->setTotalValue($split ? '50%:' : 'UTILIDAD:', '=(C4-C11-C12-C13)*'.($split ? '0.5' : '1'), $rows, 13);
-
-
-
 
         return $rows;
     }
@@ -129,7 +131,6 @@ class ReporteSemanalExport implements FromArray, WithEvents
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet;
-
 
                 $sheet->mergeCells('B2:J2');
 
@@ -160,19 +161,20 @@ class ReporteSemanalExport implements FromArray, WithEvents
                     ],
                 ]);
 
-                $sheet->getStyle('F5')->applyFromArray([
+                if ($this->data['extras'] ?? true) {
+                    $sheet->getStyle('F5')->applyFromArray([
 
-                    'font' => [
-                        'size' => 14,
-                        'bold' => true,
-                        'color' => ['rgb' => 'FFFFFF'],
-                    ],
-                    'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'bc98bb'],
-                    ],
-                ]);
-
+                        'font' => [
+                            'size' => 14,
+                            'bold' => true,
+                            'color' => ['rgb' => 'FFFFFF'],
+                        ],
+                        'fill' => [
+                            'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => 'bc98bb'],
+                        ],
+                    ]);
+                }
 
                 $columnWidth = 20;
                 $sheet->getColumnDimension('B')->setWidth(30);
@@ -186,11 +188,11 @@ class ReporteSemanalExport implements FromArray, WithEvents
                 $sheet->getColumnDimension('J')->setWidth($columnWidth);
 
                 $currencyFormat = '$#,##0.00';
-                $sheet->getStyle("C4:C14")
+                $sheet->getStyle('C4:C14')
                     ->getNumberFormat()
                     ->setFormatCode($currencyFormat);
 
-                $sheet->getStyle("G6:G9")
+                $sheet->getStyle('G6:G9')
                     ->getNumberFormat()
                     ->setFormatCode($currencyFormat);
 
@@ -212,7 +214,6 @@ class ReporteSemanalExport implements FromArray, WithEvents
                         'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
                     ],
                 ]);
-
 
                 $sheet->getStyle('B16:J16')->applyFromArray([
                     'font' => [

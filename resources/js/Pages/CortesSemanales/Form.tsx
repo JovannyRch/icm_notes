@@ -175,6 +175,7 @@ const CorteSemanalForm = ({
 
     // Por sucursal (/sucursales): la utilidad se reparte al 50% o se muestra completa.
     const split = branch?.weekly_split !== false;
+    const hasExtras = branch?.weekly_extra_expenses !== false;
     const resultLabel = split ? "50%" : "Utilidad";
 
     const fiftyPercent = useMemo(() => {
@@ -272,8 +273,8 @@ const CorteSemanalForm = ({
         const luz = cleanNumber(expenses.luz);
         const renta = cleanNumber(expenses.renta);
         const totalExpenses = gasolina + luz + renta;
-        setExtraExpenses(totalExpenses.toString());
-    }, [expenses]);
+        setExtraExpenses(hasExtras ? totalExpenses.toString() : "0");
+    }, [expenses, hasExtras]);
 
     const [exporting, setExporting] = useState(false);
     const exportFile = async (format: "xlsx" | "pdf") => {
@@ -398,13 +399,15 @@ const CorteSemanalForm = ({
 
                     <SectionCard
                         title={split ? "Cálculo del 50%" : "Cálculo de la utilidad"}
-                        subtitle={split ? "Captura sueldos y gastos extra" : "Captura sueldos y gastos extra · esta sucursal no divide entre 2"}
+                        subtitle={`Captura sueldos${hasExtras ? " y gastos extra" : ""}${split ? "" : " · esta sucursal no divide entre 2"}`}
                     >
                         <div className="space-y-2">
                             <FieldRow label="Sueldos">
                                 <MoneyInput value={salary} onChange={setSalary} aria-label="Sueldos" />
                             </FieldRow>
-                            <p className="pt-2 text-xs font-medium tracking-wide text-fog uppercase">Gastos extra</p>
+                            {hasExtras && (
+                                <>
+                                    <p className="pt-2 text-xs font-medium tracking-wide text-fog uppercase">Gastos extra</p>
                             <FieldRow label="Gasolina chofer casetas">
                                 <MoneyInput value={expenses.gasolina} onChange={(v) => setExpenses({ ...expenses, gasolina: v })} aria-label="Gasolina chofer casetas" />
                             </FieldRow>
@@ -414,13 +417,15 @@ const CorteSemanalForm = ({
                             <FieldRow label="Renta">
                                 <MoneyInput value={expenses.renta} onChange={(v) => setExpenses({ ...expenses, renta: v })} aria-label="Renta" />
                             </FieldRow>
+                                </>
+                            )}
                         </div>
 
                         <div className="pt-3 mt-4 space-y-1 border-t border-ash">
                             <FormulaRow label="Venta total" value={totals.sale_total} />
                             <FormulaRow sign="−" label="Sueldos" value={salaryValue} />
                             <FormulaRow sign="−" label="Material" value={materialValue} />
-                            <FormulaRow sign="−" label="Gastos extra" value={extraValue} />
+                            {hasExtras && <FormulaRow sign="−" label="Gastos extra" value={extraValue} />}
                             <div className="pt-2 mt-2 border-t border-ash">
                                 <div className="flex items-baseline justify-between">
                                     <span className="text-sm font-semibold text-charcoal">{resultLabel}</span>

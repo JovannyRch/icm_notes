@@ -5,6 +5,7 @@ interface Branch {
     extra_percentage?: number | null;
     /** Corte semanal: la utilidad se reparte al 50% (true) o se muestra completa. */
     weekly_split?: boolean;
+    weekly_extra_expenses?: boolean;
     created_at: string;
     updated_at: string;
 }

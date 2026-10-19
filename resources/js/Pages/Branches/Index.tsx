@@ -26,6 +26,7 @@ interface BranchRow {
     defaults: TicketFields;
     /** Corte semanal: la utilidad se reparte al 50%. */
     weekly_split: boolean;
+    weekly_extra_expenses: boolean;
 }
 
 interface Props extends PageProps {
@@ -188,6 +189,21 @@ const BranchTicketForm = ({ branch }: { branch: BranchRow }) => {
                         <Switch
                             checked={branch.weekly_split}
                             onCheckedChange={(v) => router.put(route("branches.weekly.update", branch.id), { weekly_split: v }, { preserveScroll: true, preserveState: true })}
+                        />
+                    </Text>
+                    <Text as="label" size="2" className="flex items-start justify-between gap-3 mt-3">
+                        <span>
+                            <span className="block text-charcoal">Manejar gastos extra</span>
+                            <span className="block text-xs text-fog">
+                                {branch.weekly_extra_expenses
+                                    ? "El corte semanal pide gasolina, luz y renta, y los resta de la utilidad."
+                                    : "El corte semanal no muestra ni descuenta gastos extra (ni en el Excel ni en el PDF)."}{" "}
+                                Se guarda al instante.
+                            </span>
+                        </span>
+                        <Switch
+                            checked={branch.weekly_extra_expenses}
+                            onCheckedChange={(v) => router.put(route("branches.weekly.update", branch.id), { weekly_extra_expenses: v }, { preserveScroll: true, preserveState: true })}
                         />
                     </Text>
                 </fieldset>

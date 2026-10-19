@@ -72,6 +72,7 @@
 
     <table style="margin-top: 16px;">
         <tr>
+            @if ($extras)
             <td style="width: 50%; vertical-align: top; border: none;">
                 <div class="table-title" style="text-align: left;">GASTOS EXTRA</div>
                 <table class="summary">
@@ -81,14 +82,17 @@
                     <tr class="total"><td>Total:</td><td class="num">{{ format_currency($gasolina + $luz + $renta) }}</td></tr>
                 </table>
             </td>
+            @endif
             <td style="width: 50%; vertical-align: top; border: none;">
                 <div class="table-title" style="text-align: left;">{{ $split ? 'CÁLCULO DEL 50%' : 'CÁLCULO DE LA UTILIDAD' }}</div>
                 <table class="summary">
                     <tr><td>Venta total:</td><td class="num">{{ format_currency($totals['sale']) }}</td></tr>
                     <tr><td>− Material:</td><td class="num">{{ format_currency($totals['material']) }}</td></tr>
                     <tr><td>− Sueldos:</td><td class="num">{{ format_currency($salary) }}</td></tr>
-                            <tr><td>− Gastos extra:</td><td class="num">{{ format_currency($extra) }}</td></tr>
-                            <tr class="total"><td>{{ $split ? '50%:' : 'Utilidad:' }}</td><td class="num {{ $result < 0 ? 'negative' : '' }}">{{ format_currency($result) }}</td></tr>
+                    @if ($extras)
+                    <tr><td>− Gastos extra:</td><td class="num">{{ format_currency($extra) }}</td></tr>
+                    @endif
+                    <tr class="total"><td>{{ $split ? '50%:' : 'Utilidad:' }}</td><td class="num {{ $result < 0 ? 'negative' : '' }}">{{ format_currency($result) }}</td></tr>
                 </table>
             </td>
         </tr>
