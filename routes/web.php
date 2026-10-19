@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\BranchController;
-use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CajaController;
+use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CorteController;
 use App\Http\Controllers\CorteSemanalController;
 use App\Http\Controllers\DashboardController;
@@ -177,6 +177,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/corte_semanal/{corte}', [CorteSemanalController::class, 'show'])->name('cortes_semanales.show');
         Route::delete('/corte_semanal/{corte}', [CorteSemanalController::class, 'destroy'])->name('cortes_semanales.destroy');
         Route::post('/api/export/corte_semanal', [CorteSemanalController::class, 'exportCorteSemanal'])->name('cortes_semanales.export');
+        Route::post('/api/export/corte_semanal/pdf', [CorteSemanalController::class, 'exportCorteSemanalPdf'])->name('cortes_semanales.export_pdf');
     });
 
     // --- Sistema (sólo super_admin; 404 para los demás, la pantalla no se delata) -----
@@ -201,4 +202,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

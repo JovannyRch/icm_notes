@@ -13,8 +13,7 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class CorteSemanalController extends Controller
 {
-
-    //index
+    // index
     public function index()
     {
         $branch_id = currentBranchId();
@@ -23,7 +22,7 @@ class CorteSemanalController extends Controller
 
         return Inertia::render('CortesSemanales/Index', [
             'pagination' => $pagination,
-            'branch' => $branch
+            'branch' => $branch,
         ]);
     }
 
@@ -41,7 +40,6 @@ class CorteSemanalController extends Controller
             'start' => $start,
             'end' => $end,
         ];
-
 
         $cortes = Corte::where('branch_id', $branch->id)
             ->whereBetween('date', [$date_range['start'], $date_range['end']])
@@ -66,7 +64,7 @@ class CorteSemanalController extends Controller
         return Inertia::render('CortesSemanales/Form', [
             'corte' => $corte,
             'date' => $date,
-            'branch' => $branch
+            'branch' => $branch,
         ]);
     }
 
@@ -74,6 +72,7 @@ class CorteSemanalController extends Controller
     {
         if ($corte) {
             $corte->delete();
+
             return response()->json(['message' => 'Corte deleted successfully'], 200);
         } else {
             return response()->json(['message' => 'Corte not found'], 404);
@@ -88,5 +87,38 @@ class CorteSemanalController extends Controller
         abort_unless($branch && $request->user()->canAccessBranch($branch->id), 403, 'No tienes acceso a esa sucursal.');
 
         return Excel::download(new ReporteSemanalExport([...$request->all(), 'split' => $branch->weekly_split !== false]), 'reporte.xlsx');
+    }
+
+    public function exportCorteSemanalPdf(Request $request)
+    {
+        $branch = \App\Models\Branch::find((int) $request->input('branch_id'));
+        abort_unless($branch && $request->user()->canAccessBranch($branch->id), 403, 'No tienes acceso a esa sucursal.');
+
+        $num = fn ($key) => (float) ($request->input($key) ?: 0);
+        $cortes = json_decode((string) $request->input('cortes'), true) ?: [];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.corte_semanal', [
+            'title' => (string) $request->input('title', 'Corte semanal'),
+            'branch' => $branch,
+            'cortes' => $cortes,
+            'totals' => [
+                'sale' => $num('sale_total'),
+                'balance' => $num('balance_total'),
+                'card' => $num('card_total'),
+                'transfer' => $num('transfer_total'),
+                'previous' => $num('previous_notes_total'),
+                'expenses' => $num('expenses_total'),
+                'cash' => $num('cash_total'),
+                'material' => $num('material_total'),
+            ],
+            'salary' => $num('salary'),
+            'gasolina' => $num('gasolina'),
+            'luz' => $num('luz'),
+            'renta' => $num('renta'),
+            'extra' => $num('extra_expenses'),
+            'split' => $branch->weekly_split !== false,
+        ])->setPaper('letter', 'landscape');
+
+        return $pdf->download('corte_semanal.pdf');
     }
 }

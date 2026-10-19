@@ -13,7 +13,7 @@ import { BiChevronLeft, BiChevronRight, BiTrash } from "react-icons/bi";
 import { confirmAlert } from "react-confirm-alert";
 
 import { CorteSemanal } from "@/types/CorteSemanal";
-import { FaFileExcel } from "react-icons/fa6";
+import { FaFileExcel, FaFilePdf } from "react-icons/fa6";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import Datepicker, { DateValueType } from "react-tailwindcss-datepicker";
 import { Corte } from "@/types/Corte";
@@ -226,7 +226,7 @@ const CorteSemanalForm = ({
         } al ${day2} de ${spanishMonth} de ${year}`.toUpperCase();
     };
 
-    const handleSubmitData = async () => {
+    const handleSubmitData = async (format: "xlsx" | "pdf" = "xlsx") => {
         const title = getTitle();
         const data = {
             title: title,
@@ -244,18 +244,18 @@ const CorteSemanalForm = ({
             cortes: JSON.stringify(cortesWithTotals),
         };
 
-        const response = await fetch(route("cortes_semanales.export"), {
+        const response = await fetch(route(format === "pdf" ? "cortes_semanales.export_pdf" : "cortes_semanales.export"), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                Accept: format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 // La ruta ya va con sesión (routes/web.php): requiere el token CSRF.
                 "X-XSRF-TOKEN": decodeURIComponent(document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/)?.[1] ?? ""),
             },
             body: JSON.stringify(data),
         });
 
-        const fileName = `corte_semanal_${title}.xlsx`
+        const fileName = `corte_semanal_${title}.${format}`
             .replace(/\s+/g, "_")
             .toLowerCase();
         const blob = await response.blob();
@@ -276,12 +276,12 @@ const CorteSemanalForm = ({
     }, [expenses]);
 
     const [exporting, setExporting] = useState(false);
-    const exportExcel = async () => {
+    const exportFile = async (format: "xlsx" | "pdf") => {
         setExporting(true);
         try {
-            await handleSubmitData();
+            await handleSubmitData(format);
         } catch {
-            toast.error("No se pudo generar el Excel");
+            toast.error(format === "pdf" ? "No se pudo generar el PDF" : "No se pudo generar el Excel");
         } finally {
             setExporting(false);
         }
@@ -332,7 +332,11 @@ const CorteSemanalForm = ({
                                     Eliminar
                                 </Button>
                             )}
-                            <Button disabled={exporting} onClick={exportExcel}>
+                            <Button disabled={exporting} variant="soft" onClick={() => exportFile("pdf")}>
+                                <FaFilePdf />
+                                {exporting ? "Generando..." : "Descargar PDF"}
+                            </Button>
+                            <Button disabled={exporting} onClick={() => exportFile("xlsx")}>
                                 <FaFileExcel />
                                 {exporting ? "Generando..." : "Descargar Excel"}
                             </Button>
