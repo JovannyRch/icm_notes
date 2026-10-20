@@ -147,7 +147,7 @@ const Index = ({ pagination, flash, brands, filters, summary }: Props) => {
     const hasFilters = !!(filters.query || filters.brand || filters.estado);
 
     // --- Margen: con el costo real (IVA y extra, el global de la sucursal si existe) --
-    const realCost = (p: Product) => Number(p.cost ?? 0) * (1 + Number(p.iva ?? 0) / 100) * (1 + effectiveExtra(p.extra, globalExtra) / 100);
+    const realCost = (p: Product) => Number(p.cost ?? 0) * (1 + Number(p.iva ?? 0) / 100) * (1 + effectiveExtra(p.extra, globalExtra, p.skip_global_extra) / 100);
     const margin = (p: Product) => {
         const price = Number(p.price ?? 0);
         if (price <= 0 || Number(p.cost ?? 0) <= 0) return null;
@@ -155,13 +155,15 @@ const Index = ({ pagination, flash, brands, filters, summary }: Props) => {
     };
 
     // Campos editables en la fila, en el orden en que Tab los recorre. El extra del producto
-    // no se edita aquí cuando la sucursal tiene extra global (ese es el que aplica).
+    // no se edita aquí cuando la sucursal tiene extra global (ese es el que aplica), salvo
+    // en los productos marcados "sin extra global".
+    const extraEditable = (p: Product) => globalExtra === null || !!p.skip_global_extra;
     const quickFields: QuickField[] = [
         "price",
         "price2",
         "cost",
         "iva",
-        ...(globalExtra === null ? (["extra"] as QuickField[]) : []),
+        "extra",
         ...(can("stock.manage") ? (["stock"] as QuickField[]) : []),
     ];
     const [editing, setEditing] = useState<{ id: number; field: QuickField } | null>(null);
@@ -185,7 +187,14 @@ const Index = ({ pagination, flash, brands, filters, summary }: Props) => {
     const currentValue = (p: Product, field: QuickField): number | null =>
         field === "stock" ? (showsStock(p.stock?.quantity, p.stock?.counted_at) ? Number(p.stock!.quantity) : null) : Number(p[field] ?? 0);
 
-    const target = (id: number, field: QuickField, move: Move) => {
+    const target = (id: number, field: QuickField, move: Move): { id: number; field: QuickField } | null => {
+        const next = rawTarget(id, field, move);
+        // Si cae en un extra que no se edita en ese producto, sigue de largo.
+        if (next && next.field === "extra" && !extraEditable(products.find((p) => p.id === next.id)!)) return target(next.id, next.field, move);
+        return next;
+    };
+
+    const rawTarget = (id: number, field: QuickField, move: Move) => {
         const row = products.findIndex((p) => p.id === id);
         const col = quickFields.indexOf(field);
         if (move === "down" && row + 1 < products.length) return { id: products[row + 1].id!, field };
@@ -258,6 +267,19 @@ const Index = ({ pagination, flash, brands, filters, summary }: Props) => {
             onCancel={() => setEditing(null)}
         />
     );
+
+    // "Sin extra global": el 6% (o el que tenga la sucursal) no se le aplica a ese producto.
+    const toggleSkipGlobalExtra = (p: Product) => {
+        const value = !p.skip_global_extra;
+        setProducts((rows) => rows.map((r) => (r.id === p.id ? { ...r, skip_global_extra: value } : r)));
+        axios
+            .patch(route("products.quick-update", p.id), { field: "skip_global_extra", value: value ? 1 : 0 })
+            .then(() => toast.success(value ? `${p.brand} ${p.model}: sin extra global.` : `${p.brand} ${p.model}: vuelve a llevar el extra global.`))
+            .catch((error) => {
+                setProducts((rows) => rows.map((r) => (r.id === p.id ? p : r)));
+                toast.error(error.response?.data?.message ?? "No se pudo guardar. Revisa tu conexión.");
+            });
+    };
 
     // router (Inertia 2) en lugar del cliente legado: con aquel se recargaba la página
     // completa y el mensaje de "eliminados" se perdía.
@@ -352,6 +374,11 @@ const Index = ({ pagination, flash, brands, filters, summary }: Props) => {
                 {can("sales.create") && (
                     <DropdownMenu.Item onSelect={() => router.visit(route("caja", { agregar: p.id }))}>
                         <LuShoppingCart /> Vender en caja
+                    </DropdownMenu.Item>
+                )}
+                {globalExtra !== null && (
+                    <DropdownMenu.Item onSelect={() => toggleSkipGlobalExtra(p)}>
+                        <LuPercent /> {p.skip_global_extra ? "Aplicar extra global" : "Sin extra global"}
                     </DropdownMenu.Item>
                 )}
                 <DropdownMenu.Separator />
@@ -536,7 +563,7 @@ const Index = ({ pagination, flash, brands, filters, summary }: Props) => {
                     <>
                         <p className="hidden md:flex items-center gap-1.5 mb-2 text-xs text-fog">
                             <LuPencil className="w-3.5 h-3.5" aria-hidden />
-                            Clic en precio, costo, IVA{globalExtra === null ? ", extra" : ""}
+                            Clic en precio, costo, IVA{globalExtra === null ? ", extra" : " (y extra de los productos sin extra global)"}
                             {can("stock.manage") ? " o existencias" : ""} para cambiarlo: Enter guarda y baja, Tab pasa al siguiente campo, Esc cancela.
                         </p>
 
@@ -629,9 +656,12 @@ const Index = ({ pagination, flash, brands, filters, summary }: Props) => {
                                                 </td>
                                                 <td className="px-3 py-2 text-right text-steel clickable">{quickCell(product, "cost", formatCurrency(product.cost))}</td>
                                                 <td className="px-3 py-2 text-right text-steel clickable">{quickCell(product, "iva", `${Number(product.iva ?? 0)}%`, "%")}</td>
-                                                <td className={`px-3 py-2 text-right tabular-nums ${globalExtra === null ? "clickable" : ""}`}>
-                                                    {globalExtra === null ? (
-                                                        <span className="text-steel">{quickCell(product, "extra", `${Number(product.extra ?? 0)}%`, "%")}</span>
+                                                <td className={`px-3 py-2 text-right tabular-nums ${extraEditable(product) ? "clickable" : ""}`}>
+                                                    {extraEditable(product) ? (
+                                                        <span className="text-steel">
+                                                            {quickCell(product, "extra", `${Number(product.extra ?? 0)}%`, "%")}
+                                                            {globalExtra !== null && <span className="ml-1 text-xs text-lavender">sin global</span>}
+                                                        </span>
                                                     ) : (
                                                         <span title={`Extra global de la sucursal (el del producto es ${product.extra ?? 0}%)`}>
                                                             {globalExtra}% <span className="text-xs text-lavender">global</span>

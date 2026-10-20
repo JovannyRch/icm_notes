@@ -130,13 +130,16 @@ const StockEntryForm = ({ flash, suppliers, entry }: Props) => {
         setRows((r) => r.map((row, i) => (i === index ? { ...row, ...patch } : row)));
     };
 
+    // El extra global de la sucursal aplica a todos, menos a los productos marcados "sin extra global".
+    const rowGlobal = (r: EntryRow) => (r.product.skip_global_extra ? null : globalExtra);
+
     const lines = useMemo(
         () =>
             rows.map((r) => {
                 const qty = num(r.quantity);
                 const cost = num(r.cost);
                 const iva = num(r.iva);
-                const extra = globalExtra ?? num(r.extra);
+                const extra = rowGlobal(r) ?? num(r.extra);
                 const base = cost * qty;
                 const withIva = base * (1 + iva / 100);
                 const subtotal = round2(withIva * (1 + extra / 100));
@@ -155,7 +158,7 @@ const StockEntryForm = ({ flash, suppliers, entry }: Props) => {
     const changed = (r: EntryRow) => ({
         cost: Math.abs(num(r.cost) - Number(r.product.cost ?? 0)) >= 0.005,
         iva: Math.abs(num(r.iva) - Number(r.product.iva ?? 0)) >= 0.005,
-        extra: globalExtra === null && Math.abs(num(r.extra) - Number(r.product.extra ?? 0)) >= 0.005,
+        extra: rowGlobal(r) === null && Math.abs(num(r.extra) - Number(r.product.extra ?? 0)) >= 0.005,
     });
     const anyChanged = rows.some((r) => Object.values(changed(r)).some(Boolean));
 
@@ -209,7 +212,7 @@ const StockEntryForm = ({ flash, suppliers, entry }: Props) => {
                         <div>
                             <h2 className="text-base font-semibold text-charcoal">Productos</h2>
                             {globalExtra !== null && (
-                                <p className="text-xs text-fog">La sucursal tiene extra global de {globalExtra}%: se aplica a todos los productos.</p>
+                                <p className="text-xs text-fog">La sucursal tiene extra global de {globalExtra}%: se aplica a todos los productos, menos a los marcados “sin extra global”.</p>
                             )}
                         </div>
                         {rows.length > 0 && <span className="text-xs text-fog">Enter en un campo regresa al buscador</span>}
@@ -292,9 +295,9 @@ const StockEntryForm = ({ flash, suppliers, entry }: Props) => {
                                                         aria-label={`Extra de ${name}`}
                                                         onKeyDown={backToSearch}
                                                         inputMode="decimal"
-                                                        value={globalExtra !== null ? String(globalExtra) : row.extra}
-                                                        disabled={globalExtra !== null}
-                                                        title={globalExtra !== null ? "Extra global de la sucursal" : undefined}
+                                                        value={rowGlobal(row) !== null ? String(rowGlobal(row)) : row.extra}
+                                                        disabled={rowGlobal(row) !== null}
+                                                        title={rowGlobal(row) !== null ? "Extra global de la sucursal" : undefined}
                                                         onChange={(e) => updateRow(i, { extra: e.target.value })}
                                                         className={`${inputCls} text-right ${diff.extra ? "!border-amber-500" : ""}`}
                                                     />

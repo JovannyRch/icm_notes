@@ -58,6 +58,12 @@ class ProductsImport implements ToCollection, WithHeadingRow
                 'extra' => $row['extra'] ?? null,
             ], fn ($v) => ! self::blank($v));
 
+            // SIN EXTRA GLOBAL: SI / NO (vacío = no se toca).
+            $skipRaw = mb_strtolower(trim((string) ($row['sin_extra_global'] ?? '')));
+            if ($skipRaw !== '') {
+                $values['skip_global_extra'] = in_array($skipRaw, ['si', 'sí', '1', 'x', 'true', 'yes'], true);
+            }
+
             $key = self::key($values['brand'] ?? null, $values['model'] ?? null, $values['measure'] ?? null, $values['mc'] ?? null);
             $product = $catalog->get($key);
 

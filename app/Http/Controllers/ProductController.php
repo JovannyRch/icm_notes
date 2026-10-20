@@ -25,6 +25,7 @@ class ProductController extends Controller
             'model' => 'required',
             'iva' => 'numeric',
             'extra' => 'numeric',
+            'skip_global_extra' => 'sometimes|boolean',
             'stock' => 'numeric',
             'price' => 'numeric',
             'price2' => 'nullable|numeric|min:0',
@@ -46,7 +47,9 @@ class ProductController extends Controller
      */
     private function listSql(?float $globalExtra): array
     {
-        $extra = $globalExtra !== null ? (string) (float) $globalExtra : 'COALESCE(products.extra, 0)';
+        $own = 'COALESCE(products.extra, 0)';
+        // Los productos con "sin extra global" usan su propio extra aunque la sucursal tenga uno global.
+        $extra = $globalExtra !== null ? "CASE WHEN products.skip_global_extra THEN {$own} ELSE ".(float) $globalExtra.' END' : $own;
         $realCost = "COALESCE(products.cost, 0) * (1 + COALESCE(products.iva, 0) / 100.0) * (1 + {$extra} / 100.0)";
 
         return [
@@ -202,7 +205,7 @@ class ProductController extends Controller
         $source = $request->integer('duplicar') ? Product::find($request->integer('duplicar')) : null;
 
         return Inertia::render('Products/Form', [
-            'duplicate' => $source?->only(['brand', 'model', 'measure', 'mc', 'unit', 'iva', 'extra', 'price', 'price2', 'cost']),
+            'duplicate' => $source?->only(['brand', 'model', 'measure', 'mc', 'unit', 'iva', 'extra', 'skip_global_extra', 'price', 'price2', 'cost']),
         ]);
     }
 
@@ -274,7 +277,7 @@ class ProductController extends Controller
     }
 
     /** Campos que se editan directo en la lista de productos (lo que cambia seguido). */
-    public const QUICK_FIELDS = ['price', 'price2', 'cost', 'iva', 'extra', 'stock'];
+    public const QUICK_FIELDS = ['price', 'price2', 'cost', 'iva', 'extra', 'skip_global_extra', 'stock'];
 
     /**
      * Edición rápida de un campo desde la lista (JSON, sin recargar la página).
@@ -302,7 +305,7 @@ class ProductController extends Controller
                 (new StockService)->adjustStock($branchId, $product->id, $value, 'ADJUSTMENT', null, 'Ajuste rápido desde la lista de productos');
             }
         } else {
-            $product->update([$data['field'] => $value]);
+            $product->update([$data['field'] => $data['field'] === 'skip_global_extra' ? $value > 0 : $value]);
         }
 
         $stock = Stock::where(['branch_id' => currentBranchId(), 'product_id' => $product->id])->first();
@@ -314,6 +317,7 @@ class ProductController extends Controller
             'cost' => (float) $product->cost,
             'iva' => (float) $product->iva,
             'extra' => (float) $product->extra,
+            'skip_global_extra' => (bool) $product->skip_global_extra,
             'stock' => $stock ? ['quantity' => (float) $stock->quantity, 'counted_at' => $stock->counted_at] : null,
         ]);
     }

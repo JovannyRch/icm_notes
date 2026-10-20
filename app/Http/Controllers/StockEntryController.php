@@ -238,7 +238,8 @@ class StockEntryController extends Controller
             $quantity = round((float) $item['quantity'], 2);
             $cost = round((float) $item['cost'], 2);
             $iva = round((float) ($item['iva'] ?? 0), 2);
-            $extra = $globalExtra !== null ? (float) $globalExtra : round((float) ($item['extra'] ?? 0), 2);
+            // El extra global manda, salvo en los productos marcados "sin extra global" (esos llevan el que se capture).
+            $extra = $globalExtra !== null && ! $product->skip_global_extra ? (float) $globalExtra : round((float) ($item['extra'] ?? 0), 2);
             $subtotal = StockEntryItem::subtotalFor($cost, $quantity, $iva, $extra);
             $total += $subtotal;
 
@@ -261,7 +262,7 @@ class StockEntryController extends Controller
                 $changes = array_filter([
                     'cost' => abs($cost - (float) $product->cost) >= 0.005 ? $cost : null,
                     'iva' => abs($iva - (float) $product->iva) >= 0.005 ? $iva : null,
-                    'extra' => $globalExtra === null && abs($extra - (float) $product->extra) >= 0.005 ? $extra : null,
+                    'extra' => ($globalExtra === null || $product->skip_global_extra) && abs($extra - (float) $product->extra) >= 0.005 ? $extra : null,
                 ], fn ($v) => $v !== null);
                 if ($changes) {
                     Log::info('Costo actualizado desde nota de entrada', ['product_id' => $product->id, 'antes' => $product->only(array_keys($changes)), 'ahora' => $changes, 'entrada' => $entry->id]);

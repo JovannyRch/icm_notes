@@ -347,7 +347,7 @@ const NoteForm = ({
             list_price: product.price,
             iva: product.iva,
             // La nota es de `branch` (la activa al crear, la de la nota al editar).
-            extra: effectiveExtra(product.extra, branch?.extra_percentage ?? null),
+            extra: effectiveExtra(product.extra, branch?.extra_percentage ?? null, product.skip_global_extra),
             supplied_status: "no_enviado",
             delivery_status: STATUS_DELIVERY_ENUM.PENDING,
             quantity: 1,

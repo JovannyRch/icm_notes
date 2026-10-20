@@ -12,7 +12,7 @@ import { useBranch } from "@/hooks/useBranch";
 import { PageProps } from "@/types";
 import { Product } from "@/types/Product";
 import { Link, router, useForm } from "@inertiajs/react";
-import { Badge, Button, Flex, Tabs, Text } from "@radix-ui/themes";
+import { Badge, Button, Flex, Switch, Tabs, Text } from "@radix-ui/themes";
 import { useState } from "react";
 import { confirmAlert } from "react-confirm-alert";
 import { BiArrowBack, BiArrowToRight, BiSave, BiTrash } from "react-icons/bi";
@@ -81,6 +81,7 @@ const Form = ({
         // Vacío = sin precio 2.
         price2: source?.price2 !== null && source?.price2 !== undefined && Number(source.price2) > 0 ? String(Number(source.price2)) : "",
         extra: String(source?.extra ?? 0),
+        skip_global_extra: Boolean(source?.skip_global_extra),
         stock: String(
             isNumber(product?.stock?.quantity)
                 ? Number(product?.stock?.quantity)
@@ -120,7 +121,7 @@ const Form = ({
     };
 
     // Vista previa del costo real, igual que calculatePurchaseSubtotal() con cantidad 1.
-    const appliedExtra = effectiveExtra(Number(data.extra) || 0, globalExtra);
+    const appliedExtra = effectiveExtra(Number(data.extra) || 0, globalExtra, data.skip_global_extra);
     const costWithTaxes = (Number(data.cost) || 0) * (1 + (Number(data.iva) || 0) / 100) * (1 + appliedExtra / 100);
     const unitProfit = (Number(data.price) || 0) - costWithTaxes;
     const stockChanged = isEdit && isFilledNumber(data.stock) && Number(data.stock) !== originalStock;
@@ -163,7 +164,7 @@ const Form = ({
         }
     }, [product?.stock?.quantity]);
 
-    const field = (name: keyof typeof data, label: string, opts: { required?: boolean; type?: "text" | "number"; className?: string } = {}) => (
+    const field = (name: Exclude<keyof typeof data, "skip_global_extra">, label: string, opts: { required?: boolean; type?: "text" | "number"; className?: string } = {}) => (
         <InputWithLabel
             label={opts.required ? `${label} *` : label}
             name={name}
@@ -261,17 +262,30 @@ const Form = ({
                                     {field("iva", "IVA (%)")}
                                     <div>
                                         {field("extra", "Extra (%)")}
-                                        {globalExtra !== null && (
+                                        {globalExtra !== null && !data.skip_global_extra && (
                                             <p className="mt-1 text-xs text-violet-700">
                                                 {currentBranchName} usa un extra global de {globalExtra}%; este valor no se aplica ahí.
                                             </p>
                                         )}
                                     </div>
+                                    <div className="md:col-span-5">
+                                        <Text as="label" size="2" className="flex items-start gap-2">
+                                            <Switch className="mt-0.5" checked={data.skip_global_extra} onCheckedChange={(v) => setData("skip_global_extra", v)} />
+                                            <span>
+                                                <span className="block text-charcoal">Sin extra global</span>
+                                                <span className="block text-xs text-fog">
+                                                    {globalExtra !== null
+                                                        ? `No aplicar el ${globalExtra}% global de ${currentBranchName} a este producto: usa el Extra (%) de arriba (0 si no lleva).`
+                                                        : "Si una sucursal tiene extra global, a este producto no se le aplica: usa el Extra (%) de arriba."}
+                                                </span>
+                                            </span>
+                                        </Text>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-1 gap-3 p-3 mt-4 text-sm rounded-card sm:grid-cols-2 bg-paper">
                                     <div>
                                         <div className="text-xs text-fog">
-                                            Costo con IVA y extra ({appliedExtra}%{globalExtra !== null ? " global" : ""})
+                                            Costo con IVA y extra ({appliedExtra}%{globalExtra !== null && !data.skip_global_extra ? " global" : ""})
                                         </div>
                                         <div className="font-semibold tabular-nums">{formatCurrency(costWithTaxes)}</div>
                                     </div>

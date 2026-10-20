@@ -11,6 +11,8 @@ export interface Product {
     /** Precio 2 (mayoreo); null/0 = no tiene. */
     price2?: number | null;
     extra: number;
+    /** true = el extra global de la sucursal no le aplica (usa su propio extra). */
+    skip_global_extra?: boolean;
     created_at: string;
     updated_at: string;
     subtotal: number;

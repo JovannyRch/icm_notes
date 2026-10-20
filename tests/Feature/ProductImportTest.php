@@ -119,7 +119,7 @@ class ProductImportTest extends TestCase
 
         $rows = (new ProductsExport(null, $this->b->id))->collection();
         // Lo exportado se puede volver a importar: incluye el precio 2 (los archivos sin esa columna también se importan).
-        $this->assertSame(['MARCA', 'MODELO', 'MEDIDA', 'MC', 'UNIDAD', 'PRECIO PUBLICO', 'PRECIO 2', 'COSTO', 'IVA', 'EXTRA', 'EXISTENCIAS'], (new ProductsExport)->headings());
+        $this->assertSame(['MARCA', 'MODELO', 'MEDIDA', 'MC', 'UNIDAD', 'PRECIO PUBLICO', 'PRECIO 2', 'COSTO', 'IVA', 'EXTRA', 'EXISTENCIAS', 'SIN EXTRA GLOBAL'], (new ProductsExport)->headings());
         $this->assertSame(5.0, (float) $rows->first()->existencias);
 
         Excel::fake();
@@ -147,7 +147,7 @@ class ProductImportTest extends TestCase
     {
         // La plantilla de "Descargar template" trae las mismas columnas que la exportación.
         $path = public_path('templates/template_productos.xlsx');
-        $headers = \PhpOffice\PhpSpreadsheet\IOFactory::load($path)->getActiveSheet()->rangeToArray('A1:K1')[0];
+        $headers = \PhpOffice\PhpSpreadsheet\IOFactory::load($path)->getActiveSheet()->rangeToArray('A1:L1')[0];
         $this->assertSame((new ProductsExport)->headings(), $headers);
 
         $copy = tempnam(sys_get_temp_dir(), 'tpl').'.xlsx';

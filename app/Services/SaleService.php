@@ -217,7 +217,7 @@ class SaleService
                 $errors["items.{$i}.discount"] = 'El descuento de '.$product->brand.' '.$product->model.' es mayor que su importe.';
             }
 
-            $lineExtra = $extra ?? (float) $product->extra;
+            $lineExtra = $product->effectiveExtra($extra);
             // Misma fórmula que calculatePurchaseSubtotal() del frontend.
             $purchase = (float) $product->cost * $quantity * (1 + (float) $product->iva / 100) * (1 + $lineExtra / 100);
 

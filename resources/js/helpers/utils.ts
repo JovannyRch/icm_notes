@@ -13,11 +13,12 @@ export const calculatePurchaseSubtotal = (
     );
 };
 
-/** El extra global de la sucursal, si existe, reemplaza al del producto. */
+/** El extra global de la sucursal, si existe, reemplaza al del producto, salvo en los marcados "sin extra global". */
 export const effectiveExtra = (
     productExtra: number | null | undefined,
-    globalExtra: number | null
-): number => globalExtra ?? Number(productExtra ?? 0);
+    globalExtra: number | null,
+    skipGlobal?: boolean | null
+): number => (skipGlobal ? Number(productExtra ?? 0) : globalExtra ?? Number(productExtra ?? 0));
 
 /** Subtotal de venta NETO de la partida: precio × cantidad − descuento (0 en notas sin descuento). */
 export const calculateSaleSubtotal = (product: NoteItemInterface): number => {

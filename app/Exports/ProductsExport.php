@@ -6,10 +6,11 @@ use App\Models\Product;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class ProductsExport implements FromCollection, ShouldAutoSize, WithHeadings, WithStyles
+class ProductsExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles
 {
     protected $brand;
 
@@ -32,12 +33,21 @@ class ProductsExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
                 ->where('stocks.branch_id', $this->branchId ?? 0))
             ->orderBy('products.id')
             ->get(['products.brand', 'products.model', 'products.measure', 'products.mc', 'products.unit', 'products.price', 'products.price2',
-                'products.cost', 'products.iva', 'products.extra', 'stocks.quantity as existencias']);
+                'products.cost', 'products.iva', 'products.extra', 'stocks.quantity as existencias', 'products.skip_global_extra']);
+    }
+
+    /** Mismo orden que los encabezados; SIN EXTRA GLOBAL va como SI / vacío (la importación lee lo mismo). */
+    public function map($product): array
+    {
+        return [
+            $product->brand, $product->model, $product->measure, $product->mc, $product->unit, $product->price, $product->price2,
+            $product->cost, $product->iva, $product->extra, $product->existencias, $product->skip_global_extra ? 'SI' : '',
+        ];
     }
 
     public function headings(): array
     {
-        return ['MARCA', 'MODELO', 'MEDIDA', 'MC', 'UNIDAD', 'PRECIO PUBLICO', 'PRECIO 2', 'COSTO', 'IVA', 'EXTRA', 'EXISTENCIAS'];
+        return ['MARCA', 'MODELO', 'MEDIDA', 'MC', 'UNIDAD', 'PRECIO PUBLICO', 'PRECIO 2', 'COSTO', 'IVA', 'EXTRA', 'EXISTENCIAS', 'SIN EXTRA GLOBAL'];
     }
 
     public function styles(Worksheet $sheet)
