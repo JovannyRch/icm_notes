@@ -87,6 +87,12 @@ const PendingNotesTable = ({
                         });
                 }}
             />
+            {cashTotal + transferTotal + cardTotal > 0 && (
+                <div className="flex items-baseline justify-between gap-3 px-4 py-3 mt-3 rounded-card bg-paper" data-testid="previous-notes-total">
+                    <span className="font-medium text-charcoal">Total entradas de otros días</span>
+                    <span className="text-2xl font-semibold tabular-nums text-charcoal">{formatCurrency(cashTotal + transferTotal + cardTotal)}</span>
+                </div>
+            )}
             <div className="flex flex-wrap justify-end pt-3 text-sm gap-x-6 gap-y-1">
                 {[
                     ["Efectivo", cashTotal],

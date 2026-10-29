@@ -94,7 +94,13 @@ const CashSummary = ({ total, notesCount, balanceSum, cashSum, cardSum, cardCred
                 )}
                 <Line label="Transferencia" value={transferSum} />
                 {previousNotesSum > 0 && (
-                    <p className="mt-1 text-xs text-fog">Incluye {formatCurrency(previousNotesSum)} de notas de días anteriores.</p>
+                    <div className="flex items-baseline justify-between gap-3 px-3 py-2 mt-2 rounded-card bg-paper" data-testid="corte-previous-total">
+                        <span className="font-medium text-charcoal">
+                            Entradas de otros días
+                            <span className="block text-xs font-normal text-fog">Ya incluidas en lo cobrado de arriba</span>
+                        </span>
+                        <span className="text-xl font-semibold tabular-nums text-charcoal">{formatCurrency(previousNotesSum)}</span>
+                    </div>
                 )}
             </div>
 
