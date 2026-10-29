@@ -195,8 +195,10 @@ const CorteSemanalForm = ({
         const end_date = newValue.endDate;
 
         if (start_date && end_date) {
-            const formattedStart = start_date.toISOString().split("T")[0];
-            const formattedEnd = end_date.toISOString().split("T")[0];
+            // Fecha local, no toISOString(): el selector entrega un Date con la hora actual y, pasada
+            // la tarde (UTC−6), convertirlo a UTC lo corría al día siguiente (el 05 llegaba como 06).
+            const formattedStart = dayjs(start_date).format("YYYY-MM-DD");
+            const formattedEnd = dayjs(end_date).format("YYYY-MM-DD");
 
             router.get(route("cortes_semanales.create"), {
                 start_date: formattedStart,
