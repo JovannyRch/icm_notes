@@ -292,3 +292,38 @@ test("el nombre del cliente autocompleta teléfono y dirección de una venta ant
     await expect(page.getByLabel("Teléfono")).toHaveValue("7125551234");
     await expect(page.getByLabel("Dirección")).toHaveValue("Av. Siempre Viva 123");
 });
+
+/** Si el cajero sale de la pantalla a medio cobrar (p. ej. a Mis ventas) y regresa, no pierde la venta. */
+test("la venta en curso no se pierde si el cajero sale de la pantalla y regresa", async ({ page }) => {
+    await loginCashier(page);
+    const search = page.getByRole("combobox", { name: "Buscar producto" });
+    const customer = page.getByLabel("Cliente", { exact: true });
+    const total = page.getByTestId("caja-total");
+
+    await search.fill("MICHELIN");
+    await expect(page.getByRole("option").first()).toContainText("MICHELIN");
+    await search.press("Enter");
+    await customer.fill("Cliente a medias");
+    await page.getByLabel("Teléfono").fill("5512345678");
+    await expect(total).toHaveText("$2,500.00");
+
+    // Sale de la pantalla (a Mis ventas) y vuelve, como si hiciera otra cosa a medio cobrar.
+    await page.getByRole("button", { name: "Mis ventas" }).click();
+    await page.waitForURL("**/caja/ventas");
+    await page.goto("/caja");
+
+    await expect(page.getByText("Se restauró la venta que tenías en curso.")).toBeVisible();
+    await expect(total).toHaveText("$2,500.00");
+    await expect(customer).toHaveValue("Cliente a medias");
+    await expect(page.getByLabel("Teléfono")).toHaveValue("5512345678");
+
+    // Cobrarla la borra: una visita nueva ya no la vuelve a mostrar.
+    await page.keyboard.press("F8");
+    await page.keyboard.type("2500");
+    await page.keyboard.press("F12");
+    await page.getByRole("dialog", { name: "Venta registrada" }).getByRole("button", { name: "Nueva venta" }).click();
+    await page.goto("/caja/ventas");
+    await page.goto("/caja");
+    await expect(total).toHaveText("$0.00");
+    await expect(customer).toHaveValue("");
+});

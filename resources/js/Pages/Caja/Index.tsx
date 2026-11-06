@@ -83,6 +83,68 @@ const quickCash = (due: number) =>
 /** Precio 2 del producto si tiene (> 0). */
 const price2Of = (p: Pick<Product, "price2">): number | null => (Number(p.price2 ?? 0) > 0 ? Number(p.price2) : null);
 
+/**
+ * Venta en curso guardada en esta computadora (por sucursal y usuario), para que el cajero
+ * no la pierda si sale de la pantalla a hacer otra cosa y regresa. No viaja entre
+ * computadoras ni dispositivos a propósito: es sólo para no perder lo que ya llevaba
+ * tecleado en esta misma caja. Se olvida sola después de un turno (12 horas) y se borra
+ * en cuanto el carrito queda vacío (venta cobrada o cancelada).
+ */
+interface CajaDraft {
+    savedAt: number;
+    cart: CartLine[];
+    customer: string;
+    customerPhone: string;
+    customerAddress: string;
+    comments: string;
+    delivery: "now" | "send" | "pickup";
+    credit: boolean;
+    downPayment: string;
+    folio?: string;
+    noteDiscountMode: DiscountMode;
+    noteDiscount: string;
+    flete: string;
+    cashReceived: string;
+    card: string;
+    cardType: CardType | "";
+    transfer: string;
+    showOther: boolean;
+}
+
+const DRAFT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+const draftKeyFor = (branchId: number, userId: number) => `caja-draft-${branchId}-${userId}`;
+
+const loadDraft = (key: string): CajaDraft | null => {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const draft = JSON.parse(raw) as CajaDraft;
+        if (!draft.cart?.length || Date.now() - draft.savedAt > DRAFT_MAX_AGE_MS) {
+            localStorage.removeItem(key);
+            return null;
+        }
+        return draft;
+    } catch {
+        return null;
+    }
+};
+
+const saveDraft = (key: string, draft: Omit<CajaDraft, "savedAt">) => {
+    try {
+        localStorage.setItem(key, JSON.stringify({ ...draft, savedAt: Date.now() }));
+    } catch {
+        // sin localStorage (modo privado, cuota llena…): la venta sólo vive en esta visita
+    }
+};
+
+const clearDraft = (key: string) => {
+    try {
+        localStorage.removeItem(key);
+    } catch {
+        // nada que limpiar
+    }
+};
+
 /** Precio de catálogo de la línea según el nivel elegido (1 público, 2 mayoreo). */
 const catalogPrice = (l: Pick<CartLine, "product" | "priceLevel">) => (l.priceLevel === 2 && price2Of(l.product) !== null ? price2Of(l.product)! : Number(l.product.price));
 
@@ -117,29 +179,32 @@ const DiscountToggle = ({ mode, onChange, label }: { mode: DiscountMode; onChang
     </button>
 );
 
-const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props) => {
+const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash, auth }: Props) => {
     useAlerts(flash);
 
-    const [cart, setCart] = useState<CartLine[]>([]);
-    const [customer, setCustomer] = useState("");
-    const [customerPhone, setCustomerPhone] = useState("");
-    const [customerAddress, setCustomerAddress] = useState("");
-    const [comments, setComments] = useState("");
+    const draftKey = branch ? draftKeyFor(branch.id, auth.user.id) : null;
+    const [initialDraft] = useState<CajaDraft | null>(() => (draftKey ? loadDraft(draftKey) : null));
+
+    const [cart, setCart] = useState<CartLine[]>(initialDraft?.cart ?? []);
+    const [customer, setCustomer] = useState(initialDraft?.customer ?? "");
+    const [customerPhone, setCustomerPhone] = useState(initialDraft?.customerPhone ?? "");
+    const [customerAddress, setCustomerAddress] = useState(initialDraft?.customerAddress ?? "");
+    const [comments, setComments] = useState(initialDraft?.comments ?? "");
     // Cómo se entrega: ahora en mostrador (lo normal), se envía después o pasa a recoger.
-    const [delivery, setDelivery] = useState<"now" | "send" | "pickup">("now");
+    const [delivery, setDelivery] = useState<"now" | "send" | "pickup">(initialDraft?.delivery ?? "now");
     // A crédito: el cliente abona lo que quiera (o nada) y la venta queda "Pendiente".
-    const [credit, setCredit] = useState(false);
-    const [downPayment, setDownPayment] = useState("");
-    const [folio, setFolio] = useState(nextFolio);
-    const [noteDiscountMode, setNoteDiscountMode] = useState<DiscountMode>("$");
-    const [noteDiscount, setNoteDiscount] = useState("");
+    const [credit, setCredit] = useState(initialDraft?.credit ?? false);
+    const [downPayment, setDownPayment] = useState(initialDraft?.downPayment ?? "");
+    const [folio, setFolio] = useState(rules.editFolio && initialDraft?.folio ? initialDraft.folio : nextFolio);
+    const [noteDiscountMode, setNoteDiscountMode] = useState<DiscountMode>(initialDraft?.noteDiscountMode ?? "$");
+    const [noteDiscount, setNoteDiscount] = useState(initialDraft?.noteDiscount ?? "");
     // Flete: se cobra aparte y cambia en cada venta.
-    const [flete, setFlete] = useState("");
-    const [cashReceived, setCashReceived] = useState("");
-    const [card, setCard] = useState("");
-    const [cardType, setCardType] = useState<CardType | "">("");
-    const [transfer, setTransfer] = useState("");
-    const [showOther, setShowOther] = useState(false);
+    const [flete, setFlete] = useState(initialDraft?.flete ?? "");
+    const [cashReceived, setCashReceived] = useState(initialDraft?.cashReceived ?? "");
+    const [card, setCard] = useState(initialDraft?.card ?? "");
+    const [cardType, setCardType] = useState<CardType | "">(initialDraft?.cardType ?? "");
+    const [transfer, setTransfer] = useState(initialDraft?.transfer ?? "");
+    const [showOther, setShowOther] = useState(initialDraft?.showOther ?? false);
     const [processing, setProcessing] = useState(false);
     const submitting = useRef(false);
     const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
@@ -179,6 +244,61 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
     useEffect(() => {
         if (cart.length === 0) setFolio(nextFolio);
     }, [nextFolio]);
+
+    // Avisa que se recuperó la venta que el cajero dejó a medias (salió a hacer otra cosa y volvió).
+    useEffect(() => {
+        if (initialDraft) toast.info("Se restauró la venta que tenías en curso.");
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Guarda la venta en curso en esta computadora para no perderla al salir de la pantalla;
+    // se borra sola en cuanto el carrito queda vacío (al cobrar o al cancelar).
+    useEffect(() => {
+        if (!draftKey) return;
+        if (cart.length === 0) {
+            clearDraft(draftKey);
+            return;
+        }
+        saveDraft(draftKey, {
+            cart,
+            customer,
+            customerPhone,
+            customerAddress,
+            comments,
+            delivery,
+            credit,
+            downPayment,
+            ...(rules.editFolio ? { folio } : {}),
+            noteDiscountMode,
+            noteDiscount,
+            flete,
+            cashReceived,
+            card,
+            cardType,
+            transfer,
+            showOther,
+        });
+    }, [
+        draftKey,
+        cart,
+        customer,
+        customerPhone,
+        customerAddress,
+        comments,
+        delivery,
+        credit,
+        downPayment,
+        folio,
+        rules.editFolio,
+        noteDiscountMode,
+        noteDiscount,
+        flete,
+        cashReceived,
+        card,
+        cardType,
+        transfer,
+        showOther,
+    ]);
 
     // ¿Escanearon el QR de un ticket (o teclearon su código)? Entonces no es un producto.
     const scannedCode = extractNoteCode(query);
