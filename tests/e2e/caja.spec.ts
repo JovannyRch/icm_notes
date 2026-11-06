@@ -257,3 +257,38 @@ test("el cajero hace el corte del día sin ver compras", async ({ page }) => {
     await expect(page.getByRole("button", { name: "Eliminar" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /Descargar PDF/ })).toBeVisible();
 });
+
+/** El nombre del cliente sugiere datos ya capturados antes, para no volver a escribirlos. */
+test("el nombre del cliente autocompleta teléfono y dirección de una venta anterior", async ({ page }) => {
+    await loginCashier(page);
+    const search = page.getByRole("combobox", { name: "Buscar producto" });
+    const customer = page.getByLabel("Cliente", { exact: true });
+
+    // Primera venta: cliente nuevo, con teléfono y dirección.
+    await search.fill("GOODYEAR");
+    await expect(page.getByRole("option").first()).toContainText("GOODYEAR");
+    await search.press("Enter");
+    await customer.fill("Rosa Martínez");
+    await page.getByLabel("Teléfono").fill("7125551234");
+    await page.getByLabel("Dirección").fill("Av. Siempre Viva 123");
+    await page.getByRole("button", { name: "Exacto" }).click();
+    await page.keyboard.press("F12");
+    await page.getByRole("dialog", { name: "Venta registrada" }).getByRole("button", { name: "Nueva venta" }).click();
+    await expect(customer).toHaveValue("");
+
+    // Segunda venta: basta con escribir parte del nombre para que aparezca como sugerencia.
+    await search.fill("GOODYEAR");
+    await expect(page.getByRole("option").first()).toContainText("GOODYEAR");
+    await search.press("Enter");
+    await customer.fill("Ros");
+    const option = page.getByRole("option", { name: /Rosa Martínez/ });
+    await expect(option).toBeVisible();
+    await expect(option).toContainText("7125551234");
+    await expect(option).toContainText("Av. Siempre Viva 123");
+    await option.click();
+
+    // Elegirla rellena teléfono y dirección sin tener que escribirlos de nuevo.
+    await expect(customer).toHaveValue("Rosa Martínez");
+    await expect(page.getByLabel("Teléfono")).toHaveValue("7125551234");
+    await expect(page.getByLabel("Dirección")).toHaveValue("Av. Siempre Viva 123");
+});

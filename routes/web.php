@@ -5,6 +5,7 @@ use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CorteController;
 use App\Http\Controllers\CorteSemanalController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\NoteController;
@@ -113,10 +114,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/branch/unarchive', [NoteController::class, 'unarchiveNotes'])->name('notes.unarchive.items');
     });
 
-    // --- Búsqueda de productos y existencias (notas, caja, notas de entrada) ---
+    // --- Búsqueda de productos, existencias y clientes conocidos (notas, caja, notas de entrada) ---
     Route::middleware('can:products.search')->group(function () {
         Route::get('/api/products/search', [ProductController::class, 'search']);
         Route::get('/api/products/stock', [ProductController::class, 'stockByIds']);
+        Route::get('/api/customers/search', [CustomerController::class, 'search']);
     });
 
     // --- Productos ------------------------------------------------------------

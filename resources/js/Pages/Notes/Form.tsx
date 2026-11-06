@@ -1,8 +1,10 @@
 import CardTypePicker from "@/Components/CardTypePicker";
 import Container from "@/Components/Container";
 import ContainerSection from "@/Components/ContainerSection";
+import CustomerSearchInput from "@/Components/CustomerSearchInput";
 import InlineInput from "@/Components/InlineInput";
-
+import InputError from "@/Components/InputError";
+import InputLabel from "@/Components/InputLabel";
 import InputWithLabel from "@/Components/InputWithLabel";
 import LineDivider from "@/Components/LineDivider";
 import NoteItem from "@/Components/NoteItem";
@@ -149,7 +151,7 @@ const NoteForm = ({
 
     const { data, setData, errors, post, put, transform, processing } = useForm<NoteFormData>({
         folio: isEdit ? note?.folio : nextFolio,
-        customer: isEdit ? note?.customer : "",
+        customer: isEdit ? note?.customer ?? "" : "",
         customer_phone: isEdit ? note?.customer_phone ?? "" : "",
         customer_address: isEdit ? note?.customer_address ?? "" : "",
         sale_total: String(isEdit ? note?.sale_total : 0),
@@ -595,19 +597,25 @@ const NoteForm = ({
                                                 />
                                             </Grid>
                                             <Grid gridColumn="span 3" gap="2">
-                                                <InputWithLabel
-                                                    label="Cliente"
-                                                    name="customer"
-                                                    type="text"
-                                                    value={data.customer}
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            "customer",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    error={errors.customer}
-                                                />
+                                                <div>
+                                                    <InputLabel htmlFor="customer" value="Cliente" />
+                                                    <CustomerSearchInput
+                                                        id="customer"
+                                                        name="customer"
+                                                        value={data.customer}
+                                                        onChange={(value) => setData("customer", value)}
+                                                        onPick={(c) =>
+                                                            setData((prev) => ({
+                                                                ...prev,
+                                                                customer: c.customer,
+                                                                customer_phone: c.customer_phone ?? prev.customer_phone,
+                                                                customer_address: c.customer_address ?? prev.customer_address,
+                                                            }))
+                                                        }
+                                                        className="block w-full h-8 mt-1"
+                                                    />
+                                                    <InputError message={errors.customer} className="mt-2" />
+                                                </div>
                                             </Grid>
                                             <Grid gridColumn={{ initial: "span 3", sm: "span 1" }}>
                                                 <InputWithLabel

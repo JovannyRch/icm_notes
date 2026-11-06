@@ -1,6 +1,7 @@
 import Container from "@/Components/Container";
 import PageHeader from "@/Components/ui/PageHeader";
 import CardTypePicker, { CardType } from "@/Components/CardTypePicker";
+import CustomerSearchInput from "@/Components/CustomerSearchInput";
 import { formatCurrency } from "@/helpers/formatters";
 import { downloadTicketPdf, extractNoteCode, getAutoPrint, printTicket, setAutoPrint } from "@/helpers/printTicket";
 import useAlerts from "@/hooks/useAlerts";
@@ -759,11 +760,17 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash }: Props
                                     </span>
                                 )}
                             </label>
-                            <label className="text-xs font-medium text-steel">
+                            <label htmlFor="caja-customer" className="text-xs font-medium text-steel">
                                 Cliente
-                                <input
+                                <CustomerSearchInput
+                                    id="caja-customer"
                                     value={customer}
-                                    onChange={(e) => setCustomer(e.target.value)}
+                                    onChange={setCustomer}
+                                    onPick={(c) => {
+                                        setCustomer(c.customer);
+                                        setCustomerPhone(c.customer_phone ?? customerPhone);
+                                        setCustomerAddress(c.customer_address ?? customerAddress);
+                                    }}
                                     placeholder="Público en general"
                                     className={`${inputCls} mt-1`}
                                 />
