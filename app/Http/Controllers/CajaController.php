@@ -72,7 +72,7 @@ class CajaController extends Controller
             'customer_address' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:500',
             'credit' => 'boolean',
-            'delivery' => 'nullable|in:now,send,pickup',
+            'delivery' => 'nullable|in:now,send,pickup,pending',
             'cash' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1|max:100',
             'items.*.product_id' => 'required|integer|distinct|exists:products,id',

@@ -174,12 +174,18 @@ class CajaSaleTest extends TestCase
         $sell(['credit' => true, 'delivery' => 'pickup']);
         $this->assertSame('acuenta_x_recoger', Note::latest('id')->first()->delivery_status);
 
+        // A crédito y todavía no se sabe cómo se entrega: queda "pendiente" sin importar el saldo.
+        $sell(['credit' => true, 'delivery' => 'pending']);
+        $note = Note::latest('id')->first();
+        $this->assertSame('pendiente', $note->delivery_status);
+        $this->assertSame('pendiente', NoteProduct::where('note_id', $note->id)->sole()->delivery_status);
+
         // Las piezas salen del inventario igual (quedan apartadas).
-        $this->assertEquals(5, $this->stock($this->cement));
+        $this->assertEquals(4, $this->stock($this->cement));
 
         // Mis ventas sabe cuáles faltan por entregar.
         $this->actingAs($this->cashier())->withSession(['branch_id' => $this->a->id])->get('/caja/ventas')
-            ->assertInertia(fn ($page) => $page->where('sales.0.delivery_status', 'acuenta_x_recoger'));
+            ->assertInertia(fn ($page) => $page->where('sales.0.delivery_status', 'pendiente'));
 
         $this->sell($this->cashier(), ['items' => [['product_id' => $this->cement->id, 'quantity' => 1]], 'cash_received' => 245, 'delivery' => 'mañana'])
             ->assertSessionHasErrors('delivery');

@@ -25,18 +25,24 @@ class SaleService
 {
     public const DELIVERED = 'entregado_a_cliente';
 
-    /** Cómo se entrega: ahora en mostrador, se envía después o el cliente pasa a recoger. */
-    public const DELIVERY = ['now', 'send', 'pickup'];
+    /**
+     * Cómo se entrega: ahora en mostrador, se envía después, el cliente pasa a recoger, o
+     * (sobre todo a crédito) todavía no se sabe — queda "pendiente" hasta que, ya con la nota
+     * hecha, se decida y se edite ahí (como ya hacen las notas del dueño, que nacen "pendiente").
+     */
+    public const DELIVERY = ['now', 'send', 'pickup', 'pending'];
 
     /**
      * Estado de entrega de la nota (los mismos de Notas, const.ts): si no se lleva el material
-     * ahora, distingue si ya está pagado o sólo a cuenta (venta a crédito con saldo).
+     * ahora, distingue si ya está pagado o sólo a cuenta (venta a crédito con saldo); "pendiente"
+     * no se distingue por saldo porque todavía no se sabe ni cómo se va a entregar.
      */
     public static function deliveryStatus(string $delivery, bool $owes): string
     {
         return match ($delivery) {
             'send' => $owes ? 'acuenta_x_enviar' : 'pagado_x_enviar',
             'pickup' => $owes ? 'acuenta_x_recoger' : 'pagador_x_recoger',
+            'pending' => 'pendiente',
             default => self::DELIVERED,
         };
     }

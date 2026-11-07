@@ -98,7 +98,7 @@ interface CajaDraft {
     customerPhone: string;
     customerAddress: string;
     comments: string;
-    delivery: "now" | "send" | "pickup";
+    delivery: "now" | "send" | "pickup" | "pending";
     credit: boolean;
     downPayment: string;
     folio?: string;
@@ -233,8 +233,9 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash, auth }:
     const [customerPhone, setCustomerPhone] = useState(initialDraft?.customerPhone ?? "");
     const [customerAddress, setCustomerAddress] = useState(initialDraft?.customerAddress ?? "");
     const [comments, setComments] = useState(initialDraft?.comments ?? "");
-    // Cómo se entrega: ahora en mostrador (lo normal), se envía después o pasa a recoger.
-    const [delivery, setDelivery] = useState<"now" | "send" | "pickup">(initialDraft?.delivery ?? "now");
+    // Cómo se entrega: ahora en mostrador (lo normal), se envía después, pasa a recoger, o
+    // (sobre todo a crédito) todavía no se sabe y se decide después, ya con la nota hecha.
+    const [delivery, setDelivery] = useState<"now" | "send" | "pickup" | "pending">(initialDraft?.delivery ?? "now");
     // A crédito: el cliente abona lo que quiera (o nada) y la venta queda "Pendiente".
     const [credit, setCredit] = useState(initialDraft?.credit ?? false);
     const [downPayment, setDownPayment] = useState(initialDraft?.downPayment ?? "");
@@ -1068,10 +1069,17 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash, auth }:
                                 <SegmentedControl.Item value="now">Se lleva ahora</SegmentedControl.Item>
                                 <SegmentedControl.Item value="send">Por enviar</SegmentedControl.Item>
                                 <SegmentedControl.Item value="pickup">Pasa a recoger</SegmentedControl.Item>
+                                <SegmentedControl.Item value="pending">Pendiente</SegmentedControl.Item>
                             </SegmentedControl.Root>
                             {delivery !== "now" && (
                                 <p className="mt-1 text-xs text-fog">
-                                    Queda {delivery === "send" ? "por enviar" : "por recoger"}; las piezas se apartan del inventario.
+                                    Queda{" "}
+                                    {delivery === "send"
+                                        ? "por enviar"
+                                        : delivery === "pickup"
+                                          ? "por recoger"
+                                          : "pendiente de definir (se decide después, ya con la nota hecha)"}
+                                    ; las piezas se apartan del inventario.
                                     {delivery === "send" && !customerAddress.trim() && <span className="text-amber-800"> Anota la dirección.</span>}
                                 </p>
                             )}
