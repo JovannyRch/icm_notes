@@ -12,8 +12,9 @@ import { router } from "@inertiajs/react";
 import { Button, Dialog, IconButton, SegmentedControl, Switch, Text } from "@radix-ui/themes";
 import axios from "axios";
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { confirmAlert } from "react-confirm-alert";
 import { toast } from "react-toastify";
-import { LuBanknote, LuCreditCard, LuFileDown, LuHistory, LuLock, LuReceipt, LuMinus, LuPlus, LuPrinter, LuSearch, LuShoppingCart, LuTrash2, LuX } from "react-icons/lu";
+import { LuBanknote, LuClock, LuCreditCard, LuFileDown, LuHistory, LuLock, LuReceipt, LuMinus, LuPlus, LuPrinter, LuSearch, LuShoppingCart, LuTrash2, LuX } from "react-icons/lu";
 
 interface Rules {
     changePrice: boolean;
@@ -109,6 +110,19 @@ interface CajaDraft {
     cardType: CardType | "";
     transfer: string;
     showOther: boolean;
+    /** Sólo para mostrarlo en la lista de "Ventas en espera"; se recalcula solo al recuperarla. */
+    total: number;
+}
+
+/** Una venta que un cajero puso en espera: vive en el servidor, por sucursal (no por cajero). */
+interface HeldSaleItem {
+    id: number;
+    label: string | null;
+    user: string;
+    created_at: string;
+    items_count: number;
+    total: number;
+    payload: Omit<CajaDraft, "savedAt">;
 }
 
 const DRAFT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
@@ -144,6 +158,35 @@ const clearDraft = (key: string) => {
         // nada que limpiar
     }
 };
+
+/**
+ * Una venta en espera pasa por el servidor (a diferencia del borrador, que nunca sale del
+ * navegador) y el middleware de Laravel convierte toda cadena vacía ("") en `null` en el
+ * camino. Aquí se regresan a "" los campos que el resto del archivo asume que siempre son
+ * texto (y hace `.trim()` sobre ellos sin más), para no tronar al recuperarla.
+ */
+const normalizeHeldPayload = (payload: Omit<CajaDraft, "savedAt">): Omit<CajaDraft, "savedAt"> => ({
+    ...payload,
+    cart: payload.cart.map((l) => ({
+        ...l,
+        quantity: l.quantity ?? "",
+        price: l.price ?? "",
+        discount: l.discount ?? "",
+        m2: l.m2 ?? "",
+        amount: l.amount ?? "",
+    })),
+    customer: payload.customer ?? "",
+    customerPhone: payload.customerPhone ?? "",
+    customerAddress: payload.customerAddress ?? "",
+    comments: payload.comments ?? "",
+    downPayment: payload.downPayment ?? "",
+    noteDiscount: payload.noteDiscount ?? "",
+    flete: payload.flete ?? "",
+    cashReceived: payload.cashReceived ?? "",
+    card: payload.card ?? "",
+    cardType: payload.cardType ?? "",
+    transfer: payload.transfer ?? "",
+});
 
 /** Precio de catálogo de la línea según el nivel elegido (1 público, 2 mayoreo). */
 const catalogPrice = (l: Pick<CartLine, "product" | "priceLevel">) => (l.priceLevel === 2 && price2Of(l.product) !== null ? price2Of(l.product)! : Number(l.product.price));
@@ -205,6 +248,14 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash, auth }:
     const [cardType, setCardType] = useState<CardType | "">(initialDraft?.cardType ?? "");
     const [transfer, setTransfer] = useState(initialDraft?.transfer ?? "");
     const [showOther, setShowOther] = useState(initialDraft?.showOther ?? false);
+
+    // "Poner en espera" (como en SICAR): aparcar la venta en el servidor, por sucursal,
+    // para que cualquier cajero de ese mostrador la pueda recuperar después.
+    const [heldSales, setHeldSales] = useState<HeldSaleItem[]>([]);
+    const [heldSalesOpen, setHeldSalesOpen] = useState(false);
+    const [holdDialogOpen, setHoldDialogOpen] = useState(false);
+    const [holdLabel, setHoldLabel] = useState("");
+    const [holdSubmitting, setHoldSubmitting] = useState(false);
     const [processing, setProcessing] = useState(false);
     const submitting = useRef(false);
     const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
@@ -251,54 +302,19 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash, auth }:
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Guarda la venta en curso en esta computadora para no perderla al salir de la pantalla;
-    // se borra sola en cuanto el carrito queda vacío (al cobrar o al cancelar).
+    // Lista de ventas en espera de la sucursal: al entrar y cada vez que cambia (poner,
+    // recuperar o eliminar una). Es de toda la sucursal, no sólo de este cajero.
+    const refreshHeldSales = () => {
+        if (!branch) return;
+        axios
+            .get<HeldSaleItem[]>("/api/held-sales")
+            .then(({ data }) => setHeldSales(data.map((sale) => ({ ...sale, payload: normalizeHeldPayload(sale.payload) }))))
+            .catch(() => {});
+    };
     useEffect(() => {
-        if (!draftKey) return;
-        if (cart.length === 0) {
-            clearDraft(draftKey);
-            return;
-        }
-        saveDraft(draftKey, {
-            cart,
-            customer,
-            customerPhone,
-            customerAddress,
-            comments,
-            delivery,
-            credit,
-            downPayment,
-            ...(rules.editFolio ? { folio } : {}),
-            noteDiscountMode,
-            noteDiscount,
-            flete,
-            cashReceived,
-            card,
-            cardType,
-            transfer,
-            showOther,
-        });
-    }, [
-        draftKey,
-        cart,
-        customer,
-        customerPhone,
-        customerAddress,
-        comments,
-        delivery,
-        credit,
-        downPayment,
-        folio,
-        rules.editFolio,
-        noteDiscountMode,
-        noteDiscount,
-        flete,
-        cashReceived,
-        card,
-        cardType,
-        transfer,
-        showOther,
-    ]);
+        refreshHeldSales();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [branch?.id]);
 
     // ¿Escanearon el QR de un ticket (o teclearon su código)? Entonces no es un producto.
     const scannedCode = extractNoteCode(query);
@@ -466,6 +482,125 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash, auth }:
                   ? `Tu tope de descuento es ${rules.maxDiscountPercent}% (llevas ${totals.discountPercent.toFixed(1)}%).`
                   : paymentProblem;
 
+    /** Todo lo que lleva la venta en curso: lo mismo para el borrador automático y para "poner en espera". */
+    const draftPayload = (): Omit<CajaDraft, "savedAt"> => ({
+        cart,
+        customer,
+        customerPhone,
+        customerAddress,
+        comments,
+        delivery,
+        credit,
+        downPayment,
+        ...(rules.editFolio ? { folio } : {}),
+        noteDiscountMode,
+        noteDiscount,
+        flete,
+        cashReceived,
+        card,
+        cardType,
+        transfer,
+        showOther,
+        total: totals.total,
+    });
+
+    // Guarda la venta en curso en esta computadora para no perderla al salir de la pantalla;
+    // se borra sola en cuanto el carrito queda vacío (al cobrar o al cancelar).
+    useEffect(() => {
+        if (!draftKey) return;
+        if (cart.length === 0) {
+            clearDraft(draftKey);
+            return;
+        }
+        saveDraft(draftKey, draftPayload());
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        draftKey,
+        cart,
+        customer,
+        customerPhone,
+        customerAddress,
+        comments,
+        delivery,
+        credit,
+        downPayment,
+        folio,
+        rules.editFolio,
+        noteDiscountMode,
+        noteDiscount,
+        flete,
+        cashReceived,
+        card,
+        cardType,
+        transfer,
+        showOther,
+        totals.total,
+    ]);
+
+    const holdSale = () => {
+        if (cart.length === 0 || holdSubmitting) return;
+        setHoldSubmitting(true);
+        axios
+            .post("/api/held-sales", { label: holdLabel.trim() || null, payload: draftPayload() })
+            .then(() => {
+                toast.success("Venta puesta en espera.");
+                setHoldDialogOpen(false);
+                setHoldLabel("");
+                resetSale();
+                refreshHeldSales();
+            })
+            .catch(() => toast.error("No se pudo poner en espera. Revisa tu conexión."))
+            .finally(() => setHoldSubmitting(false));
+    };
+
+    const recallHeldSale = (sale: HeldSaleItem) => {
+        if (cart.length > 0) {
+            toast.warning("Termina o pon en espera tu venta actual antes de recuperar otra.");
+            return;
+        }
+        const p = sale.payload;
+        setCart(p.cart);
+        setCustomer(p.customer);
+        setCustomerPhone(p.customerPhone);
+        setCustomerAddress(p.customerAddress);
+        setComments(p.comments);
+        setDelivery(p.delivery);
+        setCredit(p.credit);
+        setDownPayment(p.downPayment);
+        if (rules.editFolio && p.folio) setFolio(p.folio);
+        setNoteDiscountMode(p.noteDiscountMode);
+        setNoteDiscount(p.noteDiscount);
+        setFlete(p.flete);
+        setCashReceived(p.cashReceived);
+        setCard(p.card);
+        setCardType(p.cardType);
+        setTransfer(p.transfer);
+        setShowOther(p.showOther);
+        setHeldSalesOpen(false);
+        toast.success("Venta recuperada.");
+        setHeldSales((current) => current.filter((s) => s.id !== sale.id));
+        axios.delete(`/api/held-sales/${sale.id}`).catch(() => refreshHeldSales());
+    };
+
+    const discardHeldSale = (sale: HeldSaleItem) => {
+        confirmAlert({
+            title: "Eliminar venta en espera",
+            message: `¿Eliminar la venta en espera${sale.label ? ` "${sale.label}"` : ""}? Esta acción no se puede deshacer.`,
+            buttons: [
+                {
+                    label: "Eliminar",
+                    onClick: () => {
+                        axios
+                            .delete(`/api/held-sales/${sale.id}`)
+                            .then(() => refreshHeldSales())
+                            .catch(() => toast.error("No se pudo eliminar."));
+                    },
+                },
+                { label: "Cancelar" },
+            ],
+        });
+    };
+
     const resetSale = () => {
         setCart([]);
         setCustomer("");
@@ -556,12 +691,20 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash, auth }:
                     </span>
                 }
                 actions={
-                    rules.history && (
-                        <Button variant="outline" color="gray" onClick={() => router.visit(route("caja.sales"))}>
-                            <LuHistory />
-                            Mis ventas
-                        </Button>
-                    )
+                    <div className="flex items-center gap-2">
+                        {branch && (
+                            <Button variant="outline" color="gray" onClick={() => setHeldSalesOpen(true)}>
+                                <LuClock />
+                                Ventas en espera{heldSales.length > 0 ? ` (${heldSales.length})` : ""}
+                            </Button>
+                        )}
+                        {rules.history && (
+                            <Button variant="outline" color="gray" onClick={() => router.visit(route("caja.sales"))}>
+                                <LuHistory />
+                                Mis ventas
+                            </Button>
+                        )}
+                    </div>
                 }
             />
 
@@ -1147,13 +1290,25 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash, auth }:
                             {processing ? "Guardando…" : credit ? "Registrar venta a crédito" : `Cobrar ${formatCurrency(totals.total)}`}
                         </Button>
                         {cart.length > 0 && (
-                            <button
-                                type="button"
-                                onClick={resetSale}
-                                className="inline-flex items-center justify-center w-full gap-1 mt-2 text-xs font-medium text-fog hover:text-charcoal"
-                            >
-                                <LuX className="w-3.5 h-3.5" aria-hidden /> Cancelar venta en curso
-                            </button>
+                            <div className="flex items-center justify-center gap-3 mt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setHoldDialogOpen(true)}
+                                    className="inline-flex items-center gap-1 text-xs font-medium text-fog hover:text-charcoal"
+                                >
+                                    <LuClock className="w-3.5 h-3.5" aria-hidden /> Poner en espera
+                                </button>
+                                <span className="text-ash" aria-hidden>
+                                    ·
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={resetSale}
+                                    className="inline-flex items-center gap-1 text-xs font-medium text-fog hover:text-charcoal"
+                                >
+                                    <LuX className="w-3.5 h-3.5" aria-hidden /> Cancelar venta en curso
+                                </button>
+                            </div>
                         )}
                     </section>
                 </aside>
@@ -1209,6 +1364,70 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash, auth }:
                                 Nueva venta
                             </Button>
                         </div>
+                    </div>
+                </Dialog.Content>
+            </Dialog.Root>
+
+            <Dialog.Root open={holdDialogOpen} onOpenChange={setHoldDialogOpen}>
+                <Dialog.Content maxWidth="360px">
+                    <Dialog.Title>Poner en espera</Dialog.Title>
+                    <Dialog.Description size="2" color="gray">
+                        Se guarda para que cualquier cajero de esta sucursal la pueda recuperar después.
+                    </Dialog.Description>
+                    <label className="block mt-4 text-xs font-medium text-steel">
+                        Etiqueta <span className="font-normal text-fog">· opcional, p. ej. el nombre del cliente</span>
+                        <input
+                            autoFocus
+                            value={holdLabel}
+                            onChange={(e) => setHoldLabel(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && holdSale()}
+                            placeholder={customer.trim() || "Venta en espera"}
+                            className={`${inputCls} mt-1`}
+                        />
+                    </label>
+                    <div className="flex items-center justify-end gap-2 mt-4">
+                        <Dialog.Close>
+                            <Button variant="soft" color="gray">
+                                Cancelar
+                            </Button>
+                        </Dialog.Close>
+                        <Button onClick={holdSale} disabled={holdSubmitting}>
+                            {holdSubmitting ? "Guardando…" : "Poner en espera"}
+                        </Button>
+                    </div>
+                </Dialog.Content>
+            </Dialog.Root>
+
+            <Dialog.Root open={heldSalesOpen} onOpenChange={setHeldSalesOpen}>
+                <Dialog.Content maxWidth="480px">
+                    <Dialog.Title>Ventas en espera</Dialog.Title>
+                    <Dialog.Description size="2" color="gray">
+                        De toda la sucursal: cualquier cajero las puede recuperar o eliminar.
+                    </Dialog.Description>
+                    <div className="mt-4 space-y-2 max-h-[360px] overflow-y-auto">
+                        {heldSales.length === 0 ? (
+                            <p className="py-6 text-sm text-center text-fog">No hay ventas en espera.</p>
+                        ) : (
+                            heldSales.map((sale) => (
+                                <div key={sale.id} className="flex items-center justify-between gap-3 p-3 border rounded-card border-ash">
+                                    <div className="min-w-0">
+                                        <div className="font-medium truncate text-charcoal">{sale.label || "Venta en espera"}</div>
+                                        <div className="text-xs truncate text-fog">
+                                            {sale.items_count} {sale.items_count === 1 ? "producto" : "productos"} · {formatCurrency(sale.total)} ·{" "}
+                                            {sale.user}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                        <Button size="1" variant="soft" onClick={() => recallHeldSale(sale)}>
+                                            Recuperar
+                                        </Button>
+                                        <IconButton size="1" variant="ghost" color="gray" aria-label="Eliminar venta en espera" onClick={() => discardHeldSale(sale)}>
+                                            <LuTrash2 />
+                                        </IconButton>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </Dialog.Content>
             </Dialog.Root>

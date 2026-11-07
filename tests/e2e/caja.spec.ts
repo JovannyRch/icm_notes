@@ -327,3 +327,42 @@ test("la venta en curso no se pierde si el cajero sale de la pantalla y regresa"
     await expect(total).toHaveText("$0.00");
     await expect(customer).toHaveValue("");
 });
+
+/** Poner en espera (como en SICAR): se guarda en el servidor, no sólo en esta computadora. */
+test("poner una venta en espera y recuperarla desde otra computadora de la misma sucursal", async ({ page, browser }) => {
+    await loginCashier(page);
+    const search = page.getByRole("combobox", { name: "Buscar producto" });
+    const customer = page.getByLabel("Cliente", { exact: true });
+    const total = page.getByTestId("caja-total");
+
+    await search.fill("MICHELIN");
+    await expect(page.getByRole("option").first()).toContainText("MICHELIN");
+    await search.press("Enter");
+    await customer.fill("Doña Carmen");
+
+    await page.getByRole("button", { name: "Poner en espera" }).click();
+    const holdDialog = page.getByRole("dialog", { name: "Poner en espera" });
+    await holdDialog.getByLabel(/^Etiqueta/).fill("Doña Carmen - va por más efectivo");
+    await holdDialog.getByRole("button", { name: "Poner en espera" }).click();
+
+    // La pantalla queda libre para atender a otro cliente.
+    await expect(total).toHaveText("$0.00");
+    await expect(customer).toHaveValue("");
+    await expect(page.getByRole("button", { name: /Ventas en espera \(1\)/ })).toBeVisible();
+
+    // Otra computadora de la misma sucursal (mismo cajero, sesión nueva sin nada en su navegador):
+    // la ve y la puede recuperar igual, porque vive en el servidor, no en localStorage.
+    const other = await (await browser.newContext()).newPage();
+    await loginCashier(other);
+    await expect(other.getByRole("button", { name: /Ventas en espera \(1\)/ })).toBeVisible();
+    await other.getByRole("button", { name: /Ventas en espera/ }).click();
+    const list = other.getByRole("dialog", { name: "Ventas en espera" });
+    await expect(list).toContainText("Doña Carmen - va por más efectivo");
+    await expect(list).toContainText("1 producto");
+    await expect(list).toContainText("$2,500.00");
+    await list.getByRole("button", { name: "Recuperar" }).click();
+
+    await expect(other.getByLabel("Cliente", { exact: true })).toHaveValue("Doña Carmen");
+    await expect(other.getByTestId("caja-total")).toHaveText("$2,500.00");
+    await expect(other.getByRole("button", { name: /Ventas en espera/ })).not.toContainText("(1)");
+});

@@ -7,6 +7,7 @@ use App\Http\Controllers\CorteController;
 use App\Http\Controllers\CorteSemanalController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HeldSaleController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PdfController;
@@ -65,6 +66,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/caja/ventas', [CajaController::class, 'store'])->name('caja.store');
         // Cancelar: el controlador exige sales.cancel_own, que sea suya y del día.
         Route::post('/caja/ventas/{note}/cancelar', [CajaController::class, 'cancel'])->name('caja.cancel');
+        // Poner en espera: aparcar una venta a medio armar (por sucursal, no por cajero) y recuperarla después.
+        Route::get('/api/held-sales', [HeldSaleController::class, 'index']);
+        Route::post('/api/held-sales', [HeldSaleController::class, 'store']);
+        Route::delete('/api/held-sales/{heldSale}', [HeldSaleController::class, 'destroy']);
     });
 
     // --- Catálogo de consulta (mostrador): sin costos ----------------------------
