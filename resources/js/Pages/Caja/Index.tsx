@@ -1059,18 +1059,33 @@ const CajaIndex = ({ branch, nextFolio, rules, lastSale, preload, flash, auth }:
                             <span id="caja-delivery" className="block mb-1 text-xs font-medium text-steel">
                                 Entrega
                             </span>
-                            <SegmentedControl.Root
-                                aria-labelledby="caja-delivery"
-                                value={delivery}
-                                onValueChange={(v) => setDelivery(v as typeof delivery)}
-                                size="1"
-                                style={{ width: "100%" }}
-                            >
-                                <SegmentedControl.Item value="now">Se lleva ahora</SegmentedControl.Item>
-                                <SegmentedControl.Item value="send">Por enviar</SegmentedControl.Item>
-                                <SegmentedControl.Item value="pickup">Pasa a recoger</SegmentedControl.Item>
-                                <SegmentedControl.Item value="pending">Pendiente</SegmentedControl.Item>
-                            </SegmentedControl.Root>
+                            {/*
+                                Dos filas de 2, no un solo renglón de 4: el SegmentedControl de Radix
+                                nunca encoge su texto (min-width: max-content en su CSS), así que con
+                                4 opciones largas se salía del recuadro en vez de ajustarse.
+                            */}
+                            <div className="flex flex-col gap-1">
+                                <SegmentedControl.Root
+                                    aria-labelledby="caja-delivery"
+                                    value={delivery}
+                                    onValueChange={(v) => setDelivery(v as typeof delivery)}
+                                    size="1"
+                                    style={{ width: "100%" }}
+                                >
+                                    <SegmentedControl.Item value="now">Se lleva ahora</SegmentedControl.Item>
+                                    <SegmentedControl.Item value="send">Por enviar</SegmentedControl.Item>
+                                </SegmentedControl.Root>
+                                <SegmentedControl.Root
+                                    aria-labelledby="caja-delivery"
+                                    value={delivery}
+                                    onValueChange={(v) => setDelivery(v as typeof delivery)}
+                                    size="1"
+                                    style={{ width: "100%" }}
+                                >
+                                    <SegmentedControl.Item value="pickup">Pasa a recoger</SegmentedControl.Item>
+                                    <SegmentedControl.Item value="pending">Pendiente</SegmentedControl.Item>
+                                </SegmentedControl.Root>
+                            </div>
                             {delivery !== "now" && (
                                 <p className="mt-1 text-xs text-fog">
                                     Queda{" "}

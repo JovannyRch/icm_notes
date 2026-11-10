@@ -44,7 +44,7 @@ return [
         'dashboard.view' => ['label' => 'Dashboard y reportes', 'group' => 'Negocio'],
         'notes.view' => ['label' => 'Ver notas de venta', 'group' => 'Negocio'],
         'notes.manage' => ['label' => 'Crear, editar, archivar y eliminar notas', 'group' => 'Negocio'],
-        'costs.view' => ['label' => 'Ver costos, compras y utilidades', 'group' => 'Negocio'],
+        'costs.view' => ['label' => 'Ver costos, compras y utilidades', 'group' => 'Negocio', 'cashier' => true, 'default' => false],
         'products.manage' => ['label' => 'Administrar productos e importar/exportar', 'group' => 'Negocio'],
         'stock.manage' => ['label' => 'Administrar inventario y notas de entrada', 'group' => 'Negocio'],
         'branches.manage' => ['label' => 'Datos de sucursales y del ticket', 'group' => 'Negocio'],

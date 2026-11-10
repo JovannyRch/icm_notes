@@ -50,6 +50,8 @@ interface Sale {
     can_cancel: boolean;
     /** "CANCELADA 02/10/2026 14:20 por Ana. Motivo: …" (del comentario de la nota). */
     cancel_reason: string | null;
+    /** Sólo viene con costs.view (apagado por default para cajeros). */
+    purchase_total?: number;
 }
 
 interface Props extends PageProps {
@@ -57,6 +59,8 @@ interface Props extends PageProps {
     date: string;
     allBranch: boolean;
     onlyMine: boolean;
+    /** Ver costo de material y ganancia: costs.view, apagado por default para cajeros. */
+    seeCosts: boolean;
     sales: Sale[];
 }
 
@@ -78,7 +82,7 @@ const Tile = ({ label, value, hint, tone, testId }: { label: string; value: numb
     </div>
 );
 
-const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) => {
+const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash }: Props) => {
     useAlerts(flash);
 
     const [open, setOpen] = useState<Set<number>>(new Set());
@@ -145,6 +149,8 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
 
     const sum = (key: "sale_total" | "cash" | "card" | "transfer" | "balance", list = active) => list.reduce((acc, s) => acc + s[key], 0);
     const paid = (s: Sale) => s.cash + s.card + s.transfer;
+    // Costo del material vendido y ganancia del día: sólo con costs.view.
+    const purchaseTotal = active.reduce((acc, s) => acc + (s.purchase_total ?? 0), 0);
     // Ventas a crédito: lo que dejaron a cuenta y lo que resta por cobrar.
     const credit = active.filter((s) => s.credit);
     const creditPaid = credit.reduce((acc, s) => acc + paid(s), 0);
@@ -174,7 +180,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
             />
 
             {/* Totales del día: lo vendido = lo cobrado + lo que queda por cobrar (ventas a crédito). */}
-            <div className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-3 lg:grid-cols-6">
+            <div className={`grid grid-cols-2 gap-3 mb-4 sm:grid-cols-3 ${seeCosts ? "lg:grid-cols-7" : "lg:grid-cols-6"}`}>
                 <Tile label="Venta total" value={sum("sale_total")} hint={`${active.length} ${active.length === 1 ? "venta" : "ventas"}`} />
                 <Tile
                     label="Resta"
@@ -186,6 +192,8 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
                 <Tile label="Efectivo" value={sum("cash")} />
                 <Tile label="Tarjeta" value={sum("card")} />
                 <Tile label="Transferencia" value={sum("transfer")} />
+                {seeCosts && <Tile label="Compra" value={purchaseTotal} />}
+                {seeCosts && <Tile label="Ganancia" value={sum("sale_total") - purchaseTotal} />}
             </div>
 
             {sales.length > 0 && (
@@ -256,7 +264,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
                             {open.has(s.id) && (
                                 <Table.Row className="bg-paper/40">
                                     <Table.Cell colSpan={columns} className="!p-0">
-                                        <SaleSummary sale={s} today={date} />
+                                        <SaleSummary sale={s} today={date} showPurchase={seeCosts} />
                                     </Table.Cell>
                                 </Table.Row>
                             )}
@@ -297,7 +305,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, sales, flash }: Props) 
                         </button>
                         {open.has(s.id) && (
                             <div className="border-t border-ash bg-paper/40">
-                                <SaleSummary sale={s} today={date} />
+                                <SaleSummary sale={s} today={date} showPurchase={seeCosts} />
                             </div>
                         )}
                         <div className="px-3 pb-3">{actions(s)}</div>

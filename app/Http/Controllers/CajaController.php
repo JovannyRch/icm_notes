@@ -118,6 +118,8 @@ class CajaController extends Controller
         $allBranch = $user->can('sales.view_branch');
         // Con permiso de sucursal se ven todas; ?mias=1 filtra las propias.
         $onlyMine = ! $allBranch || $request->boolean('mias');
+        // Costos: apagado por default para cajeros (config/permissions.php); el dueño siempre lo ve.
+        $seeCosts = $user->can('costs.view');
 
         // items y pagos: el resumen de cada venta se despliega en la misma lista.
         $notes = Note::with(['seller:id,name', 'items' => fn ($q) => $q->orderBy('id'), 'payments'])
@@ -133,7 +135,8 @@ class CajaController extends Controller
             'date' => $date,
             'allBranch' => $allBranch,
             'onlyMine' => $onlyMine,
-            // Sin costos: sólo lo que el cajero cobró.
+            'seeCosts' => $seeCosts,
+            // Costo sólo para quien tiene costs.view: nunca por default (ver el ticket, que tampoco lo lleva).
             'sales' => $notes->map(fn (Note $n) => [
                 'id' => $n->id,
                 'folio' => $n->folio,
@@ -143,7 +146,7 @@ class CajaController extends Controller
                 'customer_address' => $n->customer_address,
                 'flete' => (float) ($n->flete ?? 0),
                 'cash_received' => $n->cash_received !== null ? (float) $n->cash_received : null,
-                // Sólo lo que sale en el ticket: nunca costo, IVA ni extra.
+                // Lo que sale en el ticket, nunca IVA ni extra; costo sólo con costs.view.
                 'lines' => $n->items->map(fn ($i) => [
                     'quantity' => (float) $i->quantity,
                     'description' => trim(implode(' ', array_filter([$i->brand, $i->model, $i->measure]))),
@@ -151,6 +154,7 @@ class CajaController extends Controller
                     'price' => (float) $i->price,
                     'discount' => (float) ($i->discount ?? 0),
                     'amount' => (float) $i->sale_subtotal,
+                    ...($seeCosts ? ['purchase' => (float) $i->purchase_subtotal] : []),
                 ])->values(),
                 'payments' => $n->payments->map(fn ($p) => [
                     'date' => substr((string) $p->date, 0, 10),
@@ -169,6 +173,7 @@ class CajaController extends Controller
                 'cash' => (float) $n->cash,
                 'card' => (float) $n->card,
                 'transfer' => (float) $n->transfer,
+                ...($seeCosts ? ['purchase_total' => (float) $n->purchase_total] : []),
                 'seller' => $n->seller?->name,
                 'is_mine' => $n->user_id === $user->id,
                 'canceled' => $n->delivery_status === 'cancelado' || $n->status === 'canceled',

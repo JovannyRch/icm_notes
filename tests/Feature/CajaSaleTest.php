@@ -468,6 +468,23 @@ class CajaSaleTest extends TestCase
         $this->actingAs($blind)->get('/caja/ventas')->assertForbidden();
     }
 
+    /** Un cajero de confianza puede ver también lo que cuesta el material (costs.view, apagado por default). */
+    public function test_sales_history_shows_costs_only_with_the_permission(): void
+    {
+        $this->sell($this->cashier(), ['items' => [['product_id' => $this->cement->id, 'quantity' => 1]], 'cash_received' => 245]);
+
+        $trusted = $this->cashier(['costs.view' => true]);
+        $this->actingAs($trusted)->get('/caja/ventas')->assertInertia(fn ($page) => $page
+            ->where('seeCosts', true)
+            ->where('sales.0.purchase_total', 190)
+            ->where('sales.0.lines.0.purchase', 190));
+
+        $this->actingAs($this->cashier())->get('/caja/ventas')->assertInertia(fn ($page) => $page
+            ->where('seeCosts', false)
+            ->missing('sales.0.purchase_total')
+            ->missing('sales.0.lines.0.purchase'));
+    }
+
     public function test_cancel_own_sale_of_the_day_returns_stock_and_removes_payment(): void
     {
         $cashier = $this->cashier(['sales.cancel_own' => true]);
