@@ -60,8 +60,22 @@ const m2PerBox = (l: SummaryLine) => {
  * Resumen de una venta dentro de una lista (Ventas del día, Notas): partidas, totales,
  * pagos y cliente, lo mismo que el ticket, sin abrir otra pantalla. `today` sirve para
  * escribir "Hoy" en los pagos de ese día; `extra` agrega datos al final (p. ej. entrega).
+ * `showProfit` es aparte de `showPurchase` porque un cajero con costs.view puede ver lo
+ * que cuesta el material sin que eso signifique que también vea la ganancia del dueño.
  */
-const SaleSummary = ({ sale, today, showPurchase = false, extra }: { sale: SummarySale; today: string; showPurchase?: boolean; extra?: ReactNode }) => {
+const SaleSummary = ({
+    sale,
+    today,
+    showPurchase = false,
+    showProfit = showPurchase,
+    extra,
+}: {
+    sale: SummarySale;
+    today: string;
+    showPurchase?: boolean;
+    showProfit?: boolean;
+    extra?: ReactNode;
+}) => {
     // Importe + descuento: en la caja el importe de una partida se puede escribir a mano.
     const gross = sale.lines.reduce((acc, l) => acc + l.amount + l.discount, 0);
     const discounts = sale.lines.reduce((acc, l) => acc + l.discount, 0) + sale.discount;
@@ -123,12 +137,8 @@ const SaleSummary = ({ sale, today, showPurchase = false, extra }: { sale: Summa
                     {discounts > 0 && <Row label="Descuento" value={`-${formatCurrency(discounts)}`} />}
                     {sale.flete > 0 && <Row label="Flete" value={formatCurrency(sale.flete)} />}
                     <Row label="Total" value={formatCurrency(sale.sale_total)} strong />
-                    {showPurchase && purchase > 0 && (
-                        <>
-                            <Row label="Compra" value={formatCurrency(purchase)} />
-                            <Row label="Ganancia" value={formatCurrency(sale.sale_total - purchase)} />
-                        </>
-                    )}
+                    {showPurchase && purchase > 0 && <Row label="Compra" value={formatCurrency(purchase)} />}
+                    {showProfit && purchase > 0 && <Row label="Ganancia" value={formatCurrency(sale.sale_total - purchase)} />}
                 </div>
 
                 {!sale.canceled && (

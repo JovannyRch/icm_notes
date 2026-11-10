@@ -437,7 +437,7 @@ const Home = ({ pagination, flash, totals, sort, withBalance, today }: Props) =>
                                 <Table.ColumnHeaderCell>Cliente</Table.ColumnHeaderCell>
                                 <Table.ColumnHeaderCell justify="end">Venta</Table.ColumnHeaderCell>
                                 <Table.ColumnHeaderCell>Cobro</Table.ColumnHeaderCell>
-                                {seeCosts && <Table.ColumnHeaderCell justify="end">Compra</Table.ColumnHeaderCell>}
+                                {seeCosts && <Table.ColumnHeaderCell justify="end">Debo</Table.ColumnHeaderCell>}
                                 <Table.ColumnHeaderCell>Entrega</Table.ColumnHeaderCell>
                             </Table.Row>
                         </Table.Header>
@@ -497,14 +497,8 @@ const Home = ({ pagination, flash, totals, sort, withBalance, today }: Props) =>
                                             </Table.Cell>
                                             <Table.Cell>{collection(note)}</Table.Cell>
                                             {seeCosts && (
-                                                <Table.Cell justify="end">
-                                                    <div className="tabular-nums text-steel">{formatCurrency(note.purchase_total)}</div>
-                                                    <div className="flex justify-end mt-0.5">
-                                                        <StatusPaidBadge
-                                                            status={note.purchase_status as payment_status}
-                                                            label={note.purchase_status === "pending" ? "Por pagar" : "Pagada"}
-                                                        />
-                                                    </div>
+                                                <Table.Cell justify="end" className="tabular-nums text-steel">
+                                                    {formatCurrency(note.purchase_status === "pending" ? note.purchase_total : 0)}
                                                 </Table.Cell>
                                             )}
                                             <Table.Cell>

@@ -192,8 +192,8 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash 
                 <Tile label="Efectivo" value={sum("cash")} />
                 <Tile label="Tarjeta" value={sum("card")} />
                 <Tile label="Transferencia" value={sum("transfer")} />
+                {/* Sólo el costo del material, no la ganancia (eso es del dueño): ver SaleSummary showProfit. */}
                 {seeCosts && <Tile label="Compra" value={purchaseTotal} />}
-                {seeCosts && <Tile label="Ganancia" value={sum("sale_total") - purchaseTotal} />}
             </div>
 
             {sales.length > 0 && (
@@ -264,7 +264,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash 
                             {open.has(s.id) && (
                                 <Table.Row className="bg-paper/40">
                                     <Table.Cell colSpan={columns} className="!p-0">
-                                        <SaleSummary sale={s} today={date} showPurchase={seeCosts} />
+                                        <SaleSummary sale={s} today={date} showPurchase={seeCosts} showProfit={false} />
                                     </Table.Cell>
                                 </Table.Row>
                             )}
@@ -305,7 +305,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash 
                         </button>
                         {open.has(s.id) && (
                             <div className="border-t border-ash bg-paper/40">
-                                <SaleSummary sale={s} today={date} showPurchase={seeCosts} />
+                                <SaleSummary sale={s} today={date} showPurchase={seeCosts} showProfit={false} />
                             </div>
                         )}
                         <div className="px-3 pb-3">{actions(s)}</div>
