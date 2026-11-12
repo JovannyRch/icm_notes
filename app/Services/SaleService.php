@@ -61,12 +61,11 @@ class SaleService
 
         return DB::transaction(function () use ($user, $branch, $data, $sale) {
             // El cajero no elige el folio (salvo con sales.edit_folio): siempre el siguiente.
+            // La caja también sugiere el siguiente folio y lo deja editable, así que, igual que
+            // en la nota del dueño, se resuelve bajo bloqueo para no repetir uno que ya se usó.
             $folio = $user->can('sales.edit_folio') ? trim((string) ($data['folio'] ?? '')) : '';
-            if ($folio === '') {
-                // Bloquea la sucursal: dos ventas simultáneas no toman el mismo folio.
-                Branch::whereKey($branch->id)->lockForUpdate()->first();
-                $folio = Note::nextFolio($branch->id);
-            }
+            Branch::whereKey($branch->id)->lockForUpdate()->first();
+            $folio = Note::folioForNewNote($branch->id, $folio);
 
             $today = businessToday();
             $delivery = in_array($data['delivery'] ?? 'now', self::DELIVERY, true) ? ($data['delivery'] ?? 'now') : 'now';

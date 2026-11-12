@@ -76,6 +76,24 @@ class NoteSaleFieldsTest extends TestCase
         $this->assertSame(['41', '42', 'MANUAL-7'], Note::orderBy('id')->pluck('folio')->all());
     }
 
+    public function test_a_repeated_numeric_folio_gets_bumped_but_a_repeated_manual_one_is_kept(): void
+    {
+        $this->existing('41', $this->a);
+
+        // El formulario sugiere "42" y el usuario no lo tocó (o dos pestañas mandaron el mismo
+        // sugerido): ya existe, así que no se repite, se corre al siguiente disponible.
+        $this->as()->post('/nota', $this->payload(['folio' => '42']))->assertSessionHasNoErrors();
+        $this->assertSame('42', Note::orderBy('id')->pluck('folio')->last());
+
+        $this->as()->post('/nota', $this->payload(['folio' => '42']))->assertSessionHasNoErrors();
+        $this->assertSame('43', Note::orderBy('id')->pluck('folio')->last());
+
+        // Un folio manual repetido sigue permitido (no es numérico, nunca se exigió único).
+        $this->as()->post('/nota', $this->payload(['folio' => 'MANUAL-7']))->assertSessionHasNoErrors();
+        $this->as()->post('/nota', $this->payload(['folio' => 'MANUAL-7']))->assertSessionHasNoErrors();
+        $this->assertSame(['41', '42', '43', 'MANUAL-7', 'MANUAL-7'], Note::orderBy('id')->pluck('folio')->all());
+    }
+
     public function test_seller_and_code_are_set_by_the_server(): void
     {
         $other = User::factory()->create();

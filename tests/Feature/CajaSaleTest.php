@@ -434,6 +434,19 @@ class CajaSaleTest extends TestCase
         $this->assertSame(['500', '501', 'A-7'], Note::orderBy('id')->pluck('folio')->all());
     }
 
+    public function test_a_repeated_typed_numeric_folio_is_bumped_instead_of_repeating(): void
+    {
+        $item = [['product_id' => $this->cement->id, 'quantity' => 1]];
+        $trusted = $this->cashier(['sales.edit_folio' => true]);
+
+        // La caja también sugiere el siguiente folio editable: si no lo cambiaron (o dos
+        // cobros mandaron el mismo sugerido) ya existe, así que se corre al siguiente.
+        $this->sell($trusted, ['items' => $item, 'cash_received' => 245, 'folio' => '1']);
+        $this->sell($trusted, ['items' => $item, 'cash_received' => 245, 'folio' => '1']);
+
+        $this->assertSame(['1', '2'], Note::orderBy('id')->pluck('folio')->all());
+    }
+
     public function test_sales_history_shows_the_branch_without_costs_and_can_filter_mine(): void
     {
         $me = $this->cashier();

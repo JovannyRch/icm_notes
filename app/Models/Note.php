@@ -98,6 +98,27 @@ class Note extends Model
         return (string) ($max + 1);
     }
 
+    /**
+     * Folio listo para una nota nueva: el que mandaron si no está en uso, o el siguiente
+     * de la sucursal si viene vacío o ya lo tiene otra nota. Sólo revisa duplicados en
+     * folios numéricos (los manuales, como "MANUAL-7", se respetan tal cual se escriban:
+     * el folio no es único a propósito, ver CLAUDE.md). Llamar con la sucursal ya
+     * bloqueada (`lockForUpdate`) para que dos altas simultáneas no se encimen.
+     */
+    public static function folioForNewNote(int $branchId, string $folio): string
+    {
+        $folio = trim($folio);
+        if ($folio === '') {
+            return static::nextFolio($branchId);
+        }
+
+        if (ctype_digit($folio) && static::query()->where('branch_id', $branchId)->where('folio', $folio)->exists()) {
+            return static::nextFolio($branchId);
+        }
+
+        return $folio;
+    }
+
     public function seller()
     {
         return $this->belongsTo(User::class, 'user_id');

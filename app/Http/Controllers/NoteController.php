@@ -175,11 +175,11 @@ class NoteController extends Controller
         $isCancelled = $request->delivery_status == 'cancelado';
 
         $note = DB::transaction(function () use ($request, $items, $payments, $isCancelled) {
-            if (blank($request->folio)) {
-                // Bloquea la sucursal para que dos ventas simultáneas no tomen el mismo folio.
-                Branch::whereKey($request->branch_id)->lockForUpdate()->first();
-                $request->merge(['folio' => Note::nextFolio((int) $request->branch_id)]);
-            }
+            // El formulario sugiere el siguiente folio pero deja editarlo: si no lo cambiaron
+            // (o escribieron uno que ya existe) choca con otra alta hecha mientras tanto.
+            // Bloquea la sucursal y resuelve bajo ese bloqueo para que no se repita.
+            Branch::whereKey($request->branch_id)->lockForUpdate()->first();
+            $request->merge(['folio' => Note::folioForNewNote((int) $request->branch_id, (string) $request->folio)]);
             $note = new Note($request->all());
             $note->forceFill(['user_id' => $request->user()->id, 'source' => Note::SOURCE_NOTA])->save();
             $this->createItems($note, $items, moveStock: ! NoteStockService::isCancelled($note));
