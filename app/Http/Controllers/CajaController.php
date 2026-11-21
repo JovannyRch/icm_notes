@@ -109,7 +109,10 @@ class CajaController extends Controller
         ]);
     }
 
-    /** Ventas del día en la sucursal activa: las propias, o todas con sales.view_branch. */
+    /** Cuántas notas pendientes (de cobro o de entrega) se listan como mucho, sin importar la fecha. */
+    private const MAX_PENDING = 200;
+
+    /** Ventas del día en la sucursal activa, o sus pendientes de cobro/entrega de cualquier fecha. */
     public function sales(Request $request)
     {
         $user = $request->user();
@@ -120,19 +123,36 @@ class CajaController extends Controller
         $onlyMine = ! $allBranch || $request->boolean('mias');
         // Costos: apagado por default para cajeros (config/permissions.php); el dueño siempre lo ve.
         $seeCosts = $user->can('costs.view');
+        // ?pendientes=1: no sólo hoy, cualquier nota (de cualquier día) que todavía deba o no se haya entregado.
+        $pending = $request->boolean('pendientes');
+
+        $query = Note::query()
+            ->where('branch_id', $branch?->id)
+            ->when(! $pending, fn ($q) => $q->where('date', $date))
+            ->when($pending, function ($q) {
+                // Mismo criterio de "a crédito" que el resto de la app (balance, nunca status:
+                // las notas a mano quedan "pending" aunque ya estén pagadas, ver CLAUDE.md).
+                $q->where('status', '!=', 'canceled')
+                    ->where('delivery_status', '!=', 'cancelado')
+                    ->where(fn ($w) => $w->where('balance', '>', 0.009)->orWhere('delivery_status', '!=', 'entregado_a_cliente'));
+            })
+            ->when($onlyMine, fn ($q) => $q->where('user_id', $user->id));
+
+        $truncated = $pending && (clone $query)->count() > self::MAX_PENDING;
 
         // items y pagos: el resumen de cada venta se despliega en la misma lista.
-        $notes = Note::with(['seller:id,name', 'items' => fn ($q) => $q->orderBy('id'), 'payments'])
+        $notes = $query->with(['seller:id,name', 'items' => fn ($q) => $q->orderBy('id'), 'payments'])
             ->withCount('items')
-            ->where('branch_id', $branch?->id)
-            ->where('date', $date)
-            ->when($onlyMine, fn ($q) => $q->where('user_id', $user->id))
+            ->orderByDesc($pending ? 'date' : 'id')
             ->orderByDesc('id')
+            ->when($pending, fn ($q) => $q->limit(self::MAX_PENDING))
             ->get();
 
         return Inertia::render('Caja/Ventas', [
             'branch' => $branch?->only('id', 'name'),
             'date' => $date,
+            'pending' => $pending,
+            'truncated' => $truncated,
             'allBranch' => $allBranch,
             'onlyMine' => $onlyMine,
             'seeCosts' => $seeCosts,
@@ -141,6 +161,7 @@ class CajaController extends Controller
                 'id' => $n->id,
                 'folio' => $n->folio,
                 'code' => $n->code,
+                'date' => (string) $n->date,
                 'customer' => $n->customer,
                 'customer_phone' => $n->customer_phone,
                 'customer_address' => $n->customer_address,

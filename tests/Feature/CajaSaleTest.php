@@ -447,6 +447,37 @@ class CajaSaleTest extends TestCase
         $this->assertSame(['1', '2'], Note::orderBy('id')->pluck('folio')->all());
     }
 
+    public function test_pendientes_lists_unresolved_notes_of_any_date_not_just_today(): void
+    {
+        $cashier = $this->cashier();
+        $item = [['product_id' => $this->cement->id, 'quantity' => 1]];
+
+        // Hoy, pagada y entregada: resuelta, no debe salir.
+        $this->sell($cashier, ['items' => $item, 'cash_received' => 245]);
+        // Hoy, a crédito: pendiente de cobro.
+        $this->sell($cashier, ['items' => $item, 'credit' => true]);
+        // Hoy, pagada pero por enviar: pendiente de entrega aunque ya se cobró completo.
+        $this->sell($cashier, ['items' => $item, 'cash_received' => 245, 'delivery' => 'send']);
+
+        // De hace una semana, todavía a crédito: sigue pendiente aunque no sea de hoy.
+        $old = Note::create(['folio' => '900', 'date' => now()->subWeek()->toDateString(), 'branch_id' => $this->a->id, 'user_id' => $cashier->id,
+            'purchase_total' => 100, 'sale_total' => 300, 'balance' => 150, 'status' => 'pending', 'purchase_status' => 'paid',
+            'delivery_status' => 'entregado_a_cliente', 'flete' => 0]);
+
+        // Cancelada con "saldo": nunca cuenta como pendiente.
+        Note::create(['folio' => '901', 'date' => now()->subWeek()->toDateString(), 'branch_id' => $this->a->id, 'user_id' => $cashier->id,
+            'purchase_total' => 100, 'sale_total' => 300, 'balance' => 150, 'status' => 'canceled', 'purchase_status' => 'paid',
+            'delivery_status' => 'cancelado', 'flete' => 0]);
+
+        // Orden: fecha desc, luego id desc. Las de hoy (folios 2 y 3) salen antes que la de hace una semana.
+        $this->actingAs($cashier)->withSession(['branch_id' => $this->a->id])->get('/caja/ventas?pendientes=1')
+            ->assertInertia(fn ($page) => $page->where('pending', true)->where('truncated', false)
+                ->has('sales', 3)
+                ->where('sales.0.folio', '3')
+                ->where('sales.1.folio', '2')
+                ->where('sales.2.folio', $old->folio));
+    }
+
     public function test_sales_history_shows_the_branch_without_costs_and_can_filter_mine(): void
     {
         $me = $this->cashier();

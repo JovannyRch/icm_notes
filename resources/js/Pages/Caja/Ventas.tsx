@@ -2,7 +2,7 @@ import Container from "@/Components/Container";
 import SaleSummary, { SummaryLine, SummaryPayment } from "@/Components/SaleSummary";
 import StatusPill from "@/Components/StatusPill";
 import PageHeader from "@/Components/ui/PageHeader";
-import { formatCurrency } from "@/helpers/formatters";
+import { formatCurrency, formatDate } from "@/helpers/formatters";
 import { downloadTicketPdf, printTicket } from "@/helpers/printTicket";
 import useAlerts from "@/hooks/useAlerts";
 import { PageProps } from "@/types";
@@ -23,6 +23,8 @@ const pendingDelivery = (status: string) =>
             : null;
 
 interface Sale {
+    /** Fecha de la nota (puede no ser hoy: sólo importa en ?pendientes=1). */
+    date: string;
     customer_address: string | null;
     flete: number;
     cash_received: number | null;
@@ -57,6 +59,10 @@ interface Sale {
 interface Props extends PageProps {
     branch: { id: number; name: string } | null;
     date: string;
+    /** ?pendientes=1: notas de cualquier fecha que debo o aún no se entregan, no sólo hoy. */
+    pending: boolean;
+    /** Hay más pendientes de los MAX_PENDING que se listan (las más recientes). */
+    truncated: boolean;
     allBranch: boolean;
     onlyMine: boolean;
     /** Ver costo de material y ganancia: costs.view, apagado por default para cajeros. */
@@ -82,7 +88,7 @@ const Tile = ({ label, value, hint, tone, testId }: { label: string; value: numb
     </div>
 );
 
-const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash }: Props) => {
+const SalesIndex = ({ branch, date, pending, truncated, allBranch, onlyMine, seeCosts, sales, flash }: Props) => {
     useAlerts(flash);
 
     const [open, setOpen] = useState<Set<number>>(new Set());
@@ -93,7 +99,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash 
             return next;
         });
     const allOpen = sales.length > 0 && sales.every((s) => open.has(s.id));
-    const columns = onlyMine ? 6 : 7;
+    const columns = (onlyMine ? 6 : 7) + (pending ? 1 : 0);
 
     const active = sales.filter((s) => !s.canceled);
 
@@ -164,18 +170,45 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash 
             <PageHeader
                 back={{ label: "Caja", href: route("caja") }}
                 eyebrow={branch?.name}
-                title={onlyMine ? "Mis ventas del día" : "Ventas del día"}
-                description={onlyMine ? formatDay(date) : `${formatDay(date)} · todos los cajeros de la sucursal`}
+                title={pending ? "Pendientes de cobro o entrega" : onlyMine ? "Mis ventas del día" : "Ventas del día"}
+                description={
+                    pending
+                        ? `De cualquier fecha${onlyMine ? "" : " · todos los cajeros de la sucursal"}`
+                        : onlyMine
+                          ? formatDay(date)
+                          : `${formatDay(date)} · todos los cajeros de la sucursal`
+                }
                 actions={
-                    allBranch && (
+                    <div className="flex flex-wrap items-center gap-2">
                         <SegmentedControl.Root
-                            value={onlyMine ? "mine" : "all"}
-                            onValueChange={(v) => router.get(route("caja.sales"), v === "mine" ? { mias: 1 } : {}, { preserveScroll: true })}
+                            value={pending ? "pending" : "today"}
+                            onValueChange={(v) =>
+                                router.get(
+                                    route("caja.sales"),
+                                    { ...(onlyMine ? { mias: 1 } : {}), ...(v === "pending" ? { pendientes: 1 } : {}) },
+                                    { preserveScroll: true },
+                                )
+                            }
                         >
-                            <SegmentedControl.Item value="all">Toda la sucursal</SegmentedControl.Item>
-                            <SegmentedControl.Item value="mine">Solo mías</SegmentedControl.Item>
+                            <SegmentedControl.Item value="today">Ventas de hoy</SegmentedControl.Item>
+                            <SegmentedControl.Item value="pending">Pendientes</SegmentedControl.Item>
                         </SegmentedControl.Root>
-                    )
+                        {allBranch && (
+                            <SegmentedControl.Root
+                                value={onlyMine ? "mine" : "all"}
+                                onValueChange={(v) =>
+                                    router.get(
+                                        route("caja.sales"),
+                                        { ...(v === "mine" ? { mias: 1 } : {}), ...(pending ? { pendientes: 1 } : {}) },
+                                        { preserveScroll: true },
+                                    )
+                                }
+                            >
+                                <SegmentedControl.Item value="all">Toda la sucursal</SegmentedControl.Item>
+                                <SegmentedControl.Item value="mine">Solo mías</SegmentedControl.Item>
+                            </SegmentedControl.Root>
+                        )}
+                    </div>
                 }
             />
 
@@ -196,6 +229,9 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash 
                 {seeCosts && <Tile label="Compra" value={purchaseTotal} />}
             </div>
 
+            {/* El tope (200) vive en CajaController::MAX_PENDING. */}
+            {truncated && <p className="mb-2 text-xs text-amber-800">Mostrando las 200 más recientes; hay más pendientes sin listar.</p>}
+
             {sales.length > 0 && (
                 <div className="flex items-center justify-between gap-2 mb-2">
                     <p className="text-xs text-fog">Toca una venta para ver sus productos y pagos.</p>
@@ -210,6 +246,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash 
                 <Table.Root>
                     <Table.Header>
                         <Table.Row>
+                            {pending && <Table.ColumnHeaderCell>Fecha</Table.ColumnHeaderCell>}
                             <Table.ColumnHeaderCell>Hora</Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>Folio</Table.ColumnHeaderCell>
                             <Table.ColumnHeaderCell>Cliente</Table.ColumnHeaderCell>
@@ -231,6 +268,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash 
                                     toggle(s.id);
                                 }}
                             >
+                                {pending && <Table.Cell className="text-steel whitespace-nowrap">{formatDate(s.date)}</Table.Cell>}
                                 <Table.Cell className="tabular-nums text-steel whitespace-nowrap">
                                     <button
                                         type="button"
@@ -288,7 +326,7 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash 
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                     <div className="font-medium text-charcoal">
-                                        Folio {s.folio} <span className="font-normal text-fog">· {s.time}</span>
+                                        Folio {s.folio} <span className="font-normal text-fog">· {pending ? formatDate(s.date) : s.time}</span>
                                     </div>
                                     <div className="text-sm truncate text-steel">{s.customer}</div>
                                     <div className="text-xs text-fog">
@@ -315,8 +353,10 @@ const SalesIndex = ({ branch, date, allBranch, onlyMine, seeCosts, sales, flash 
 
             {sales.length === 0 && (
                 <div className="py-14 text-center border md:border-t-0 md:rounded-t-none border-ash rounded-card">
-                    <p className="font-medium text-charcoal">Todavía no hay ventas hoy</p>
-                    <p className="mt-1 text-sm text-fog">Las ventas cobradas en caja aparecen aquí.</p>
+                    <p className="font-medium text-charcoal">{pending ? "No hay nada pendiente" : "Todavía no hay ventas hoy"}</p>
+                    <p className="mt-1 text-sm text-fog">
+                        {pending ? "Las notas con saldo o que falten por entregar aparecen aquí." : "Las ventas cobradas en caja aparecen aquí."}
+                    </p>
                 </div>
             )}
             <CancelSaleDialog sale={canceling} onClose={() => setCanceling(null)} />
