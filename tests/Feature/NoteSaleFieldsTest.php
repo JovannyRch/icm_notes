@@ -57,6 +57,8 @@ class NoteSaleFieldsTest extends TestCase
     {
         $this->assertSame('1', Note::nextFolio($this->a->id), 'sin notas empieza en 1');
 
+        // Aquí la última nota creada ("0099") también es la más alta: coincide con el "pico
+        // histórico" de antes. El siguiente test cubre cuando esas dos cosas NO coinciden.
         foreach (['9', '10', 'A-500', ' ', '0099'] as $folio) {
             $this->existing($folio, $this->a);
         }
@@ -64,6 +66,21 @@ class NoteSaleFieldsTest extends TestCase
 
         $this->assertSame('100', Note::nextFolio($this->a->id));
         $this->as()->get('/nota/crear')->assertInertia(fn ($page) => $page->where('nextFolio', '100'));
+    }
+
+    /**
+     * Caso real: una sucursal tuvo una racha vieja con folios grandes (3345-3347) y después
+     * volvió a usar folios chicos a mano, nota tras nota (393, 394, 395). `nextFolio()` seguía
+     * el pico histórico (3348) en vez de la numeración real que el negocio sigue usando, así
+     * que el campo quedaba sugiriendo 3348 sin parar y había que corregirlo a mano siempre.
+     */
+    public function test_next_folio_follows_the_last_note_not_the_highest_one_ever_used(): void
+    {
+        foreach (['3345', '3346', '3347', '393', '394', '395'] as $folio) {
+            $this->existing($folio, $this->a);
+        }
+
+        $this->assertSame('396', Note::nextFolio($this->a->id));
     }
 
     public function test_blank_folio_gets_the_next_one_and_a_typed_folio_is_kept(): void

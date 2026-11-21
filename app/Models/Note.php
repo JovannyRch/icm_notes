@@ -83,19 +83,26 @@ class Note extends Model
         return null;
     }
 
-    /** Siguiente folio de la sucursal: el mayor folio numérico + 1 (los no numéricos se ignoran). */
+    /**
+     * Siguiente folio de la sucursal: sigue a la ÚLTIMA nota dada de alta con folio
+     * numérico (por orden de creación, no el valor más alto que alguna vez existió). Si
+     * alguna vez se usó un folio numérico atípico (una racha vieja, un error) y después
+     * el negocio volvió a folios chicos a mano, esto sigue esa corrección en vez de
+     * quedarse pegado para siempre al pico viejo — eso pasó de verdad: una sucursal se
+     * quedó en folios de 3300+ de una racha de agosto mientras la numeración real seguía
+     * en 300s, y el campo sugería 3348 en automático sin parar.
+     */
     public static function nextFolio(int $branchId): string
     {
-        $max = 0;
         // Se compara en PHP: castear texto a número difiere (y truena en Postgres) entre motores.
-        foreach (static::query()->where('branch_id', $branchId)->select('folio')->cursor() as $note) {
+        foreach (static::query()->where('branch_id', $branchId)->orderByDesc('id')->select('folio')->cursor() as $note) {
             $folio = trim((string) $note->folio);
             if ($folio !== '' && ctype_digit($folio) && strlen($folio) <= 15) {
-                $max = max($max, (int) $folio);
+                return (string) ((int) $folio + 1);
             }
         }
 
-        return (string) ($max + 1);
+        return '1';
     }
 
     /**
