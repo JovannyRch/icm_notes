@@ -1,5 +1,7 @@
 import { formatCurrency } from "@/helpers/formatters";
 import { useCan } from "@/hooks/useCan";
+import { PageProps } from "@/types";
+import { usePage } from "@inertiajs/react";
 import { ReactNode } from "react";
 
 interface Props {
@@ -46,7 +48,9 @@ const SubLine = ({ label, value }: { label: string; value: number }) => (
 );
 
 const CashSummary = ({ total, notesCount, balanceSum, cashSum, cardSum, cardCreditSum = 0, cardDebitSum = 0, transferSum, expensesSum, returnsSum, previousNotesSum, purchasesSum, credit, children }: Props) => {
-    const seeCosts = useCan()("costs.view");
+    // El cajero no ve compras aquí ni con costs.view (el servidor ni siquiera se las manda).
+    const { auth } = usePage<PageProps>().props;
+    const seeCosts = useCan()("costs.view") && auth.user?.role !== "cashier";
     const cashCollected = cashSum + expensesSum + returnsSum; // efectivo antes de gastos y devoluciones
 
     return (

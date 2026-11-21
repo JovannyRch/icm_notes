@@ -2,6 +2,8 @@ import { useCan } from "@/hooks/useCan";
 import { formatCurrency, formatDate } from "@/helpers/formatters";
 import { getPaymentMethods } from "@/helpers/utils";
 import { Note } from "@/types/Note";
+import { PageProps } from "@/types";
+import { usePage } from "@inertiajs/react";
 import { Badge, IconButton } from "@radix-ui/themes";
 import { TbTrash } from "react-icons/tb";
 
@@ -17,8 +19,9 @@ const isCanceled = (note: Note) => note.status === "canceled" || note.delivery_s
 export const isCreditNote = (note: Note) => !isCanceled(note) && Number(note.balance ?? 0) > 0.009;
 
 const NotesTable = ({ notes, setNotes, isEditable }: Props) => {
-    // El cajero no ve compras (el servidor ni siquiera se las manda).
-    const seeCosts = useCan()("costs.view");
+    // El cajero no ve compras aquí ni con costs.view (el servidor ni siquiera se las manda).
+    const { auth } = usePage<PageProps>().props;
+    const seeCosts = useCan()("costs.view") && auth.user?.role !== "cashier";
     if (notes.length === 0) {
         return <p className="py-8 text-sm text-center text-fog">No hay notas en este día.</p>;
     }

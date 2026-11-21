@@ -24,8 +24,8 @@ class PdfController extends Controller
         $data = [
             'corte' => $corte,
             'branch_name' => $branch_name,
-            // El cajero descarga el corte sin las compras.
-            'hideCosts' => ! request()->user()->can('costs.view'),
+            // El cajero descarga el corte sin las compras (ni con costs.view, ver User::canSeeCorteCosts).
+            'hideCosts' => ! request()->user()->canSeeCorteCosts(),
         ];
 
         $pdf = Pdf::loadView('pdf.corte', $data);

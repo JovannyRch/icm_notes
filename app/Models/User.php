@@ -83,6 +83,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Compra en el corte: a diferencia de `costs.view` (Mis ventas, Notas, el catálogo),
+     * aquí no es configurable por cajero — un cajero nunca la ve, ni con `costs.view`
+     * encendido para que vea el costo del material en otras pantallas; el dueño siempre sí.
+     */
+    public function canSeeCorteCosts(): bool
+    {
+        return ! $this->isCashier() && $this->can('costs.view');
+    }
+
+    /**
      * ¿Tiene el permiso? (ver config/permissions.php)
      *  - inactivo: nada.
      *  - super_admin: todo.

@@ -90,13 +90,15 @@ class CorteIndexTest extends TestCase
 
     /**
      * El cajero descarga el PDF sin "Total de compra a pisos Leo": sólo el dueño y el
-     * super admin lo ven. Se cuelga de `costs.view` (config/permissions.php), que el
-     * cajero nunca tiene aunque se la activen a mano (no es configurable por cajero).
+     * super admin lo ven. `costs.view` sí es configurable por cajero (para que uno de
+     * confianza vea el costo del material en Mis ventas/Notas), pero el corte se cuelga
+     * de `User::canSeeCorteCosts()`, que para un cajero siempre es falso aunque tenga
+     * `costs.view` activado — el corte nunca lo muestra a un cajero.
      */
     public function test_only_owner_and_super_admin_see_the_purchase_total_in_the_downloaded_pdf(): void
     {
         $cashier = User::factory()->create();
-        $cashier->forceFill(['role' => User::CASHIER])->save();
+        $cashier->forceFill(['role' => User::CASHIER, 'permissions' => ['costs.view' => true]])->save();
         $cashier->branches()->sync([$this->a->id]);
         $owner = User::factory()->create();
         $owner->forceFill(['role' => User::OWNER])->save();
@@ -112,11 +114,12 @@ class CorteIndexTest extends TestCase
             $hideCosts[] = $view->getData()['hideCosts'] ?? null;
         });
 
+        // El cajero tiene costs.view (confianza, ve costo en Mis ventas) y aun así no ve el corte.
         $this->actingAs($cashier)->get(route('cortes.export', $corte))->assertOk();
         $this->actingAs($owner)->get(route('cortes.export', $corte))->assertOk();
         $this->actingAs($superAdmin)->get(route('cortes.export', $corte))->assertOk();
 
-        // Orden: cajero, dueño, super admin.
+        // Orden: cajero (con costs.view), dueño, super admin.
         $this->assertSame([true, false, false], $hideCosts);
     }
 

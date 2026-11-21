@@ -75,8 +75,9 @@ class CorteController extends Controller
         $data = $cortePayments->forBranchAndDate((int) $branch->id, $date);
 
         return Inertia::render('Cortes/Form', [
-            // El cajero no ve compras: se quitan aquí y el servidor las repone al guardar.
-            'notes' => $request->user()->can('costs.view') ? $data['notes'] : CorteCosts::strip($data['notes']),
+            // El cajero no ve compras (ni con costs.view, ver User::canSeeCorteCosts): se
+            // quitan aquí y el servidor las repone al guardar.
+            'notes' => $request->user()->canSeeCorteCosts() ? $data['notes'] : CorteCosts::strip($data['notes']),
             'previous_payments' => $data['previous_payments'],
             'branch' => $branch,
             'date' => $date,
@@ -137,7 +138,7 @@ class CorteController extends Controller
         $branch = Branch::find($corte->branch_id);
 
         $payload = $corte->toArray();
-        if (! $request->user()->can('costs.view')) {
+        if (! $request->user()->canSeeCorteCosts()) {
             $payload['notes'] = CorteCosts::strip($corte->notes ?? []);
         }
 

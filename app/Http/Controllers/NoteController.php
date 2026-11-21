@@ -564,7 +564,7 @@ class NoteController extends Controller
             ->where('folio', $folio)
             ->first();
 
-        if ($note && ! request()->user()->can('costs.view')) {
+        if ($note && ! request()->user()->canSeeCorteCosts()) {
             return response()->json(CorteCosts::strip([$note])[0]);
         }
 
@@ -579,7 +579,7 @@ class NoteController extends Controller
     {
         abort_unless(request()->user()->canAccessBranch((int) $branch), 403, 'No tienes acceso a esa sucursal.');
         $data = $cortePayments->forBranchAndDate((int) $branch, $date);
-        if (! request()->user()->can('costs.view')) {
+        if (! request()->user()->canSeeCorteCosts()) {
             $data['notes'] = CorteCosts::strip($data['notes']);
         }
 
